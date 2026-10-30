@@ -1,0 +1,44 @@
+node_modules/
+.next/
+.next-build/
+.next-qa-fixed/
+out/
+build/
+dist/
+coverage/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+.npmrc
+.mcp.json
+.claude/settings.local.json
+.claude/*.local.*
+.claude/projects/
+.vercel/
+.supabase/
+# Local Supabase CLI metadata (never stage)
+supabase/.temp/
+supabase/.branches/
+# Existing private research and skills: do not stage by default
+/docs/
+/.claude/skills/
+*.tsbuildinfo
+
+# Local build/QA output directories
+.next-*/
+
+# Recovery safety
+.env
+.env.*
+!.env.example
+!.env.sample
+node_modules/
+.next*
+dist/
+build/
+coverage/
