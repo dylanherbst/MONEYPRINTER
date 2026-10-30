@@ -8,3 +8,5 @@
 .course-creator-shell [role=status] { overflow-wrap:anywhere; }
 @media(max-width:640px) { .course-creator-shell { padding:16px; } .course-creator-shell fieldset { padding:12px; min-width:0; } }
 @media(prefers-reduced-motion:reduce) { .course-creator-shell * { animation:none!important; transition:none!important; } }
+.course-creator-shell section[aria-label="Account courses"] { margin-block:24px; padding:20px; border:1px solid rgba(45,158,149,.3); border-radius:16px; background:rgba(45,158,149,.06); }
+.course-creator-shell select { width:100%; min-height:44px; padding:10px; font:inherit; }

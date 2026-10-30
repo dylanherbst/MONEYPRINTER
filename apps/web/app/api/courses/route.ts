@@ -9,7 +9,7 @@ async function handle(req: NextRequest) {
  const reply=(body:unknown,status=200)=>NextResponse.json(body,{status,headers:{'Cache-Control':'no-store'}});
  if(req.method==='POST' && (!sameOrigin(req.headers.get('origin'),req.headers.get('host'),req.nextUrl.protocol,process.env.LAUNCHPAD_APP_ORIGIN) || !req.headers.get('content-type')?.startsWith('application/json'))) return reply({error:'Use same-origin JSON.'},403);
  if(!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) return reply({error:'Account storage is not configured. Browser drafts are unchanged.'},503);
- const token=req.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1];
+ const token=req.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1] ?? req.cookies.get('lp-access')?.value;
  if(!token)return reply({error:'Sign in to use account storage.'},401);
  try {
   const auth=await createSupabaseClient().auth.getUser(token);
