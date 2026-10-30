@@ -32,10 +32,10 @@ export default function CourseCreatorPage() {
     <p role="status">{message}</p>
     <fieldset disabled={!ready}><legend>Course details</legend>
       <label>Course title<input maxLength={160} value={input.title} onChange={e => {setPreview(false); setInput({...input, title:e.target.value});}} /></label>
-      <label>Summary<textarea maxLength={2000} value={input.summary} onChange={e => {setPreview(false); setInput({...input, summary:e.target.value});}} /></label>
+      <label>Summary<textarea aria-label="Summary" maxLength={2000} value={input.summary} onChange={e => {setPreview(false); setInput({...input, summary:e.target.value});}} /></label>
       {input.lessons.map((item,index) => <fieldset key={item.id}><legend>Lesson {index+1}</legend>
         <label>Lesson title<input maxLength={160} value={item.title} onChange={e => lesson(index,'title',e.target.value)} /></label>
-        <label>Lesson content<textarea maxLength={20000} value={item.content} onChange={e => lesson(index,'content',e.target.value)} /></label>
+        <label>Lesson content<textarea aria-label="Lesson content" maxLength={20000} value={item.content} onChange={e => lesson(index,'content',e.target.value)} /></label>
         <label>Duration in minutes<input type="number" min={1} max={600} value={item.durationMinutes} onChange={e => lesson(index,'durationMinutes',e.target.value)} /></label>
         <button disabled={index===0} onClick={() => {setPreview(false);setInput({...input,lessons:reorderLessonInputs(input.lessons,index,-1)});}}>Move up</button>
         <button disabled={index===input.lessons.length-1} onClick={() => {setPreview(false);setInput({...input,lessons:reorderLessonInputs(input.lessons,index,1)});}}>Move down</button>
@@ -47,8 +47,8 @@ export default function CourseCreatorPage() {
       <button onClick={() => attempt(() => {setTransfer(JSON.stringify(courseDraftFromInput(input,{id:id.current,profileId}),null,2));setMessage('Validated export ready to copy.');})}>Export JSON</button>
     </fieldset>
     {preview && <section aria-label="Learner preview"><h2>{input.title}</h2><p>{input.summary}</p>{projectLessonsForLearnerPreview(courseDraftFromInput(input,{id:id.current,profileId})).map(item => <article key={item.id}><h3>{item.title}</h3><p style={{whiteSpace:'pre-wrap'}}>{item.content}</p>{item.durationMinutes && <p>{item.durationMinutes} minutes</p>}</article>)}</section>}
-    <label>Course JSON export / import<textarea value={transfer} onChange={e=>setTransfer(e.target.value)} /></label>
+    <label>Course JSON export / import<textarea aria-label="Course JSON export / import" value={transfer} onChange={e=>setTransfer(e.target.value)} /></label>
     <button disabled={!ready || blocked} onClick={()=>attempt(()=>{const imported=importCourse(transfer,profileId);if(window.confirm('Replace unsaved editor content with this import?')){setInput(imported);setPreview(false);setMessage('Imported into editor only. Review and save to persist.');}})}>Import JSON</button>
-    <section><h2>AI generation adapter</h2><p>No AI provider is connected. This control reports the configuration blocker honestly; it does not fabricate a course.</p><label>Course brief<textarea maxLength={4000} value={brief} onChange={e=>setBrief(e.target.value)} /></label><button onClick={async()=>{try{await generateCourse(brief);}catch(error){setMessage(error instanceof Error?error.message:'Generation failed.');}}}>Check generation availability</button></section>
+    <section><h2>AI generation adapter</h2><p>No AI provider is connected. This control reports the configuration blocker honestly; it does not fabricate a course.</p><label>Course brief<textarea aria-label="Course brief" maxLength={4000} value={brief} onChange={e=>setBrief(e.target.value)} /></label><button onClick={async()=>{try{await generateCourse(brief);}catch(error){setMessage(error instanceof Error?error.message:'Generation failed.');}}}>Check generation availability</button></section>
   </main>;
 }
