@@ -1,9 +1,9 @@
 # LOCAL TEST BACKEND ONLY. Never copy auto-confirmation settings to production.
-project_id = "launchpad-local"
+project_id = "ventra-clean-integration"
 [api]
-port = 54321
+port = 55321
 [db]
-port = 54322
+port = 55322
 major_version = 17
 [auth]
 site_url = "http://127.0.0.1:3100"

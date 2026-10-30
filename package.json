@@ -8,6 +8,7 @@
   },
   "packageManager": "npm@11.19.0",
   "scripts": {
+    "test:local-integration": "node --experimental-strip-types scripts/local-integration.mjs",
     "dev": "npm --prefix apps/web run dev",
     "build": "npm --prefix apps/web run build",
     "start": "npm --prefix apps/web run start",

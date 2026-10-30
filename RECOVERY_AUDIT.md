@@ -1,5 +1,24 @@
 # VENTRA recovery audit — 30 October 2026
 
+## Local integration repair — 30 October 2026
+
+The recovery baseline is now committed as `442710c`. The earlier unborn-branch and missing-local-backend statements below describe the recovery session, not the current checkout.
+
+Investigated both integration commands: they exited 2 before assertions because local test configuration was absent. Started the VENTRA Colima runtime and created the separate `ventra-clean-integration` stack from this checkout's migration, on API port 55321/database port 55322. Full-stack startup failed on unrelated analytics/vector health checks; the documented minimal startup excludes those and other services not required by these suites. No existing database was reset, no Docker volumes were deleted, and no production or older repository was modified.
+
+Added `test:local-integration`, which obtains this checkout's local CLI status privately, requires the expected loopback API port, and supplies credentials only through process environment to the existing suites. No credential files were added. The API suite continues to withhold the fixture admin key from its disposable build/server.
+
+Verified with pinned Node/npm:
+
+- Unit/fixture PostgreSQL tests: **261 passed**, 0 failed/skipped; exit 0.
+- Real local Supabase Auth/PostgREST suite: **PASS**, exit 0, including tenant isolation, stale revisions, staff restrictions, import idempotence, duplicate signup and logout revocation.
+- Real application API suite: **PASS**, exit 0, including production cookie attributes, persistence, conflicts, tenant/staff restrictions, imports, logout and relogin. Its isolated production build and disposable server succeeded.
+- Final lint: **PASS**, zero warnings; typecheck: **PASS**; production build: **PASS** (16/16 static generation entries).
+- Runner syntax and diff whitespace checks: **PASS**.
+- Fresh Chromium preview regression: **94 passed**, no unexpected errors, failed resources or external requests; three expected disconnected-backend 503 console messages. Used the installed Chromium executable through a temporary adapter because the available Playwright module expected a different cached browser revision.
+
+No application/UI source was changed. Existing port-3100 preview belongs to this checkout and responded HTTP 200; it was not stopped or replaced. Development fixture users/workspaces remain only in the dedicated local stack. Provider integrations and the other bounded visual/platform limitations recorded below remain unchanged.
+
 ## Current state and provenance
 
 Working checkout: `/Users/dylan/Developer/VENTRA-CLEAN`. Sole writing developer; no additional agents, protected sessions, deployments, process takeovers, or writes to older repositories.

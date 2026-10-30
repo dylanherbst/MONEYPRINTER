@@ -28,6 +28,15 @@ Live backend suites are separate from unit/fixture-database tests:
 
 They refuse to run without isolated local Supabase test configuration. Never add credentials to source or use a production backend for tests.
 
+To run both suites against this checkout’s dedicated Docker-backed Supabase stack:
+
+```sh
+supabase start -x realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+./scripts/project npm run test:local-integration
+```
+
+The `ventra-clean-integration` stack uses API port 55321 and database port 55322, separate from older local projects. The runner reads local CLI credentials into memory without writing environment files. The API suite builds and starts its own disposable Next server; it does not replace the preview on port 3100. Fixture users and workspaces remain in this development stack. Never run a linked-project reset or push for these checks.
+
 The recovery browser check uses a fresh ephemeral Chromium context and synthetic records, without existing browser sessions. Supply an installed Playwright module path, or install Playwright separately and omit the argument:
 
 ```sh
