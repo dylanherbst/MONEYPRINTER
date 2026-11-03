@@ -1,0 +1,56 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
+
+test('launcher_drafts migration: owner writes, revisions, isolation, staff read-only, delete (fixture Auth claims, NOT Supabase integration)', async () => {
+  const db = new PGlite();
+  try {
+    await db.exec(`create role anon; create role authenticated;
+      create schema auth; create table auth.users(id uuid primary key);
+      create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz);
+      create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;
+      create function auth.uid() returns uuid language sql stable as $$ select (auth.jwt()->>'sub')::uuid $$;
+      grant usage on schema public,auth to authenticated,anon;
+      grant execute on function auth.uid(),auth.jwt() to authenticated,anon;`);
+    for (const f of ['202610160001_s01.sql', '202610300001_courses.sql', '202611030001_launcher_drafts.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
+    const a = '11111111-1111-4111-8111-111111111111', b = '22222222-2222-4222-8222-222222222222';
+    const sa = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', sb = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    await db.query('insert into auth.users values ($1),($2)', [a, b]);
+    await db.query('insert into auth.sessions(id,user_id) values ($1,$2),($3,$4)', [sa, a, sb, b]);
+    async function actor(id: string, session: string) {
+      await db.exec('reset role');
+      await db.query("select set_config('request.jwt.claims',$1,false)", [JSON.stringify({ sub: id, session_id: session })]);
+      await db.exec('set role authenticated');
+    }
+    const scalar = async (sql: string, params: unknown[] = []) => (await db.query<Record<string, unknown>>(sql, params)).rows[0]?.result;
+    await actor(a, sa);
+    const wa = await scalar("select public.create_workspace('Alpha') as result") as string;
+    const data = { version: 1, profileId: 'local-business', revision: 1, note: 'private pricing' };
+    assert.equal(await scalar("select public.save_launcher_draft($1,'pricing-scenario',$2,0) as result", [wa, data]), 1);
+    assert.equal(await scalar("select public.save_launcher_draft($1,'pricing-scenario',$2,1) as result", [wa, { ...data, note: 'v2' }]), 2);
+    await assert.rejects(db.query("select public.save_launcher_draft($1,'pricing-scenario',$2,1)", [wa, data]), /Revision conflict/);
+    await assert.rejects(db.query("select public.save_launcher_draft($1,'pricing-scenario',$2,0)", [wa, data]), /duplicate key/);
+    await assert.rejects(db.query("select public.save_launcher_draft($1,'not-a-kind',$2,0)", [wa, data]), /constraint/);
+    await assert.rejects(db.query("select public.save_launcher_draft($1,'business-plan','[]'::jsonb,0)", [wa]), /Invalid draft|constraint/);
+    await assert.rejects(db.query("select public.save_launcher_draft($1,'business-plan',$2,0)", [wa, { big: 'x'.repeat(130000) }]), /Invalid draft|constraint/);
+    await assert.rejects(db.query("update public.launcher_drafts set revision=99"), /permission denied/);
+    assert.equal(await scalar("select (data->>'note') as result from public.launcher_drafts where kind='pricing-scenario'"), 'v2');
+    // Another account sees nothing and cannot write.
+    await actor(b, sb);
+    assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts'), 0);
+    await assert.rejects(db.query("select public.save_launcher_draft($1,'pricing-scenario',$2,2)", [wa, data]), /Owner access/);
+    await assert.rejects(db.query("select public.delete_launcher_draft($1,'pricing-scenario',2)", [wa]), /Owner access/);
+    // Staff may read but not write.
+    await db.exec('reset role');
+    await db.query("insert into public.memberships values ($1,$2,'staff',true)", [wa, b]);
+    await actor(b, sb);
+    assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts where workspace_id=$1', [wa]), 1);
+    await assert.rejects(db.query("select public.save_launcher_draft($1,'pricing-scenario',$2,2)", [wa, data]), /Owner access/);
+    // Owner delete requires the current revision.
+    await actor(a, sa);
+    await assert.rejects(db.query("select public.delete_launcher_draft($1,'pricing-scenario',1)", [wa]), /Revision conflict/);
+    await db.query("select public.delete_launcher_draft($1,'pricing-scenario',2)", [wa]);
+    assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts'), 0);
+  } finally { await db.close(); }
+});

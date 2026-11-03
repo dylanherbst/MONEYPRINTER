@@ -22,6 +22,7 @@ import type {
   PricingScenarioWorksheet,
 } from '../../lib/local-pricing-scenario';
 import { formatOfferSnapshotLabel, snapshotFromLocalOffer } from '../../lib/local-offer-validation-worksheet';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'edit' | 'preview' | 'preview-heading';
 
@@ -266,6 +267,10 @@ export default function PricingScenarioWorksheetEditor({ profile }: { profile: P
         <h2 id="pricing-scenario-title">Manual pricing scenario</h2>
         <span className="status-badge">Browser draft · estimates only</span>
       </div>
+      <LauncherAccountSync kind="pricing-scenario" label="Pricing scenario"
+        readLocal={() => localStorage.getItem(pricingScenarioStorageKey(profileId))}
+        validate={raw => { restorePricingScenarioWorksheet(raw, profileId); }}
+        onApply={raw => { localStorage.setItem(pricingScenarioStorageKey(profileId), raw); window.location.reload(); }} />
       <p>
         Explore a one-time price alternative for one saved offer from your local library. Enter your own direct cost per
         sale, hours per sale, and optional target hourly amount. Calculations use exact minor units in the offer currency.

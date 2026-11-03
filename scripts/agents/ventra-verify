@@ -28,9 +28,11 @@ step build npm run build
 if curl -s -m 2 -o /dev/null http://127.0.0.1:55321/auth/v1/health; then
   step workspace-integration npm run test:local-integration
   step course-integration node --experimental-strip-types scripts/course-api-integration.mjs
+  step launcher-integration node --experimental-strip-types scripts/launcher-api-integration.mjs
 else
   skip workspace-integration "local Supabase is not running (start Colima, then supabase start)"
   skip course-integration "local Supabase is not running (start Colima, then supabase start)"
+  skip launcher-integration "local Supabase is not running (start Colima, then supabase start)"
 fi
 node -e '
 const fs=require("fs");const rows=fs.readFileSync(process.argv[1],"utf8").trim().split("\n").map(l=>{const [name,status,seconds,detail]=l.split("\t");return {name,status,seconds:Number(seconds),detail:detail||undefined};});
