@@ -2,7 +2,7 @@ import { accountRequest } from './course-account.ts';
 import type { CourseRequest } from './course-account.ts';
 import { uuid } from './workspace-validation.ts';
 
-export const launcherKinds = ['skill-assessment', 'market-evidence', 'offer-validation', 'pricing-scenario', 'brand-direction', 'business-plan', 'crm-contacts', 'crm-pipeline', 'lead-forms', 'storefront', 'link-in-bio', 'ad-concepts', 'community-space', 'website-page', 'service-proposals', 'service-agreement', 'service-invoice', 'service-portal', 'service-projects', 'education-certificate', 'education-sales-page', 'education-coaching', 'education-workshop', 'lead-scoring', 'content-calendar', 'email-campaigns', 'funnels', 'booking-page', 'student-progress'] as const;
+export const launcherKinds = ['skill-assessment', 'market-evidence', 'offer-validation', 'pricing-scenario', 'brand-direction', 'business-plan', 'crm-contacts', 'crm-pipeline', 'lead-forms', 'storefront', 'link-in-bio', 'ad-concepts', 'community-space', 'website-page', 'service-proposals', 'service-agreement', 'service-invoice', 'service-portal', 'service-projects', 'education-certificate', 'education-sales-page', 'education-coaching', 'education-workshop', 'lead-scoring', 'content-calendar', 'email-campaigns', 'funnels', 'booking-page', 'student-progress', 'workflow-builder'] as const;
 export type LauncherKind = typeof launcherKinds[number];
 export const launcherDraftByteLimit = 128000;
 export type RemoteLauncherDraft = { kind: LauncherKind; revision: number; updatedAt: string | null; raw: string };
