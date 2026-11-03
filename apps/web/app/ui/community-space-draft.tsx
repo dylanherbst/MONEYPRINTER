@@ -24,6 +24,7 @@ import type {
   CommunitySpaceDraft,
   CommunitySpaceDraftInput,
 } from '../../lib/local-community-space';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'edit' | 'saved-preview' | 'unsaved-preview' | 'preview-heading';
 
@@ -357,6 +358,7 @@ export default function CommunitySpaceDraftEditor({ profile }: { profile: Profil
           )}
         </>
       )}
+      <LauncherAccountSync kind="community-space" label="Community space" readLocal={() => localStorage.getItem(communitySpaceStorageKey(profileId))} validate={raw => { restoreCommunitySpaceDraft(raw, profileId); }} onApply={raw => { localStorage.setItem(communitySpaceStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }

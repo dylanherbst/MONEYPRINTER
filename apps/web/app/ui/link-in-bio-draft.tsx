@@ -30,6 +30,7 @@ import {
   validateLinkInBioUrl,
 } from '../../lib/local-link-in-bio';
 import type { LinkInBioBlock, LinkInBioDraft, LinkInBioDraftInput, LinkInBioPreviewLine } from '../../lib/local-link-in-bio';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'edit' | 'preview-saved' | 'preview-unsaved';
 
@@ -566,6 +567,7 @@ export default function LinkInBioDraftEditor({ profile, offers }: { profile: Pro
           )}
         </>
       )}
+      <LauncherAccountSync kind="link-in-bio" label="Link in bio" readLocal={() => localStorage.getItem(linkInBioStorageKey(profileId))} validate={raw => { restoreLinkInBioDraft(raw, profileId); }} onApply={raw => { localStorage.setItem(linkInBioStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }

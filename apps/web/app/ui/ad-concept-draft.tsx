@@ -20,6 +20,7 @@ import {
 import type { AdConceptDraft, AdConceptDraftInput, AdConceptPreviewProjection } from '../../lib/local-ad-concepts';
 import type { LocalOffer } from '../../lib/local-offers';
 import type { Profile } from '../../lib/onboarding';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'saved-preview' | 'unsaved-preview' | 'preview-heading' | 'editor-heading';
 
@@ -469,6 +470,7 @@ export default function AdConceptDraftEditor({ profile, offers }: { profile: Pro
           )}
         </>
       )}
+      <LauncherAccountSync kind="ad-concepts" label="Ad concepts" array readLocal={() => localStorage.getItem(adConceptStorageKey(profileId))} validate={raw => { restoreAdConceptDrafts(raw, profileId); }} onApply={raw => { localStorage.setItem(adConceptStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }

@@ -4,6 +4,7 @@ import { blankWebsitePage, moveWebsitePageSection, removeWebsitePageSection, per
 import { createWebsitePageStarter, websitePageStarters } from '../../lib/local-website-page-templates';
 import type { WebsitePageStarterId } from '../../lib/local-website-page-templates';
 import type { WebsitePageDraft, WebsitePageInput } from '../../lib/local-website-page';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 export default function WebsitePageDraftEditor({ profileId }: { profileId: string }) {
   const [starter, setStarter] = useState<WebsitePageStarterId>('blank');
@@ -119,5 +120,6 @@ export default function WebsitePageDraftEditor({ profileId }: { profileId: strin
       </section>}
     </>}
     <p className="panel-note">Local draft only, not an account or private hosted page. Browser data can be read by other users of this browser. No publishing, domain, payments or external links.</p>
+    <LauncherAccountSync kind="website-page" label="Website page" readLocal={() => localStorage.getItem(websitePageStorageKey(profileId))} validate={raw => { restoreWebsitePage(raw, profileId); }} onApply={raw => { localStorage.setItem(websitePageStorageKey(profileId), raw); window.location.reload(); }} />
   </section>;
 }

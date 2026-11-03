@@ -45,9 +45,9 @@ The Demo column is a path in the VENTRA app. The dashboard opens it on the runni
 | 2 | Services | Project board | Local draft | | `local-service-project-board` unit tests | Account sync |
 | 2 | Services | Booking pages | Not started | | none | Needs a calendar provider account |
 | 2 | Services | Memberships | Not started | | Community space is a local draft only | Phase 4 |
-| 2 | Website and store | Website pages and templates | Local draft | | `local-website-page`, `local-website-page-templates` unit tests | No publishing or domains |
-| 2 | Website and store | Storefront and product listings | Local draft | | `local-storefront` unit tests | Account sync, publishing |
-| 2 | Website and store | Link-in-bio page | Local draft | | `local-link-in-bio` unit tests | Publishing |
+| 2 | Website and store | Website pages and templates | Local draft | | `local-website-page`, `local-website-page-templates` unit tests; account sync wired, migration 202611030003 pending, not verified on real Supabase or in a browser | No publishing or domains |
+| 2 | Website and store | Storefront and product listings | Local draft | | `local-storefront` unit tests; account sync wired, migration 202611030003 pending, not verified on real Supabase or in a browser | Publishing |
+| 2 | Website and store | Link-in-bio page | Local draft | | `local-link-in-bio` unit tests; account sync wired, migration 202611030003 pending, not verified on real Supabase or in a browser | Publishing |
 | 2 | Website and store | AI website generation, drag-and-drop editing, custom domains | Not started | | none | Needs AI key and domain provider |
 | 2 | Checkout | Test-mode Stripe checkout | Blocked | | Real HTTP checks: DEMO without a key, live key refused, wrong origin 403 | Needs your Stripe TEST key in `apps/web/.env.local` |
 | 2 | Checkout | Payment webhook and orders | Blocked | | Real HTTP checks: signed accepted, retry deduplicated, tampered rejected, live refused | Needs `STRIPE_WEBHOOK_SECRET`; orders are in memory only until you approve a database table |
@@ -57,11 +57,11 @@ The Demo column is a path in the VENTRA app. The dashboard opens it on the runni
 | 2 | CRM and sales | Appointments and calendar | Not started | | Home shows "Calendar not connected" | Needs a calendar provider account |
 | 2 | CRM and sales | Lead qualification and sales reporting | Not started | | none | Phase 3 |
 | 3 | Voice Receptionist | AI answering calls, FAQs, bookings, call summaries | Not started | | Inbox lists availability only | Needs a voice or phone provider account |
-| 3 | Growth | Lead capture forms | Local draft | | `local-lead-forms` unit tests | Account sync, public forms |
+| 3 | Growth | Lead capture forms | Local draft | | `local-lead-forms` unit tests; account sync wired, migration 202611030003 pending, not verified on real Supabase or in a browser | Public forms |
 | 3 | Growth | Growth plan and manual audit | Local draft | | `local-growth-plan`, Growth Audit page | No automated lead discovery |
 | 3 | Growth | Lead discovery, outreach drafts, AI appointment setter, lead scoring, follow-ups | Not started | | none | Needs AI provider and consent rules |
-| 3 | Content Studio | Ad concepts (manual drafts) | Local draft | | `local-ad-concepts` unit and browser tests | AI generation, scheduling |
-| 3 | Content Studio | Community space (manual drafts) | Local draft | | `local-community-space` unit and browser tests | Real community features |
+| 3 | Content Studio | Ad concepts (manual drafts) | Local draft | | `local-ad-concepts` unit and browser tests; account sync wired, migration 202611030003 pending, not verified on real Supabase or in a browser | AI generation, scheduling |
+| 3 | Content Studio | Community space (manual drafts) | Local draft | | `local-community-space` unit and browser tests; account sync wired, migration 202611030003 pending, not verified on real Supabase or in a browser | Real community features |
 | 3 | Content Studio | Social posts, captions, content calendar, AI images and video | Not started | | none | Needs AI provider key |
 | 3 | Marketing | Email campaigns, funnels, lead magnets, nurture sequences | Not started | | none | Needs an email provider |
 | 4 | Automation | Visual workflow builder, triggers, actions, AI agents | Not started | | Automation page says execution is not connected | Phase 4 |

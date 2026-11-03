@@ -20,6 +20,7 @@ import {
   storefrontStorageKey,
 } from '../../lib/local-storefront';
 import type { StorefrontDraft, StorefrontDraftInput, StorefrontPreviewLine } from '../../lib/local-storefront';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'edit' | 'preview-saved' | 'preview-unsaved' | 'preview-search';
 
@@ -495,6 +496,7 @@ export default function StorefrontDraftEditor({ profile, offers }: { profile: Pr
           )}
         </>
       )}
+      <LauncherAccountSync kind="storefront" label="Storefront" readLocal={() => localStorage.getItem(storefrontStorageKey(profileId))} validate={raw => { restoreStorefrontDraft(raw, profileId); }} onApply={raw => { localStorage.setItem(storefrontStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }

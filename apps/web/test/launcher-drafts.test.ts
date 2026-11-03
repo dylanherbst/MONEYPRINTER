@@ -35,4 +35,5 @@ test('list stores are wrapped for the account and unwrapped exactly', () => {
   assert.throws(() => packArray('{"a":1}'), /list/);
   assert.throws(() => unpackArray('{"items":"x"}'), /not a list/);
   assert.equal(checkedKind('crm-contacts'), 'crm-contacts');
+  for (const k of ['lead-forms', 'storefront', 'link-in-bio', 'ad-concepts', 'community-space', 'website-page']) assert.equal(checkedKind(k), k);
 });

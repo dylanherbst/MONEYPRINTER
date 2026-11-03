@@ -16,6 +16,7 @@ import {
   submissionFingerprint,
 } from '../../lib/local-lead-forms';
 import type { LeadFormDraft, LeadFormDraftInput, LeadFormPreviewSubmission } from '../../lib/local-lead-forms';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 function blankPreviewSubmission(form: LeadFormDraft | LeadFormDraftInput): LeadFormPreviewSubmission {
   const answers: Record<string, string> = {};
@@ -432,6 +433,7 @@ export default function LeadCaptureBuilder({
           )}
         </>
       )}
+      <LauncherAccountSync kind="lead-forms" label="Lead form" readLocal={() => localStorage.getItem(leadFormStorageKey(profileId))} validate={raw => { restoreLeadFormDraft(raw, profileId); }} onApply={raw => { localStorage.setItem(leadFormStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }
