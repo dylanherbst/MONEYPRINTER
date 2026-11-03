@@ -1,0 +1,89 @@
+'use client';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { computeOverview, describeOverview, formatRatio, UNREADABLE } from '../../lib/business-overview';
+import type { Overview, OverviewInput, Part, Section } from '../../lib/business-overview';
+import { contactStorageKey, restoreContacts } from '../../lib/local-crm-contacts';
+import { dealStorageKey, restoreDeals } from '../../lib/local-crm-pipeline';
+import { leadScoringStorageKey, restoreRuleset } from '../../lib/local-lead-scoring';
+import { emailCampaignsStorageKey, restoreEmailCampaigns } from '../../lib/local-email-campaigns';
+import { contentCalendarStorageKey, restoreContentCalendar } from '../../lib/local-content-calendar';
+import { offerStorageKey, restoreLocalOffers } from '../../lib/local-offers';
+import { funnelsStorageKey, restoreFunnels } from '../../lib/local-funnels';
+import { bookingPageStorageKey, restoreBookingPage } from '../../lib/local-booking-page';
+import { restoreTracker, studentProgressStorageKey } from '../../lib/local-student-progress';
+import { leadFormStorageKey, restoreLeadFormDraft } from '../../lib/local-lead-forms';
+import { formatMoney } from '../../lib/sales-report';
+import type { Profile } from '../../lib/onboarding';
+
+// Reads each module through its own restore function. A failure marks only that part unreadable.
+function read<T>(load: () => T | null): Part<T> {
+  try { return load(); } catch { return UNREADABLE; }
+}
+
+export function readOverviewInput(profile: Profile, todayIso: string): OverviewInput {
+  const id = profile.id;
+  return {
+    profileId: id, todayIso,
+    offers: read(() => { const r = restoreLocalOffers(localStorage.getItem(offerStorageKey(id)), profile); if (!r) throw new Error('unreadable'); return r; }),
+    contacts: read(() => restoreContacts(localStorage.getItem(contactStorageKey(id)), id)),
+    deals: read(() => restoreDeals(localStorage.getItem(dealStorageKey(id)), id)),
+    ruleset: read(() => restoreRuleset(localStorage.getItem(leadScoringStorageKey(id)), id)),
+    leadForm: read(() => restoreLeadFormDraft(localStorage.getItem(leadFormStorageKey(id)), id)),
+    campaigns: read(() => restoreEmailCampaigns(localStorage.getItem(emailCampaignsStorageKey(id)), id)),
+    posts: read(() => restoreContentCalendar(localStorage.getItem(contentCalendarStorageKey(id)), id)),
+    funnels: read(() => restoreFunnels(localStorage.getItem(funnelsStorageKey(id)), id)),
+    booking: read(() => restoreBookingPage(localStorage.getItem(bookingPageStorageKey(id)), id)),
+    students: read(() => restoreTracker(localStorage.getItem(studentProgressStorageKey(id)), id)),
+  };
+}
+
+const todayLocal = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const val = <T,>(s: Section<T>, show: (v: T) => string) => (s.status === 'unreadable' ? 'Could not be read' : show(s.value));
+
+export default function BusinessOverview({ profile }: { profile: Profile }) {
+  const [overview, setOverview] = useState<Overview | null>(null);
+  useEffect(() => { setOverview(computeOverview(readOverviewInput(profile, todayLocal()))); }, [profile]);
+  if (!overview) return <p role="status">Loading…</p>;
+  const o = overview;
+  const tiles: [string, string][] = [
+    ['Offers', val(o.offers, String)],
+    ['Contacts', val(o.contacts, String)],
+    ['Deals', val(o.deals, v => String(v.total))],
+    ['Deals won', val(o.deals, v => String(v.won))],
+    ['Won value', val(o.deals, v => formatMoney(v.wonValue))],
+    ['Open pipeline', val(o.deals, v => formatMoney(v.openValue))],
+    ['Lead form saved', val(o.leadForm, v => (v ? 'Yes' : 'No'))],
+    ['Email campaigns', val(o.campaigns, v => `${v.total} (${v.byStatus.draft} draft, ${v.byStatus.ready} ready, ${v.byStatus.archived} archived)`)],
+    ['Content posts', val(o.content, v => `${v.total} (${v.byStatus.idea} idea, ${v.byStatus.drafted} drafted, ${v.byStatus.ready} ready, ${v.byStatus['posted-manually']} posted manually)`)],
+    ['Funnels', val(o.funnels, String)],
+    ['Booking page', val(o.booking, v => (v.configured ? `Saved, ${v.appointmentTypes} appointment type${v.appointmentTypes === 1 ? '' : 's'}` : 'Not saved'))],
+    ['Students tracked', val(o.students, String)],
+  ];
+  return <section className="v-glass" aria-label="Business overview">
+    <h2>Business overview</h2>
+    <p><span className="v-status">Computed from your saved data · browser data · no estimates</span></p>
+    <ul>{describeOverview(o).map(s => <li key={s}>{s}</li>)}</ul>
+    <div className="v-sales-metrics">{tiles.map(([label, value]) => <div className="v-glass" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>
+    <h3>Contacts to deals</h3>
+    {o.contactFunnel.status === 'unreadable' ? <p role="alert">Contacts or deals could not be read, so this funnel is not shown.</p> :
+      <table><thead><tr><th>Step</th><th>Count</th><th>Share of the step before</th></tr></thead><tbody>
+        <tr><td>Contacts</td><td>{o.contactFunnel.value.contacts}</td><td>—</td></tr>
+        <tr><td>Contacts with a deal</td><td>{o.contactFunnel.value.withDeal}</td><td>{formatRatio(o.contactFunnel.value.dealRatio)}</td></tr>
+        <tr><td>Deals won</td><td>{o.contactFunnel.value.wonDeals}</td><td>{formatRatio(o.contactFunnel.value.wonRatio)}</td></tr>
+      </tbody></table>}
+    <h3>Lead score mix</h3>
+    {o.leadMix.status === 'unreadable' ? <p role="alert">Contacts or lead scoring rules could not be read.</p> :
+      <p>{o.leadMix.value.hot} hot · {o.leadMix.value.warm} warm · {o.leadMix.value.cold} cold <small>({o.leadMix.value.rules === 'saved' ? 'your saved rules' : 'default rules, none saved'})</small></p>}
+    <h3>Next planned posts</h3>
+    {o.content.status === 'unreadable' ? <p role="alert">Saved content could not be read.</p> :
+      o.content.value.upcoming.length ? <ul>{o.content.value.upcoming.map(p => <li key={p.id}>{p.plannedDate} · {p.platform} · {p.title || 'Untitled'} ({p.status})</li>)}</ul> : <p>No upcoming planned posts.</p>}
+    <h3>Consent gaps</h3>
+    {o.consentGaps.status === 'unreadable' ? <p role="alert">Saved contacts could not be read.</p> :
+      o.consentGaps.value.count === 0 ? <p>No gaps. Every saved contact has opted in.</p> :
+        <><p>These contacts have not opted in. Do not message them.</p><ul>{o.consentGaps.value.contacts.map(c => <li key={c.id}>{c.name} · {c.consentStatus}</li>)}</ul></>}
+    <h3>Setup checklist</h3>
+    {o.setupChecklist.length === 0 ? <p>Every area has something saved.</p> :
+      <ul>{o.setupChecklist.map(i => <li key={i.id}>{i.text} <Link href={i.href}>Open</Link></li>)}</ul>}
+  </section>;
+}
