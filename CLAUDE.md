@@ -64,3 +64,10 @@ The owner (allowlisted account only) can message this session. Treat those messa
 ## Handoff to Codex
 
 Use `/ventra-codex-handoff`. Stop editing, update `HANDOFF.md`, run `ventra-handoff snapshot`, then the owner exits Claude and runs `ventra-codex`.
+
+## Tokens and plugins
+
+Plugin list, on-demand switching and the OFF-until-guarded set: `docs/agents/PLUGINS.md`. Design source: `docs/DESIGN.md`.
+- Enable a specialised plugin only for the task that needs it, then disable it. Never enable github, supabase, vercel, stripe, notion or context-mode until MCP deny rules exist.
+- Navigate with Serena (`find_symbol`, `get_symbols_overview`) before reading whole files; search before reading; read line ranges.
+- Use subagents for broad searches so output stays out of the main context. `/context` to inspect, `/compact` between milestones, `/clear` between unrelated tasks.

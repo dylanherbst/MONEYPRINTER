@@ -15,6 +15,7 @@ mkdir -p "$bin" "$share/lib"
 for f in ventra-handoff ventra-claude ventra-codex ventra-guard; do install -m 755 "$d/$f" "$bin/$f"; done
 for f in guard-bash.mjs guard-edit.mjs ventra-git.mjs ventra-approval.mjs; do install -m 755 "$d/$f" "$share/$f"; done
 for f in "$d"/lib/*.mjs; do install -m 644 "$f" "$share/lib/$(basename "$f")"; done
+install -m 644 "$d/serena-readonly-mode.yml" "$share/serena-readonly-mode.yml"
 
 for tool in ventra-git ventra-approval; do
   printf '#!/bin/bash\nexec "%s" "%s/%s.mjs" "$@"\n' "$NODE" "$share" "$tool" > "$bin/$tool"

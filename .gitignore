@@ -27,6 +27,7 @@ supabase/.branches/
 # Existing private research and skills: do not stage by default
 /docs/*
 !/docs/agents/
+!/docs/DESIGN.md
 /.claude/skills/*
 !/.claude/skills/ventra-*/
 *.tsbuildinfo
@@ -44,3 +45,6 @@ node_modules/
 dist/
 build/
 coverage/
+
+# Serena code-navigation cache (local)
+.serena/
