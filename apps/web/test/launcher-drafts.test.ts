@@ -8,7 +8,7 @@ const json = (status: number, body: unknown) => async () => new Response(JSON.st
 test('kind and draft validation', () => {
   assert.equal(checkedKind('pricing-scenario'), 'pricing-scenario');
   assert.throws(() => checkedKind('courses'));
-  for (const k of ['service-proposals', 'service-agreement', 'service-invoice', 'service-portal', 'service-projects', 'education-certificate', 'education-sales-page', 'education-coaching', 'education-workshop']) assert.equal(checkedKind(k), k);
+  for (const k of ['service-proposals', 'service-agreement', 'service-invoice', 'service-portal', 'service-projects', 'education-certificate', 'education-sales-page', 'education-coaching', 'education-workshop', 'lead-scoring']) assert.equal(checkedKind(k), k);
   assert.throws(() => checkedKind('education-quiz'));
   assert.throws(() => checkedDraftRaw('[]'));
   assert.throws(() => checkedDraftRaw('nope'));
