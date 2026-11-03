@@ -28,7 +28,8 @@ The Demo column is a path in the VENTRA app. The dashboard opens it on the runni
 | 1 | Education | Course sales page | Local draft | | `local-education-course-sales-page` unit tests; account sync wired, migration 202611030004 pending, browser round trip not yet run | Publishing and checkout |
 | 1 | Education | Coaching program and workshop plans | Local draft | | `local-education-coaching-program`, `local-education-workshop-plan` unit tests; account sync wired, migration 202611030004 pending, browser round trip not yet run | Booking and delivery |
 | 1 | Education | Video lessons | Not started | | none | Needs video hosting |
-| 1 | Education | Student portal and progress tracking | Not started | | Learner preview only | Phase 2 |
+| 1 | Education | Student progress tracking (owner-recorded) | Local draft | | `local-student-progress` unit tests; account sync wired, migration 202611030010 pending, browser round trip not yet run | Browser round trip after the owner applies the migration; learner logins and automatic progress are separate features |
+| 1 | Education | Student portal (learner login, learner-facing portal, automatic progress tracking) | Not started | | Learner preview and owner-recorded tracker only | Phase 2 |
 | 2 | Business Launcher | Skill self-assessment saved to your account | Working | /tools | Real browser round trip against real local Supabase through the real editor | AI analysis not connected |
 | 2 | Business Launcher | Market evidence notebook saved to your account | Working | /tools | Same round trip, semantically identical on reload | No AI niche research |
 | 2 | Business Launcher | Offer validation worksheet saved to your account | Working | /tools | Same round trip | none |

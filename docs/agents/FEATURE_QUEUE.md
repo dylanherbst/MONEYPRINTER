@@ -13,6 +13,6 @@ Rules for every item: build it as a local, clearly labelled DEMO feature with th
 | 5 | Email campaign and nurture sequence drafts | new draft + sync | Done, awaiting verification | Drafts only, nothing is sent |
 | 6 | Funnel drafts (steps linking lead form, offer, checkout) | new draft + sync | Done, awaiting verification | Planning view, no execution |
 | 7 | Booking page drafts (availability rules) | new draft + sync | Done, awaiting verification | No calendar provider; shows DEMO |
-| 8 | Student progress tracking | tables + API + UI | Running | Migration written, not applied; learner preview only |
-| 9 | Persistent orders table for the Stripe webhook | migration + RPC proposal | Queued | Written and tested in PGlite, NOT applied; owner decides on the server-side key |
+| 8 | Student progress tracking | tables + API + UI | Done, awaiting verification | Migration written, not applied; learner preview only |
+| 9 | Persistent orders table for the Stripe webhook | migration + RPC proposal | Running | Written and tested in PGlite, NOT applied; owner decides on the server-side key |
 | 10 | Visual workflow builder (draft only) | new draft + sync | Queued | No execution engine |
