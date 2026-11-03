@@ -16,3 +16,5 @@ Rules for every item: build it as a local, clearly labelled DEMO feature with th
 | 8 | Student progress tracking | tables + API + UI | Done, awaiting verification | Migration written, not applied; learner preview only |
 | 9 | Persistent orders table for the Stripe webhook | migration + RPC proposal | Done (proposal written, NOT applied), awaiting owner decision | Written and tested in PGlite, NOT applied; owner decides on the server-side key |
 | 10 | Visual workflow builder (draft only) | new draft + sync | Done, awaiting verification | No execution engine. Migration 202611030012 written, not applied. Queue complete: next items to be chosen |
+| 11 | Business overview analytics (computed from saved data) | computed report | Running | Contacts to deals to won, lead-score mix, campaign and content counts, per currency; no invented numbers; no migration |
+
