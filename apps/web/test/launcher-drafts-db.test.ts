@@ -13,7 +13,7 @@ test('launcher_drafts migration: owner writes, revisions, isolation, staff read-
       create function auth.uid() returns uuid language sql stable as $$ select (auth.jwt()->>'sub')::uuid $$;
       grant usage on schema public,auth to authenticated,anon;
       grant execute on function auth.uid(),auth.jwt() to authenticated,anon;`);
-    for (const f of ['202610160001_s01.sql', '202610300001_courses.sql', '202611030001_launcher_drafts.sql', '202611030002_launcher_drafts_crm.sql', '202611030003_launcher_drafts_more.sql', '202611030004_launcher_drafts_services_education.sql', '202611030005_launcher_drafts_lead_scoring.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
+    for (const f of ['202610160001_s01.sql', '202610300001_courses.sql', '202611030001_launcher_drafts.sql', '202611030002_launcher_drafts_crm.sql', '202611030003_launcher_drafts_more.sql', '202611030004_launcher_drafts_services_education.sql', '202611030005_launcher_drafts_lead_scoring.sql', '202611030006_launcher_drafts_content_calendar.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
     const a = '11111111-1111-4111-8111-111111111111', b = '22222222-2222-4222-8222-222222222222';
     const sa = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', sb = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
     await db.query('insert into auth.users values ($1),($2)', [a, b]);
@@ -54,6 +54,7 @@ test('launcher_drafts migration: owner writes, revisions, isolation, staff read-
     assert.equal(await scalar("select public.save_launcher_draft($1,'education-coaching',$2,0) as result", [wa, { version: 1 }]), 1, 'new kinds are allowed after the fourth migration');
     assert.equal(await scalar("select public.save_launcher_draft($1,'education-workshop',$2,0) as result", [wa, { version: 1 }]), 1, 'new kinds are allowed after the fourth migration');
     assert.equal(await scalar("select public.save_launcher_draft($1,'lead-scoring',$2,0) as result", [wa, { version: 1 }]), 1, 'new kinds are allowed after the fifth migration');
+    assert.equal(await scalar("select public.save_launcher_draft($1,'content-calendar',$2,0) as result", [wa, { items: [] }]), 1, 'new kind is allowed after the sixth migration');
     // Another account sees nothing and cannot write.
     await actor(b, sb);
     assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts'), 0);
@@ -63,12 +64,12 @@ test('launcher_drafts migration: owner writes, revisions, isolation, staff read-
     await db.exec('reset role');
     await db.query("insert into public.memberships values ($1,$2,'staff',true)", [wa, b]);
     await actor(b, sb);
-    assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts where workspace_id=$1', [wa]), 19);
+    assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts where workspace_id=$1', [wa]), 20);
     await assert.rejects(db.query("select public.save_launcher_draft($1,'pricing-scenario',$2,2)", [wa, data]), /Owner access/);
     // Owner delete requires the current revision.
     await actor(a, sa);
     await assert.rejects(db.query("select public.delete_launcher_draft($1,'pricing-scenario',1)", [wa]), /Revision conflict/);
     await db.query("select public.delete_launcher_draft($1,'pricing-scenario',2)", [wa]);
-    assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts'), 18, 'every draft except the deleted pricing scenario remains');
+    assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts'), 19, 'every draft except the deleted pricing scenario remains');
   } finally { await db.close(); }
 });
