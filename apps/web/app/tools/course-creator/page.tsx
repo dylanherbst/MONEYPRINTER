@@ -4,6 +4,7 @@ import { blankEducationCourseDraftInput, courseDraftFromInput, editEducationCour
 import { generateCourse, importCourse } from '../../../lib/course-creator';
 
 import { CourseAccount } from '../../ui/course-account';
+import { ConnectionBadges } from '../../ui/connection-badges';
 
 const profileId = 'course-creator-sandbox';
 export default function CourseCreatorPage() {
@@ -32,6 +33,7 @@ export default function CourseCreatorPage() {
   }
   return <main><h1>Course Creator — interactive test workspace</h1>
     <p>Manual authoring, learner preview and JSON export. Drafts persist in this browser only, in an isolated sandbox profile. Account courses can be saved separately below; no publishing.</p>
+    <ConnectionBadges ai />
     <p role="status">{message}</p>
     <fieldset disabled={!ready}><legend>Course details</legend>
       <label>Course title<input maxLength={160} value={input.title} onChange={e => {setPreview(false); setInput({...input, title:e.target.value});}} /></label>
@@ -46,6 +48,13 @@ export default function CourseCreatorPage() {
       </fieldset>)}
       <button disabled={input.lessons.length>=50} onClick={() => {setPreview(false);setInput({...input,lessons:[...input.lessons,{id:crypto.randomUUID(),title:'',content:'',durationMinutes:''}]});}}>Add lesson</button>
       <button disabled={blocked} onClick={() => attempt(() => {const draft=courseDraftFromInput(input,{id:id.current,profileId}); raw.current=persistEducationCourseDraft(localStorage,profileId,raw.current,draft);setMessage('Course saved in this browser. Reload to verify persistence.');})}>Save course</button>
+      <button disabled={blocked || raw.current === null} onClick={() => attempt(() => {
+        if (!window.confirm('Delete the saved browser copy of this course? The editor will be cleared. Account courses are not affected.')) return;
+        const key = educationCourseStorageKey(profileId);
+        if (localStorage.getItem(key) !== raw.current) throw new Error('The saved course changed in another tab. Reload before deleting.');
+        localStorage.removeItem(key); raw.current = null; id.current = crypto.randomUUID();
+        setPreview(false); setInput(blankEducationCourseDraftInput()); setMessage('Saved browser course deleted.');
+      })}>Delete saved course</button>
       <button onClick={() => attempt(() => {courseDraftFromInput(input,{id:id.current,profileId});setPreview(true);setMessage('Preview of current unsaved editor content.');})}>Preview course</button>
       <button onClick={() => attempt(() => {setTransfer(JSON.stringify(courseDraftFromInput(input,{id:id.current,profileId}),null,2));setMessage('Validated export ready to copy.');})}>Export JSON</button>
     </fieldset>
