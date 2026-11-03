@@ -10,7 +10,7 @@ import { createServer } from 'node:net';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { deleteLauncherDraft, loadLauncherDraft, saveLauncherDraft } from '../apps/web/lib/launcher-drafts.ts';
+import { deleteLauncherDraft, launcherKinds, loadLauncherDraft, saveLauncherDraft } from '../apps/web/lib/launcher-drafts.ts';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const WEB = path.join(ROOT, 'apps/web');
@@ -77,6 +77,15 @@ try {
   await assert.rejects(deleteLauncherDraft(a.workspace, kind, 1, a.c), /./, 'delete with a stale revision rejected');
   await deleteLauncherDraft(a.workspace, kind, 2, a.c);
   assert.equal(await loadLauncherDraft(a.workspace, kind, a.c), null, 'deleted');
+  // Every supported kind (including CRM and the later drafts) must save, load and delete through the real API.
+  for (const k of launcherKinds) {
+    const body = JSON.stringify({ items: [{ id: 'x', kind: k }] });
+    assert.equal(await saveLauncherDraft(a.workspace, k, body, 0, a.c), 1, `save ${k}`);
+    assert.deepEqual(JSON.parse((await loadLauncherDraft(a.workspace, k, a.c)).raw), JSON.parse(body), `load ${k}`);
+    await deleteLauncherDraft(a.workspace, k, 1, a.c);
+    assert.equal(await loadLauncherDraft(a.workspace, k, a.c), null, `deleted ${k}`);
+  }
+  console.log(`All ${launcherKinds.length} draft kinds save, load and delete.`);
   console.log('PASS: REAL launcher draft account API — signup, workspace, save, load, update, stale rejected, cross-user and anonymous denied, delete.');
 } catch (error) {
   console.error('FAIL:', error instanceof Error ? error.message : error);
