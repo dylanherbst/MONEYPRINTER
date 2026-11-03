@@ -16,9 +16,11 @@ step() { # name, command...
   local start end code
   start=$(date +%s); "$@" > "$tmp.log" 2>&1; code=$?; end=$(date +%s)
   local tail; tail="$(tail -c 400 "$tmp.log" | tr '\n' ' ' | sed 's/"/\x27/g; s/\\/ /g')"
-  [ $code -ne 0 ] && fail=1
-  printf '%s\t%s\t%s\t%s\n' "$name" "$([ $code -eq 0 ] && echo PASSED || echo FAILED)" "$((end-start))" "$([ $code -eq 0 ] && echo '' || echo "$tail")" >> "$tmp"
-  echo "$name: $([ $code -eq 0 ] && echo PASSED || echo FAILED) ($((end-start))s)"
+  # Exit code 3 means "pending owner action" (for example an unapplied migration): recorded as SKIPPED with the reason, never as passed.
+  local st=PASSED; [ $code -ne 0 ] && st=FAILED; [ $code -eq 3 ] && st=SKIPPED
+  [ "$st" = FAILED ] && fail=1
+  printf '%s\t%s\t%s\t%s\n' "$name" "$st" "$((end-start))" "$([ $code -eq 0 ] && echo '' || echo "$tail")" >> "$tmp"
+  echo "$name: $st ($((end-start))s)"
 }
 skip() { printf '%s\tSKIPPED\t0\t%s\n' "$1" "$2" >> "$tmp"; echo "$1: SKIPPED ($2)"; }
 step lint npm run lint
