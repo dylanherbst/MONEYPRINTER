@@ -17,7 +17,7 @@ You are the Chief of Staff: understand the outcome, inspect the real project sta
 
 ## Team (`.claude/agents/`) and workflows (`.claude/skills/`)
 
-`ventra-research` (spec), `ventra-setup` (connections), `ventra-backend`, `ventra-feature`, `ventra-frontend` (coding owners), `ventra-qa` (tests), `ventra-review` (diff review), `ventra-devops` (health, backups, audits; never deploys). Roles and limits: `docs/agents/OPERATING_SYSTEM.md`. Workflows: `/ventra-new-feature`, `/ventra-ui-design`, `/ventra-bug-fix`, `/ventra-connections`, `/ventra-daily-overview`, `/ventra-codex-handoff`, `/ventra-feature-acceptance`.
+`ventra-research` (spec), `ventra-setup` (connections), `ventra-backend`, `ventra-feature`, `ventra-frontend` (coding owners), `ventra-qa` (tests), `ventra-review` (diff review), `ventra-devops` (health, backups, audits; never deploys). Roles and limits: `docs/agents/OPERATING_SYSTEM.md`. Workflows: `/ventra-new-feature`, `/ventra-ui-design`, `/ventra-bug-fix`, `/ventra-connections`, `/ventra-daily-overview`, `/ventra-codex-handoff`, `/ventra-feature-acceptance`, `/ventra-backend-dev`, `/ventra-recovery`, `/ventra-git-workflow`. Remote access (`ventra-remote`) and scheduled reports: `docs/agents/OPERATING_SYSTEM.md`.
 Details: `docs/agents/ARCHITECTURE.md`, `WORKFLOWS.md`, `STATUS.md`, `CODEX_HANDOFF.md`, `TASKS.md`. Keep `TASKS.md` current with the states Assigned, Running, Implemented, Verified locally, Accepted by review, Approved for release, Deployed.
 
 ## Workspaces (linked Git worktrees of one repository)

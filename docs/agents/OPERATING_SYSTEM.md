@@ -39,11 +39,30 @@ Required gate for every task: `npm run lint`, `typecheck`, `test`, `build`, then
 
 ## Remote access
 
-Official: run `claude remote-control --name ventra` in a Terminal on this Mac, then open the session in claude.ai/code or the Claude mobile app. It stays up only while that terminal process runs; it is not a background service. Telegram already works through `ventra-claude` (allowlisted owner only, approvals only in the Command Center).
+Official Claude Code Remote Control, started with `ventra-remote` (runs `claude remote-control --name ventra --capacity 1 --permission-mode default` in the VENTRA repo). Authentication is your claude.ai login (checked: signed in). The Mac makes an outbound connection only; no public ports. Open the Code tab in the Claude mobile app or claude.ai/code and choose "ventra". Tested 2026-11-03: the command starts and asks "Enable Remote Control? (y/n)"; you must answer `y` yourself, so a phone connection was not tested.
 
-## Scheduled work
+Restrictions: it runs only while that Terminal window is open and the Mac is awake (use `caffeinate -i`); it is not unattended or a background service. Sessions run in the VENTRA repo, so hooks, deny rules and approval gates still apply. Approvals still require macOS authentication on the Mac, not the phone.
 
-Dashboard schedules (read-only jobs) run only while this Mac is awake and logged in. Claude Desktop scheduled tasks are separate. No schedules are created yet; see the report for proposed jobs.
+Telegram: the official `telegram` plugin from `claude-plugins-official` is already in use via `ventra-claude` (allowlist-only, pairing closed). It can send tasks and status to the running session; it cannot approve production actions. No third-party bridge was installed.
+
+## Scheduled work (Claude Desktop scheduled tasks, Australia/Perth because this Mac's timezone is Perth)
+
+| Task id | Schedule | Purpose |
+| --- | --- | --- |
+| `ventra-morning-production-report` | weekdays 08:00 | progress, blockers, top 3 tasks, next action |
+| `ventra-development-health-check` | daily 19:00 | repo, CI, machine health, uncommitted work |
+| `ventra-weekly-code-review` | Monday 09:00 | changed-code review, `npm audit`/`outdated` report only |
+| `ventra-backup-recovery-audit` | Friday 17:00 | `ventra-backup create` + `verify`, git fsck, recovery docs |
+
+All are read-only (the backup task only adds a new backup), each ends with a phone/desktop notification. They run only while Claude Desktop is open and the Mac is awake; a missed run executes on next launch. Dispatch is delayed by a few minutes (load balancing). Manage them in the app's Scheduled section. Dashboard schedules (`VENTRA Control`) are separate and unused.
+
+## Workflows
+
+`/ventra-new-feature` (research, plan, code, test, fix, review, commit), `/ventra-ui-design` (frontend), `/ventra-backend-dev` (API, database, auth, integration tests, security review), `/ventra-recovery` (detect, diagnose, fix, retest, report; 3 attempts), `/ventra-git-workflow` (branch, test, commit, publish, draft PR; publishing is blocked until a remote is approved).
+
+## Token rules for automation
+
+Scheduled tasks read only git facts and recorded results, skip when nothing changed, and never run full suites. Specialist agents run only when a workflow calls them; no repeated reviews without new changes. Serena for symbol lookup; Context Mode stays off (measured no saving, see `PLUGINS.md`). The dashboard shows no token usage because Claude Code exposes none to it; use `/context` and `/usage` in the session.
 
 ## Codex fallback
 
