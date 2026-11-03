@@ -10,8 +10,8 @@ Rules for every item: build it as a local, clearly labelled DEMO feature with th
 | 2 | Lead qualification and rule-based lead scoring | new draft + sync | Done, awaiting verification | Rules the owner writes (no AI); scores CRM contacts; explains each score |
 | 3 | Sales reporting from CRM deals | computed report | Done, awaiting verification | Pipeline totals by stage and month from saved deals; no invented numbers |
 | 4 | Content calendar and social post drafts | new draft + sync | Done, awaiting verification | Manual drafts, no publishing |
-| 5 | Email campaign and nurture sequence drafts | new draft + sync | Running | Drafts only, nothing is sent |
-| 6 | Funnel drafts (steps linking lead form, offer, checkout) | new draft + sync | Queued | Planning view, no execution |
+| 5 | Email campaign and nurture sequence drafts | new draft + sync | Done, awaiting verification | Drafts only, nothing is sent |
+| 6 | Funnel drafts (steps linking lead form, offer, checkout) | new draft + sync | Running | Planning view, no execution |
 | 7 | Booking page drafts (availability rules) | new draft + sync | Queued | No calendar provider; shows DEMO |
 | 8 | Student progress tracking | tables + API + UI | Queued | Migration written, not applied; learner preview only |
 | 9 | Persistent orders table for the Stripe webhook | migration + RPC proposal | Queued | Written and tested in PGlite, NOT applied; owner decides on the server-side key |
