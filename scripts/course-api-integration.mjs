@@ -64,7 +64,10 @@ try {
   await assert.rejects(saveAccountCourse(a.workspace, { id, revision: 1, course }, a.c), /./, 'stale revision rejected');
   assert.equal((await loadAccountCourses(a.workspace, a.c))[0].course.title, 'Lash Basics v2', 'stale save did not overwrite');
   const b = await newUser('b');
-  await assert.rejects(loadAccountCourses(a.workspace, b.c), /./, 'other user cannot read this workspace');
+  // Row-level security returns no rows (not the owner's course) or an error; either way nothing leaks.
+  const leaked = await loadAccountCourses(a.workspace, b.c).catch(() => []);
+  assert.deepEqual(leaked, [], 'other user sees none of this workspace\'s courses');
+  await assert.rejects(saveAccountCourse(a.workspace, { id: crypto.randomUUID(), revision: 0, course }, b.c), /./, 'other user cannot write into this workspace');
   const anon = client();
   await assert.rejects(loadAccountCourses(a.workspace, anon), /./, 'signed-out request rejected');
   console.log('PASS: REAL course account API — signup, workspace, save, load, update, stale revision rejected, cross-user and anonymous denied.');
