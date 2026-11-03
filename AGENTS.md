@@ -1,23 +1,28 @@
 # VENTRA Development Rules
 
-- Work on VENTRA only.
-- This checkout has exactly ONE code-writing agent.
-- Do not reuse protected OpenClaw or Codex sessions.
+Shared by Claude Code and Codex.
+
+- Work on VENTRA only. SETORA is paused.
+- This checkout has exactly ONE code-writing agent at a time.
+- Do not reuse protected OpenClaw or Codex sessions. Do not read or use the untracked OpenClaw leftovers (`SOUL.md`, `IDENTITY.md`, `USER.md`, `DREAMS.md`, `memory/`).
 - Do not spawn other coding agents.
-- The old project directories are read-only references.
+- `VENTRA-CLEAN` (`main`) is protected: never edit, commit, merge or reset it. Other `VENTRA-*` folders are read-only references.
 - Preserve every existing VENTRA feature and integration.
 - Apply the approved V5 subtle teal glass UI.
-- Run builds and tests before reporting success.
-- Never expose, commit or print credentials.
-- Never deploy or delete projects without approval.
-- Never let multiple agents write to this checkout.
-- Record real blockers instead of repeating confirmation loops.
+- `apps/web` uses a Next.js with breaking changes: read `apps/web/node_modules/next/dist/docs/` before coding.
+- Every feature needs an isolated test page (`apps/web/app/tools/<feature>/`) using real production logic.
+- Run lint, typecheck, tests and build before reporting success. Report evidence (command + result), not descriptions.
+- Never expose, commit or print credentials. Never read `.env*` files.
+- Never deploy, delete, spend money, publish, force-push or `git push` without owner approval.
+- Record real blockers once instead of repeating confirmation loops.
 
 ## Handoff between Claude and Codex
 
-- Claude Code and Codex share this checkout, but only one edits at a time.
-- Take the lock before editing: `ventra-handoff acquire claude` or `ventra-handoff acquire codex`. Stop if it refuses.
-- Read `HANDOFF.md` before starting. Continue from the saved Git state.
-- Before stopping, update `HANDOFF.md`, then run `ventra-handoff release`.
-- `VENTRA-CLEAN` (main) is protected: never edit it.
-- Every feature needs an isolated test page using real production functionality.
+Full procedure: `docs/agents/CODEX_HANDOFF.md`.
+
+- Only the lock holder edits. `ventra-claude` / `ventra-codex` take the lock; `ventra-handoff status` shows it. Stop if it is held.
+- Read `HANDOFF.md` and run `git status` before starting. Continue only the approved task from the saved Git state.
+- Before stopping: update `HANDOFF.md` (changed files, tests, blockers, next steps) and run `ventra-handoff snapshot`. The lock is released when the session exits.
+- Stuck lock: `ventra-handoff recover`. Never force a lock whose session is still working.
+
+Team structure and quality gates: `docs/agents/ARCHITECTURE.md`, `docs/agents/WORKFLOWS.md`. Task register: `docs/agents/TASKS.md`.
