@@ -6,8 +6,8 @@ Rules for every item: build it as a local, clearly labelled DEMO feature with th
 
 | # | Feature | Kind | State | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | Account sync for 10 service and education drafts | wiring + migration 0004 | Running | proposals, agreement, invoice, portal, projects, quiz, certificate, sales page, coaching, workshop |
-| 2 | Lead qualification and rule-based lead scoring | new draft + sync | Queued | Rules the owner writes (no AI); scores CRM contacts; explains each score |
+| 1 | Account sync for service and education drafts | wiring + migration 0004 | Done (9 of 10, verified by ventra-verify; browser round trips pending migration 0004) | Skipped the lesson quiz: it is nested in the course draft, not its own store |
+| 2 | Lead qualification and rule-based lead scoring | new draft + sync | Running | Rules the owner writes (no AI); scores CRM contacts; explains each score |
 | 3 | Sales reporting from CRM deals | computed report | Queued | Pipeline totals by stage and month from saved deals; no invented numbers |
 | 4 | Content calendar and social post drafts | new draft + sync | Queued | Manual drafts, no publishing |
 | 5 | Email campaign and nurture sequence drafts | new draft + sync | Queued | Drafts only, nothing is sent |
