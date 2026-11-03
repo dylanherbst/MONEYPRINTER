@@ -8,8 +8,8 @@ Rules for every item: build it as a local, clearly labelled DEMO feature with th
 | --- | --- | --- | --- | --- |
 | 1 | Account sync for service and education drafts | wiring + migration 0004 | Done (9 of 10, verified by ventra-verify; browser round trips pending migration 0004) | Skipped the lesson quiz: it is nested in the course draft, not its own store |
 | 2 | Lead qualification and rule-based lead scoring | new draft + sync | Done, awaiting verification | Rules the owner writes (no AI); scores CRM contacts; explains each score |
-| 3 | Sales reporting from CRM deals | computed report | Queued | Pipeline totals by stage and month from saved deals; no invented numbers |
-| 4 | Content calendar and social post drafts | new draft + sync | Queued | Manual drafts, no publishing |
+| 3 | Sales reporting from CRM deals | computed report | Done, awaiting verification | Pipeline totals by stage and month from saved deals; no invented numbers |
+| 4 | Content calendar and social post drafts | new draft + sync | Running | Manual drafts, no publishing |
 | 5 | Email campaign and nurture sequence drafts | new draft + sync | Queued | Drafts only, nothing is sent |
 | 6 | Funnel drafts (steps linking lead form, offer, checkout) | new draft + sync | Queued | Planning view, no execution |
 | 7 | Booking page drafts (availability rules) | new draft + sync | Queued | No calendar provider; shows DEMO |

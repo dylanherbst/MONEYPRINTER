@@ -56,7 +56,8 @@ The Demo column is a path in the VENTRA app. The dashboard opens it on the runni
 | 2 | CRM and sales | Unified inbox | Not started | | Inbox page says "not connected" | Needs email or messaging provider |
 | 2 | CRM and sales | Appointments and calendar | Not started | | Home shows "Calendar not connected" | Needs a calendar provider account |
 | 2 | CRM and sales | Lead qualification and rule-based scoring | Local draft | /customers?tab=lead-scoring | Unit tests (apps/web/test/local-lead-scoring.test.ts, launcher-drafts tests) pass; rules editor, scored contacts table with reasons, consent cap, isolated page /tools/lead-scoring exist; migration 202611030005 pending, browser round trip not yet run | Browser round trip after the owner applies the migration |
-| 2 | CRM and sales | Lead qualification and sales reporting | Not started | | none | Phase 3 |
+| 2 | CRM and sales | Lead qualification follow-up (assignment, stage automation) | Not started | | none; scoring and deal reports exist as separate rows | Phase 3 |
+| 2 | CRM and sales | Sales reporting from saved deals | Local draft | /customers?tab=reports | Unit tests (apps/web/test/sales-report.test.ts) pass; read-only report with stage table, UTC month table, per-currency totals and win rate, isolated page /tools/sales-report exist; browser check not yet run | Browser check by the Chief of Staff |
 | 3 | Voice Receptionist | AI answering calls, FAQs, bookings, call summaries | Not started | | Inbox lists availability only | Needs a voice or phone provider account |
 | 3 | Growth | Lead capture forms | Working | /tools | Lead form: Real browser against real local Supabase through its real editor: filled and saved locally, saved to account (rev 1), deleted the browser copy, loaded from account, restored content semantically identical | Public forms |
 | 3 | Growth | Growth plan and manual audit | Local draft | | `local-growth-plan`, Growth Audit page | No automated lead discovery |
