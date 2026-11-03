@@ -5,6 +5,7 @@ The only task board. Update a row when its state changes, with evidence. States:
 | ID | Task | Owner | State | Branch / commit | Evidence | Blockers |
 | --- | --- | --- | --- | --- | --- | --- |
 | S2 | Stage 2: agent system, skills, docs, guard hook | Chief of Staff | Verified locally (not yet accepted by owner) | `chore/agent-setup-handoff` | `docs/agents/STATUS.md` | Codex retest after 2026-11-04 14:48; Telegram end-to-end retest; Mac permissions |
-| C1 | Course Creator: continue development | (unassigned) | Not started; waiting for owner approval | `feature/course-creator-20261030` | n/a | Owner approval of Stage 2 and of this task |
+| C1 | Course Creator: QA-only baseline pass (no code changes) | `ventra-qa` | Implemented (existing code); NOT verified locally: QA FAIL (partial) | code identical to `feature/course-creator-20261030` @ `f8cfd9f` | `QA_COURSE_CREATOR_BASELINE.md` | broken browser test; no DEMO/LIVE badges; account/AI paths unproven (Docker/Supabase not running) |
+| C2 | Fix stale selector in `apps/web/test/course-creator-browser.mjs` (test file only) | `ventra-feature` | Verified locally (not yet accepted by owner) | working tree on `chore/agent-setup-handoff`, uncommitted | dev run 4 of 4 exit 0; independent `ventra-qa`: 3 consecutive passes, negative check fails correctly, lint/typecheck/269 tests pass (Node 26) | none; account half of the test is mocked |
 
 Existing Course Creator planning notes: `COURSE_CREATOR.md`, `COURSE_CONNECTIONS.md`, `COURSE_NEXT_PHASE.md` (may be stale; verify against the code before use).

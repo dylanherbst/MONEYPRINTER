@@ -31,6 +31,12 @@ Checked 2026-11-03 on this Mac. "Verified" means I ran a real check this session
 | Supabase, AI provider and other app integrations | Not checked (`.env*` files are deliberately not read). Status: unknown |
 | Telegram bot token | Owner action: it was pasted into chat; rotate via @BotFather `/revoke` then `ventra-telegram-token` |
 
+## Course Creator baseline (2026-11-03, Node 26, see `QA_COURSE_CREATOR_BASELINE.md`)
+
+Typecheck, lint, unit tests (269) and production build pass. The browser regression test fails (stale selector at `test/course-creator-browser.mjs:34`). Local integration is BLOCKED (Docker and local Supabase not running). No DEMO/LIVE or connection-state badges. Generate route has no abuse controls. Verdict: FAIL (partial).
+
+Update (same day): the browser regression was repaired (test file only: one selector, two waits, no assertion weakened) and independently re-verified: 3 consecutive passes, a wrong-URL run still fails correctly, lint, typecheck and 269 unit tests pass. Still true: the account half of that test uses mocked API routes; local integration is BLOCKED; no DEMO/LIVE badges; generate route has no abuse controls. Not run after the fix: production build, mobile viewport, Node 24.
+
 ## Known risks
 
 - **One Telegram poller only.** A second plugin server for the same bot kills the first. The plugin is therefore disabled globally and enabled only by `ventra-claude`. Do not run extra `claude --channels` sessions; close old ones.

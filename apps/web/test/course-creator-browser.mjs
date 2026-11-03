@@ -31,7 +31,7 @@ try {
  });
  const account = page.getByRole('region',{name:'Account courses',exact:true});
  await account.getByRole('button',{name:'Connect account',exact:true}).click();
- await page.getByLabel('Account workspace',{exact:true}).selectOption(workspace);
+ await page.getByRole('combobox',{name:/^Account workspace/}).selectOption(workspace);
  await account.getByRole('button',{name:'Refresh account courses',exact:true}).click();
  await account.getByRole('status').filter({hasText:'0 account courses'}).waitFor();
  await account.getByRole('button',{name:'Save new account copy',exact:true}).click();
@@ -39,6 +39,7 @@ try {
  await page.getByLabel('Course title',{exact:true}).fill('Unsaved change');
  page.on('dialog', dialog => dialog.accept());
  await account.getByRole('button',{name:'Load account course',exact:true}).click();
+ await account.getByRole('status').filter({hasText:'Loaded revision 1'}).waitFor();
  assert.equal(await page.getByLabel('Course title',{exact:true}).inputValue(),'Browser tested course');
  await page.getByLabel('Course title',{exact:true}).fill('Account update');
  await account.getByRole('button',{name:'Update loaded account course',exact:true}).click();
@@ -49,6 +50,7 @@ try {
  await account.getByRole('status').filter({hasText:'Revision conflict'}).waitFor();
  assert.equal(await page.getByLabel('Course title',{exact:true}).inputValue(),'Keep on conflict');
  await page.reload();
+ await page.getByLabel('Lesson content',{exact:true}).waitFor();
  assert.equal(await page.getByLabel('Course title',{exact:true}).inputValue(),'Browser tested course');
  console.log('PASS mocked account: connect, list, create, load, update, conflict and browser draft isolation');
  console.log('PASS real Chrome: author, save, reload persistence and learner preview');
