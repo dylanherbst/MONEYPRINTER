@@ -20,5 +20,7 @@ Business logic (`apps/web/lib/**` except presentation helpers), `apps/web/app/ap
 - Integrate finished feature logic into the polished UI without rewriting it.
 - Check mobile (375px) and desktop. Run `npm run lint`, `npm run typecheck`, `npm test` before reporting.
 
+- Git: use `ventra-git` only (`branch`, `commit -m`, `checks`, `push`, `pr`). Never raw `git commit` or `git push`. Never touch the guard, policy or settings. If something is blocked, report it and continue other work.
+
 ## Report back (short)
 Files changed, what you verified (commands and results), screenshots or URLs if available, open issues. Never say "done" without evidence.

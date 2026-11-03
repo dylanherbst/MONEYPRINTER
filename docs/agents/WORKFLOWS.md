@@ -5,6 +5,7 @@ Each workflow is also a skill in `.claude/skills/` (`/ventra-new-feature` etc.).
 ## 1. New feature (`ventra-new-feature`)
 Request → Chief of Staff → Research/Spec → Backend (if needed) → Feature Engineer → Isolated test UI → Frontend integration → QA → Git commit → Owner approval.
 Gate: written acceptance criteria before any code. Max 2 fix loops, then escalate.
+Commit and push are automatic through `ventra-git` once the checks pass. A merge to `main` or a production release goes through `ventra-approval` (see `AUTOMATION_POLICY.md`).
 
 ## 2. UI design (`ventra-ui-design`)
 Owner reference → Frontend → component audit → responsive build → visual comparison → QA → screenshot/preview → Owner approval.

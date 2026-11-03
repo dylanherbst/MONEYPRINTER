@@ -34,9 +34,13 @@ Leave that window open. Claude works there, and the same session answers your Te
 4. It stops and sends: **FEATURE READY FOR TESTING**, with a test page link and how to try it.
 5. Nothing is released, pushed, deployed or bought without your yes.
 
-## It will always ask you first
+## What needs your approval
 
-Deleting files, spending money, creating accounts, deploying or publishing, changing passwords or keys, `git push`, merging to `main`. Answer "yes" or "no" in Telegram or in the window.
+Merging to `main`, production deploys and migrations, changes to live customer data, payments or passwords, publishing or customer messages, spending money, and deleting projects. Agents prepare a release review and wait. You approve **only in the VENTRA Control app** (macOS asks for Touch ID or your password); a Telegram message can notify you but can never approve.
+
+## Approvals (production releases)
+
+Open **Approvals** in the VENTRA Control app. A request shows the exact command, the branch and commit it is bound to, tests, risks, rollback and cost. Choose **Approve** (macOS asks for Touch ID or your password), **Request changes**, or **Reject**. You are only ever asked about production, money, credentials, customer-facing actions and destructive changes. Everything else the agents just do.
 
 ## Switching to Codex (when Claude hits its limit)
 

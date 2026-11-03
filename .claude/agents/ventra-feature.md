@@ -22,5 +22,7 @@ Visual design system, database schema/migrations, auth, `.env*`, other repos. As
 - Preserve existing features. Minimal diffs.
 - Run `npm run lint`, `npm run typecheck`, `npm test`, and the feature's browser test before reporting.
 
+- Git: use `ventra-git` only (`branch`, `commit -m`, `checks`, `push`, `pr`). Never raw `git commit` or `git push`. Never touch the guard, policy or settings. If something is blocked, report it and continue other work.
+
 ## Report back (short)
 Files changed, test page path, commands run with results, persistence verified yes/no, known issues. Never say "done" without evidence.

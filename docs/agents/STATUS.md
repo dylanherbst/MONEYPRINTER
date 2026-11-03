@@ -37,6 +37,11 @@ Typecheck, lint, unit tests (269) and production build pass. The browser regress
 
 Update (same day): the browser regression was repaired (test file only: one selector, two waits, no assertion weakened) and independently re-verified: 3 consecutive passes, a wrong-URL run still fails correctly, lint, typecheck and 269 unit tests pass. Still true: the account half of that test uses mocked API routes; local integration is BLOCKED; no DEMO/LIVE badges; generate route has no abuse controls. Not run after the fix: production build, mobile viewport, Node 24.
 
+## Automation and approval policy (2026-11-03, see `AUTOMATION_POLICY.md`)
+
+Verified: Bash and Edit guard hooks (live run: 8 of 10 forbidden commands blocked, 2 safe ones allowed, nothing changed), guarded Git workflow in a throwaway repo (branch, commit, checks, push to a local bare remote verified, protected-branch and force-push refusals, secret scan, deployment-trigger detection), approval service with real merge execution, owner authentication helper available on this Mac, 29 agent tests plus 77 dashboard tests.
+Not enforced yet: GitHub branch protection and approval environments (unavailable for private repos on the free plan); no remote is linked, so automatic pushes are disabled; no production deploy target is configured; the first macOS authentication prompt has not been exercised by a person.
+
 ## Known risks
 
 - **One Telegram poller only.** A second plugin server for the same bot kills the first. The plugin is therefore disabled globally and enabled only by `ventra-claude`. Do not run extra `claude --channels` sessions; close old ones.

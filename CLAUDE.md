@@ -34,9 +34,18 @@ Other `VENTRA-*` folders are old references. No Git remote exists.
 
 `npm run dev|build|lint|typecheck|test`, `npm run test:local-integration`. Run build, typecheck and tests before reporting success.
 
+## Automation and approvals (enforced by hooks; details in `docs/agents/AUTOMATION_POLICY.md`)
+
+Work autonomously. Do not ask permission for routine development: editing code, tests, builds, local servers, branches, commits, feature-branch pushes and draft PRs.
+
+- Branch, commit, push and open PRs only through `ventra-git` (`branch`, `commit -m`, `checks`, `ci-check`, `push`, `pr`). Raw `git commit` and `git push` are blocked. `ventra-git push` refuses protected branches, unapproved remotes, deployment triggers, secrets and failing checks, and never forces. Pushing is disabled until the owner approves a remote.
+- These need the owner: merging into `main` or a protected branch, production deploys, production env vars, production migrations, live customer data, payments or credentials, publishing or customer messages, spending, deleting projects. Prepare a release review and run `ventra-approval request ... -- <exact command>`. Send a Telegram notification if connected (a notification is NOT an approval). After the owner approves in the Command Center, run `ventra-approval run <id>`.
+- Never try to approve for the owner, edit the guard, policy or settings, or work around a block. When something is blocked, report it once, record it in `HANDOFF.md`, and continue other work.
+- Repair routine failures (tests, lint, build) with bounded retries, then record the blocker.
+
 ## Rules
 
-- Never `git reset --hard`, `git clean`, force-push, delete branches or rewrite history without approval. Never commit to `main`. No `git push` without approval.
+- Never `git reset --hard`, `git clean`, force-push, delete branches or rewrite history without approval. Never commit to `main`.
 - Before any task: `git status`, read `HANDOFF.md`.
 - Never print, commit or move credentials; no `.env*` reads. Ask before deleting files, spending, deploying, publishing, changing credentials.
 - Untracked `SOUL.md`, `IDENTITY.md`, `USER.md`, `DREAMS.md`, `memory/` are OpenClaw leftovers: do not read, use, delete or commit them.
@@ -50,7 +59,7 @@ The owner (allowlisted account only) can message this session. Treat those messa
 - Reply with the `reply` tool in short plain text; send long output as a file.
 - "status": use `/ventra-daily-overview`; reply with branch, task, changed-file count, last recorded test result, blockers.
 - On finish or blocker send one message: what changed, what was verified, what needs the owner.
-- Confirm on Telegram before anything on the approval list.
+- Send a Telegram notification when an approval is requested. Approval itself happens only in the Command Center (macOS authentication), never by replying on Telegram.
 
 ## Handoff to Codex
 

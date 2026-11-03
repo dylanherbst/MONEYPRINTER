@@ -13,7 +13,8 @@ Shared by Claude Code and Codex.
 - Every feature needs an isolated test page (`apps/web/app/tools/<feature>/`) using real production logic.
 - Run lint, typecheck, tests and build before reporting success. Report evidence (command + result), not descriptions.
 - Never expose, commit or print credentials. Never read `.env*` files.
-- Never deploy, delete, spend money, publish, force-push or `git push` without owner approval.
+- Never deploy, delete, spend money, publish, force-push or push to a protected branch without owner approval. Commit and push only with `ventra-git` (never raw `git commit` or `git push`); production-class actions go through `ventra-approval request` and `ventra-approval run` (see `docs/agents/AUTOMATION_POLICY.md`).
+- Codex is not covered by Claude Code's hooks, so these rules are your own responsibility: never push to `main`, never force, never touch the guard, policy or settings.
 - Record real blockers once instead of repeating confirmation loops.
 
 ## Handoff between Claude and Codex

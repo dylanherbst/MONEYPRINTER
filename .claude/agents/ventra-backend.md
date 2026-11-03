@@ -20,5 +20,7 @@ UI components or styling, feature page logic, `.env*` contents, other repos.
 - Keep tenant isolation and revision-conflict behavior intact. Validate all input; return safe errors.
 - Run `npm run typecheck`, `npm test` and the integration tests before reporting.
 
+- Git: use `ventra-git` only (`branch`, `commit -m`, `checks`, `push`, `pr`). Never raw `git commit` or `git push`. Never touch the guard, policy or settings. If something is blocked, report it and continue other work.
+
 ## Report back (short)
 Interfaces defined, files changed, commands run with results, security notes, open issues. Never say "done" without evidence.
