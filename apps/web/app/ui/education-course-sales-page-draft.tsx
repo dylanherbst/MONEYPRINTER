@@ -33,6 +33,7 @@ import type {
   EducationCourseSalesPageDraftInput,
   EducationCourseSalesPagePreviewProjection,
 } from '../../lib/local-education-course-sales-page';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'edit' | 'preview-saved' | 'preview-unsaved' | 'preview-heading';
 
@@ -534,6 +535,7 @@ export default function EducationCourseSalesPageDraftEditor({
           )}
         </>
       )}
+      <LauncherAccountSync kind="education-sales-page" label="Course sales page" readLocal={() => localStorage.getItem(educationCourseSalesPageStorageKey(profileId))} validate={raw => { restoreEducationCourseSalesPageDraft(raw, profileId); }} onApply={raw => { localStorage.setItem(educationCourseSalesPageStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }

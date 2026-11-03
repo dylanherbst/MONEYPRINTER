@@ -25,6 +25,7 @@ import type {
 } from '../../lib/local-service-invoice-draft';
 import { proposalStorageKey, proposalTotal, restoreProposals } from '../../lib/service-proposals';
 import type { Proposal } from '../../lib/service-proposals';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'edit' | 'preview-heading';
 
@@ -511,6 +512,7 @@ export default function ServiceInvoiceDraftEditor({ profileId }: { profileId: st
           )}
         </>
       )}
+      <LauncherAccountSync kind="service-invoice" label="Service invoice" readLocal={() => localStorage.getItem(serviceInvoiceStorageKey(profileId))} validate={raw => { restoreServiceInvoiceDraft(raw, profileId); }} onApply={raw => { localStorage.setItem(serviceInvoiceStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }

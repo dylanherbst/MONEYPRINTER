@@ -28,6 +28,7 @@ import type {
 } from '../../lib/local-service-client-portal-draft';
 import { proposalStorageKey, proposalTotal, restoreProposals } from '../../lib/service-proposals';
 import type { Proposal } from '../../lib/service-proposals';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'edit' | 'preview' | 'preview-heading';
 
@@ -544,6 +545,7 @@ export default function ServiceClientPortalDraftEditor({ profileId }: { profileI
           )}
         </>
       )}
+      <LauncherAccountSync kind="service-portal" label="Client portal" readLocal={() => localStorage.getItem(serviceClientPortalStorageKey(profileId))} validate={raw => { restoreServiceClientPortalDraft(raw, profileId); }} onApply={raw => { localStorage.setItem(serviceClientPortalStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }

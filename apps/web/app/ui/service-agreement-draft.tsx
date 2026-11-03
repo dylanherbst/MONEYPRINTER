@@ -28,6 +28,7 @@ import type {
 } from '../../lib/local-service-agreement-draft';
 import { proposalStorageKey, proposalTotal, restoreProposals } from '../../lib/service-proposals';
 import type { Proposal } from '../../lib/service-proposals';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'edit' | 'preview-heading';
 
@@ -534,6 +535,7 @@ export default function ServiceAgreementDraftEditor({ profileId }: { profileId: 
           )}
         </>
       )}
+      <LauncherAccountSync kind="service-agreement" label="Service agreement" readLocal={() => localStorage.getItem(serviceAgreementStorageKey(profileId))} validate={raw => { restoreServiceAgreementDraft(raw, profileId); }} onApply={raw => { localStorage.setItem(serviceAgreementStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }

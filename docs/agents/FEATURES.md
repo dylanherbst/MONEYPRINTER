@@ -24,9 +24,9 @@ The Demo column is a path in the VENTRA app. The dashboard opens it on the runni
 | 1 | Education | Learner preview of a course | Working | /tools/course-creator | Preview button on the Course Creator page (browser-local, no logins) | Real student portal is separate |
 | 1 | Education | AI course generation | Blocked | | Route exists, rate-limited, adapter and validation mock-tested only | Needs an OpenAI key (costs money) and a workspace-membership check |
 | 1 | Education | Lesson quizzes | Local draft | | `local-education-lesson-quiz` unit tests | Account sync |
-| 1 | Education | Certificates | Local draft | | `local-education-certificate-template` unit tests | Issuing and verification |
-| 1 | Education | Course sales page | Local draft | | `local-education-course-sales-page` unit tests | Publishing and checkout |
-| 1 | Education | Coaching program and workshop plans | Local draft | | `local-education-coaching-program`, `local-education-workshop-plan` unit tests | Booking and delivery |
+| 1 | Education | Certificates | Local draft | | `local-education-certificate-template` unit tests; account sync wired, migration 202611030004 pending, browser round trip not yet run | Issuing and verification |
+| 1 | Education | Course sales page | Local draft | | `local-education-course-sales-page` unit tests; account sync wired, migration 202611030004 pending, browser round trip not yet run | Publishing and checkout |
+| 1 | Education | Coaching program and workshop plans | Local draft | | `local-education-coaching-program`, `local-education-workshop-plan` unit tests; account sync wired, migration 202611030004 pending, browser round trip not yet run | Booking and delivery |
 | 1 | Education | Video lessons | Not started | | none | Needs video hosting |
 | 1 | Education | Student portal and progress tracking | Not started | | Learner preview only | Phase 2 |
 | 2 | Business Launcher | Skill self-assessment saved to your account | Working | /tools | Real browser round trip against real local Supabase through the real editor | AI analysis not connected |
@@ -38,11 +38,11 @@ The Demo column is a path in the VENTRA app. The dashboard opens it on the runni
 | 2 | Business Launcher | Guided launch checklist | Local draft | | Setup plan from onboarding is generated per route and saved in the profile | Account progress sync verified only for the profile |
 | 2 | Business Launcher | AI business idea generator and AI Business Advisor | Not started | | Growth Audit is a manual form | Needs AI provider key |
 | 2 | Services | Service offers and pricing | Local draft | | `local-offers` unit tests; offers save to the account on `/workspace` | Dedicated service package screens |
-| 2 | Services | Proposals | Local draft | | `service-proposals` unit and browser tests | Sending and acceptance |
-| 2 | Services | Agreements and contracts | Local draft | | `local-service-agreement-draft` unit tests | E-signature |
-| 2 | Services | Invoices | Local draft | | `local-service-invoice-draft` unit tests | Real invoicing and payment |
-| 2 | Services | Client portal | Local draft | | `local-service-client-portal-draft` unit tests | Client login |
-| 2 | Services | Project board | Local draft | | `local-service-project-board` unit tests | Account sync |
+| 2 | Services | Proposals | Local draft | | `service-proposals` unit and browser tests; account sync wired, migration 202611030004 pending, browser round trip not yet run | Sending and acceptance |
+| 2 | Services | Agreements and contracts | Local draft | | `local-service-agreement-draft` unit tests; account sync wired, migration 202611030004 pending, browser round trip not yet run | E-signature |
+| 2 | Services | Invoices | Local draft | | `local-service-invoice-draft` unit tests; account sync wired, migration 202611030004 pending, browser round trip not yet run | Real invoicing and payment |
+| 2 | Services | Client portal | Local draft | | `local-service-client-portal-draft` unit tests; account sync wired, migration 202611030004 pending, browser round trip not yet run | Client login |
+| 2 | Services | Project board | Local draft | | `local-service-project-board` unit tests; account sync wired, migration 202611030004 pending, browser round trip not yet run | Browser round trip |
 | 2 | Services | Booking pages | Not started | | none | Needs a calendar provider account |
 | 2 | Services | Memberships | Not started | | Community space is a local draft only | Phase 4 |
 | 2 | Website and store | Website pages and templates | Working | /business?tab=website | Website page: Real browser against real local Supabase through its real editor: filled and saved locally, saved to account (rev 1), deleted the browser copy, loaded from account, restored content semantically identical | No publishing or domains |

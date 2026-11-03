@@ -33,6 +33,7 @@ import type {
   EducationCoachingProgramPreviewProjection,
   EducationCoachingSessionPlanInput,
 } from '../../lib/local-education-coaching-program';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'edit' | 'preview-saved' | 'preview-unsaved' | 'preview-heading';
 
@@ -640,6 +641,7 @@ export default function EducationCoachingProgramDraftEditor({
           )}
         </>
       )}
+      <LauncherAccountSync kind="education-coaching" label="Coaching program" readLocal={() => localStorage.getItem(educationCoachingProgramStorageKey(profileId))} validate={raw => { restoreEducationCoachingProgramDraft(raw, profileId); }} onApply={raw => { localStorage.setItem(educationCoachingProgramStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }

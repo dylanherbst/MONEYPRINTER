@@ -28,6 +28,7 @@ import type {
 } from '../../lib/local-service-project-board';
 import { proposalStorageKey, proposalTotal, restoreProposals } from '../../lib/service-proposals';
 import type { Proposal } from '../../lib/service-proposals';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'edit' | 'preview-heading';
 
@@ -547,6 +548,7 @@ export default function ServiceProjectBoardEditor({ profileId }: { profileId: st
           )}
         </>
       )}
+      <LauncherAccountSync kind="service-projects" label="Project board" readLocal={() => localStorage.getItem(serviceProjectBoardStorageKey(profileId))} validate={raw => { restoreServiceProjectBoardDraft(raw, profileId); }} onApply={raw => { localStorage.setItem(serviceProjectBoardStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }

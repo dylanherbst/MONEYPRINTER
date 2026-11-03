@@ -42,6 +42,7 @@ import type {
   EducationWorkshopPlanDraftInput,
   EducationWorkshopPlanPreviewProjection,
 } from '../../lib/local-education-workshop-plan';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'edit' | 'preview-saved' | 'preview-unsaved' | 'preview-heading';
 
@@ -724,6 +725,7 @@ export default function EducationWorkshopPlanDraftEditor({
           )}
         </>
       )}
+      <LauncherAccountSync kind="education-workshop" label="Workshop plan" readLocal={() => localStorage.getItem(educationWorkshopPlanStorageKey(profileId))} validate={raw => { restoreEducationWorkshopPlanDraft(raw, profileId); }} onApply={raw => { localStorage.setItem(educationWorkshopPlanStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }

@@ -28,6 +28,7 @@ import type {
   EducationCertificateTemplateDraftInput,
   EducationCertificateTemplatePreviewProjection,
 } from '../../lib/local-education-certificate-template';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 type FocusTarget = 'create' | 'edit' | 'preview-saved' | 'preview-unsaved' | 'preview-heading';
 
@@ -489,6 +490,7 @@ export default function EducationCertificateTemplateDraftEditor({ profile }: { p
           )}
         </>
       )}
+      <LauncherAccountSync kind="education-certificate" label="Certificate template" readLocal={() => localStorage.getItem(educationCertificateTemplateStorageKey(profileId))} validate={raw => { restoreEducationCertificateTemplateDraft(raw, profileId); }} onApply={raw => { localStorage.setItem(educationCertificateTemplateStorageKey(profileId), raw); window.location.reload(); }} />
     </section>
   );
 }

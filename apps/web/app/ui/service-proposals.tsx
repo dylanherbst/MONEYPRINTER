@@ -4,6 +4,7 @@ import { formatOfferPrice, offerCurrencies } from '../../lib/local-offers';
 import type { LocalOffer } from '../../lib/local-offers';
 import { editProposal, persistProposal, proposalFromPackage, proposalStorageKey, proposalTotal, restoreProposals, saveProposal } from '../../lib/service-proposals';
 import type { Proposal, ProposalInput } from '../../lib/service-proposals';
+import { LauncherAccountSync } from './launcher-account-sync';
 
 export default function ServiceProposals({ offers, profileId }: { offers: LocalOffer[]; profileId: string }) {
   const [saved, setSaved] = useState<Proposal[]>([]);
@@ -85,5 +86,6 @@ export default function ServiceProposals({ offers, profileId }: { offers: LocalO
       </form>}
       {preview && <article className="proposal-preview card" aria-labelledby="proposal-preview-title"><div className="section-heading"><h3 id="proposal-preview-title">{preview.title}</h3><span className="status-badge">{input ? 'Unsaved preview' : 'Saved draft preview'}</span></div><p>Prepared for {preview.recipient}{preview.email ? ` · ${preview.email}` : ''}</p><h4>Scope and deliverables</h4><p className="prose">{preview.scope}</p><div className="proposal-table"><table><caption>Proposed fees in {preview.currency} · No tax calculated</caption><thead><tr><th scope="col">Description</th><th scope="col">Quantity</th><th scope="col">Unit price</th><th scope="col">Line total</th></tr></thead><tbody>{preview.items.map((item, index) => <tr key={index}><th scope="row">{item.description}</th><td>{item.quantity}</td><td>{formatOfferPrice(item.amountMinor)}</td><td>{formatOfferPrice(item.quantity * item.amountMinor)}</td></tr>)}</tbody><tfoot><tr><th scope="row" colSpan={3}>Total ({preview.currency})</th><td>{formatOfferPrice(proposalTotal(preview.items))}</td></tr></tfoot></table></div><h4>Draft terms</h4><p className="prose">{preview.terms}</p><p>Draft only. Not sent, accepted, signed or payable. No tax, invoice, contract or booking is created.</p><button type="button" onClick={() => setPreview(null)}>Close preview</button></article>}
     </>}
+      <LauncherAccountSync kind="service-proposals" label="Service proposals" readLocal={() => localStorage.getItem(proposalStorageKey(profileId))} validate={raw => { restoreProposals(raw, profileId); }} onApply={raw => { localStorage.setItem(proposalStorageKey(profileId), raw); window.location.reload(); }} array />
   </section>;
 }
