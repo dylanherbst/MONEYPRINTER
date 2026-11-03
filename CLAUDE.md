@@ -32,7 +32,7 @@ Other `VENTRA-*` folders are old references. No Git remote exists.
 
 ## Commands (repo root; Node 24, npm 11)
 
-`npm run dev|build|lint|typecheck|test`, `npm run test:local-integration`. Run build, typecheck and tests before reporting success.
+`npm run dev|build|lint|typecheck|test`, `npm run test:local-integration`. Run `ventra-verify` (lint, typecheck, tests, build, and the real local Supabase integration tests when it is running; records the result for the dashboard) before reporting success.
 
 ## Automation and approvals (enforced by hooks; details in `docs/agents/AUTOMATION_POLICY.md`)
 

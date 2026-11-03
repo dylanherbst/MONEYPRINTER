@@ -29,6 +29,8 @@ Bash and edit guard hooks, `ventra-git`, approval inbox with macOS authenticatio
 
 ## Test pipeline and retry rule
 
+`ventra-verify` runs the whole gate in about 30 to 60 seconds: lint, typecheck, unit tests, production build, and (only if local Supabase answers on port 55321) the workspace and course account integration tests. Skipped steps are recorded as SKIPPED with the reason, never as passed. The result is saved to `~/.ventra-dashboard/last-verify.json` and shown in the dashboard's Test results card. A daily 6:30 PM scheduled task for it was proposed but the auto-mode classifier denied creating it; create it in the Claude Desktop Scheduled section if wanted.
+
 Required gate for every task: `npm run lint`, `typecheck`, `test`, `build`, then `ventra-git checks`. Also run the changed feature's `apps/web/test/<feature>-browser.mjs` (Playwright, 375 px and desktop) instead of all of them. A coding agent may repair a routine failure at most 3 times; then record BLOCKED in `HANDOFF.md` and stop that task. Failures are never hidden and gates are never skipped.
 
 ## Recovery from an interrupted task
