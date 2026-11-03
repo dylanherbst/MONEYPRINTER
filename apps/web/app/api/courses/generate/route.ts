@@ -3,6 +3,9 @@ import { sameOrigin } from '../../../../lib/request-security';
 import { readBoundedRequestBody, RequestBodyTooLarge } from '../../../../lib/request-body';
 import { createSupabaseClient } from '../../../../lib/supabase/client';
 import { generateOpenAICourse } from '../../../../lib/openai-course';
+import { createRateLimiter } from '../../../../lib/rate-limit';
+// Paid provider call: at most 5 generations per user per 10 minutes on this server instance.
+const generationLimit = createRateLimiter(5, 10 * 60_000);
 export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   const reply = (body: unknown, status: number) => NextResponse.json(body, {status, headers: {'Cache-Control':'no-store'}});
@@ -13,6 +16,8 @@ export async function POST(req: NextRequest) {
   try {
     const {data,error} = await createSupabaseClient().auth.getUser(token);
     if (error || !data.user) return reply({error:'Session expired. Sign in again.'},401);
+    const limited = generationLimit(data.user.id);
+    if (!limited.allowed) return NextResponse.json({error:'Too many generations. Try again later.'},{status:429,headers:{'Cache-Control':'no-store','Retry-After':String(limited.retryAfterSeconds)}});
     const input = JSON.parse(await readBoundedRequestBody(req));
     if (typeof input?.brief !== 'string' || !input.brief.trim() || input.brief.length > 4000) return reply({error:'Describe your course in 1–4000 characters.'},400);
     const course = await generateOpenAICourse(input.brief, {signal:req.signal});
