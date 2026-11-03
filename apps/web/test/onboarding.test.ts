@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { blankProfile, buildPlan, enablePathway, profileErrors, restoreProfile, serializeProfile, tools } from '../lib/onboarding.ts';
+import { applyRoute, blankProfile, buildPlan, enablePathway, profileErrors, restoreProfile, routeOf, routes, serializeProfile, tools } from '../lib/onboarding.ts';
 import type { Pathway, Stage, Profile } from '../lib/onboarding.ts';
 function profile(primary: Pathway = 'education', stage: Stage = 'idea'): Profile {
   return { ...blankProfile(), primary, pathways: [primary], stage, name: 'Lash Studio', audience: 'Perth lash clients', goal: 'Grow bookings', expertise: 'Lash application', industry: 'Beauty' };
@@ -51,4 +51,24 @@ test('validation blocks incomplete pathway-specific details and unsafe website s
   for (const website of ['javascript:alert(1)', 'example.com', 'ftp://example.com']) assert.ok(profileErrors({ ...profile(), website }).length);
   assert.equal(profileErrors({ ...profile(), website: 'https://example.com' }).length, 0);
   assert.throws(() => serializeProfile(blankProfile()), /required business details/);
+});
+
+test('three customer routes map onto the one profile model and round-trip', () => {
+  const base = profile('education', 'idea');
+  const cases = [
+    ['education', { primary: 'education', pathways: ['education'], stage: 'idea' }],
+    ['independent', { primary: 'business', pathways: ['business'], stage: 'idea' }],
+    ['grow', { primary: 'business', pathways: ['business'], stage: 'existing' }],
+  ] as const;
+  for (const [route, expected] of cases) {
+    const next = applyRoute(base, route);
+    assert.deepEqual({ primary: next.primary, pathways: next.pathways, stage: next.stage }, expected);
+    assert.equal(routeOf(next), route);
+    assert.equal(next.name, base.name, 'identity and shared details are kept');
+    assert.equal(next.id, base.id);
+    assert.deepEqual(routes.map(r => r.id).sort(), ['education', 'grow', 'independent']);
+  }
+  const grown = applyRoute(profile('business', 'idea'), 'grow');
+  assert.equal(buildPlan(grown).length, 10, 'grow route adds the existing-business steps');
+  assert.equal(routeOf({ ...base, stage: 'existing' }), 'grow', 'an existing business is always the grow route');
 });

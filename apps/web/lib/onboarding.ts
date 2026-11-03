@@ -12,6 +12,20 @@ export const storageKey = 'launchpad.business-profile.v1';
 export function blankProfile(): Profile {
   return { version: 1, id: 'local-business', name: '', primary: 'education', pathways: ['education'], stage: 'idea', industry: '', location: '', audience: '', goal: '', expertise: '', educationOffer: 'Course', businessType: 'Physical services', website: '', channels: '', completed: [], toolNotes: {} };
 }
+export type RouteId = 'education' | 'independent' | 'grow';
+export const routes: readonly { id: RouteId; title: string; summary: string }[] = [
+  { id: 'education', title: 'Education & Mentoring', summary: 'Create courses, coaching or mentoring and manage your students.' },
+  { id: 'independent', title: 'Independent Business', summary: 'Turn your skills into a business: offer, pricing, website and first customers.' },
+  { id: 'grow', title: 'Grow & Automate My Business', summary: 'Connect your tools, win more leads and automate follow-up for an existing business.' },
+];
+// The three routes are views of the one profile model: they set stage, primary pathway and enabled pathways only.
+export function routeOf(p: Pick<Profile, 'stage' | 'primary'>): RouteId {
+  return p.stage === 'existing' ? 'grow' : p.primary === 'education' ? 'education' : 'independent';
+}
+export function applyRoute(p: Profile, route: RouteId): Profile {
+  const primary: Pathway = route === 'education' ? 'education' : 'business';
+  return { ...p, primary, pathways: [primary], stage: route === 'grow' ? 'existing' : 'idea' };
+}
 export function enablePathway(profile: Profile, pathway: Pathway): Profile {
   return { ...profile, pathways: [...new Set([...profile.pathways, pathway])] };
 }
