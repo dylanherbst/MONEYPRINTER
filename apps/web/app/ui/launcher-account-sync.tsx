@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { accountRequest } from '../../lib/course-account';
-import { deleteLauncherDraft, loadLauncherDraft, saveLauncherDraft } from '../../lib/launcher-drafts';
+import { deleteLauncherDraft, loadLauncherDraft, packArray, saveLauncherDraft, unpackArray } from '../../lib/launcher-drafts';
 import type { LauncherKind, RemoteLauncherDraft } from '../../lib/launcher-drafts';
 import { uuid } from '../../lib/workspace-validation';
 
@@ -13,10 +13,12 @@ type Props = {
   validate: (raw: string) => void;
   /** Writes the validated account copy into browser storage and refreshes the editor. */
   onApply: (raw: string) => void;
+  /** The local store is a JSON array (for example contacts); it is wrapped for the account copy and unwrapped on load. */
+  array?: boolean;
 };
 
 // Account sync for one Business Launcher draft. Browser storage stays the working copy; the account copy is explicit and revisioned.
-export function LauncherAccountSync({ kind, label, readLocal, validate, onApply }: Props) {
+export function LauncherAccountSync({ kind, label, readLocal, validate, onApply, array = false }: Props) {
   const [workspaces, setWorkspaces] = useState<{ id: string; name: string }[]>([]);
   const [workspace, setWorkspace] = useState('');
   const [remote, setRemote] = useState<RemoteLauncherDraft | null | undefined>(undefined);
@@ -49,15 +51,17 @@ export function LauncherAccountSync({ kind, label, readLocal, validate, onApply 
         const raw = readLocal();
         if (!raw) throw new Error('Save this draft in the browser first.');
         validate(raw);
-        const revision = await saveLauncherDraft(workspace, kind, raw, remote?.revision ?? 0);
-        setRemote({ kind, revision, updatedAt: new Date().toISOString(), raw });
+        const packed = array ? packArray(raw) : raw;
+        const revision = await saveLauncherDraft(workspace, kind, packed, remote?.revision ?? 0);
+        setRemote({ kind, revision, updatedAt: new Date().toISOString(), raw: packed });
         setMessage(`Saved to your account at revision ${revision}.`);
       })}>Save to account</button>
       <button type="button" disabled={!workspace || !remote} onClick={() => void run(async () => {
         if (!remote) return;
-        validate(remote.raw);
+        const local = array ? unpackArray(remote.raw) : remote.raw;
+        validate(local);
         if (!window.confirm('Replace the browser draft with the account copy?')) return;
-        onApply(remote.raw);
+        onApply(local);
         setMessage('Account copy applied to this browser.');
       })}>Load from account</button>
       <button type="button" disabled={!workspace || !remote} onClick={() => void run(async () => {

@@ -2,11 +2,22 @@ import { accountRequest } from './course-account.ts';
 import type { CourseRequest } from './course-account.ts';
 import { uuid } from './workspace-validation.ts';
 
-export const launcherKinds = ['skill-assessment', 'market-evidence', 'offer-validation', 'pricing-scenario', 'brand-direction', 'business-plan'] as const;
+export const launcherKinds = ['skill-assessment', 'market-evidence', 'offer-validation', 'pricing-scenario', 'brand-direction', 'business-plan', 'crm-contacts', 'crm-pipeline'] as const;
 export type LauncherKind = typeof launcherKinds[number];
 export const launcherDraftByteLimit = 128000;
 export type RemoteLauncherDraft = { kind: LauncherKind; revision: number; updatedAt: string | null; raw: string };
 
+// Some local stores are arrays. The account copy wraps them as { items: [...] } so the server always holds one JSON object.
+export function packArray(raw: string): string {
+  const value: unknown = JSON.parse(raw);
+  if (!Array.isArray(value)) throw new Error('Expected a list of records.');
+  return JSON.stringify({ items: value });
+}
+export function unpackArray(raw: string): string {
+  const value = JSON.parse(raw) as { items?: unknown };
+  if (!value || !Array.isArray(value.items)) throw new Error('Account copy is not a list of records. Your local copy is unchanged.');
+  return JSON.stringify(value.items);
+}
 export function checkedKind(value: unknown): LauncherKind {
   if (typeof value !== 'string' || !(launcherKinds as readonly string[]).includes(value)) throw new Error('Unknown launcher draft.');
   return value as LauncherKind;

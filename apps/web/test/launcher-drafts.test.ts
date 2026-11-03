@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkedDraftRaw, checkedKind, deleteLauncherDraft, loadLauncherDraft, saveLauncherDraft } from '../lib/launcher-drafts.ts';
+import { checkedDraftRaw, checkedKind, deleteLauncherDraft, loadLauncherDraft, packArray, saveLauncherDraft, unpackArray } from '../lib/launcher-drafts.ts';
 
 const W = '11111111-1111-4111-8111-111111111111';
 const json = (status: number, body: unknown) => async () => new Response(JSON.stringify(body), { status });
@@ -27,4 +27,12 @@ test('save requires a verified next revision; delete requires a verified result'
   await assert.rejects(saveLauncherDraft(W, 'pricing-scenario', '{"a":1}', -1));
   await deleteLauncherDraft(W, 'pricing-scenario', 2, json(200, { deleted: true }));
   await assert.rejects(deleteLauncherDraft(W, 'pricing-scenario', 2, json(200, {})), /could not be verified/);
+});
+
+test('list stores are wrapped for the account and unwrapped exactly', () => {
+  const list = JSON.stringify([{ id: 'a' }, { id: 'b' }]);
+  assert.equal(unpackArray(packArray(list)), list);
+  assert.throws(() => packArray('{"a":1}'), /list/);
+  assert.throws(() => unpackArray('{"items":"x"}'), /not a list/);
+  assert.equal(checkedKind('crm-contacts'), 'crm-contacts');
 });
