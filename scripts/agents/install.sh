@@ -12,7 +12,7 @@ share="$HOME/.local/share/ventra-agents"
 NODE="$(command -v node)" || { echo "Node is required." >&2; exit 1; }
 mkdir -p "$bin" "$share/lib"
 
-for f in ventra-handoff ventra-claude ventra-codex ventra-guard; do install -m 755 "$d/$f" "$bin/$f"; done
+for f in ventra-handoff ventra-claude ventra-codex ventra-guard ventra-backup ventra-statusline; do install -m 755 "$d/$f" "$bin/$f"; done
 for f in guard-bash.mjs guard-edit.mjs ventra-git.mjs ventra-approval.mjs; do install -m 755 "$d/$f" "$share/$f"; done
 for f in "$d"/lib/*.mjs; do install -m 644 "$f" "$share/lib/$(basename "$f")"; done
 install -m 644 "$d/serena-readonly-mode.yml" "$share/serena-readonly-mode.yml"
