@@ -18,7 +18,7 @@ Concurrency on this 8 GB Mac: one writing agent plus at most one read-only helpe
 
 ## Already in place before Stage 3 (kept unchanged)
 
-Bash and edit guard hooks, `ventra-git`, approval inbox with macOS authentication, Codex handoff, Telegram bridge, VENTRA Control dashboard (agents, workflows, jobs, schedules, approvals, Codex), plugin set (`PLUGINS.md`). See `AUTOMATION_POLICY.md`.
+Bash and edit guard hooks, `ventra-git`, approval inbox with macOS authentication, Codex handoff, Telegram bridge, Agent Dashboard dashboard (agents, workflows, jobs, schedules, approvals, Codex), plugin set (`PLUGINS.md`). See `AUTOMATION_POLICY.md`.
 
 ## Added in Stage 3
 
@@ -56,7 +56,7 @@ Telegram: the official `telegram` plugin from `claude-plugins-official` is alrea
 | `ventra-weekly-code-review` | Monday 09:00 | changed-code review, `npm audit`/`outdated` report only |
 | `ventra-backup-recovery-audit` | Friday 17:00 | `ventra-backup create` + `verify`, git fsck, recovery docs |
 
-All are read-only (the backup task only adds a new backup), each ends with a phone/desktop notification. They run only while Claude Desktop is open and the Mac is awake; a missed run executes on next launch. Dispatch is delayed by a few minutes (load balancing). Manage them in the app's Scheduled section. Dashboard schedules (`VENTRA Control`) are separate and unused.
+All are read-only (the backup task only adds a new backup), each ends with a phone/desktop notification. They run only while Claude Desktop is open and the Mac is awake; a missed run executes on next launch. Dispatch is delayed by a few minutes (load balancing). Manage them in the app's Scheduled section. Dashboard schedules (`Agent Dashboard`) are separate and unused.
 
 ## Workflows
 

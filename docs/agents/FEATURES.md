@@ -1,6 +1,6 @@
 # VENTRA feature list and status
 
-Source for the VENTRA Control "Features" page. Checked 2026-11-03 against the code and the test results on branch `chore/plugin-setup`. Statuses are evidence-based, not percentages:
+Source for the Agent Dashboard "Features" page. Checked 2026-11-03 against the code and the test results on branch `chore/plugin-setup`. Statuses are evidence-based, not percentages:
 
 - **Working**: runs end to end in a real browser or against the real local database, checked this session (`ventra-verify` passes). Has a Demo page to open.
 - **Local draft**: built and unit-tested (and often browser-tested earlier), but saves only in this browser unless noted. No live backend, AI or provider is connected. Not re-run in a browser this session.

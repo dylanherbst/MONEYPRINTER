@@ -2,7 +2,7 @@
 # ventra-verify: run the full VENTRA verification in one go and record the real result.
 #   lint, typecheck, unit tests, production build, and (only if local Supabase is reachable)
 #   the workspace and course account integration tests. Skipped steps are recorded as SKIPPED with the reason, never as passed.
-# Result file: ~/.ventra-dashboard/last-verify.json (read by the VENTRA Control dashboard). Exit code 1 if any step failed.
+# Result file: ~/.ventra-dashboard/last-verify.json (read by the Agent Dashboard dashboard). Exit code 1 if any step failed.
 set -uo pipefail
 repo="${VENTRA_REPO:-$HOME/Developer/VENTRA-FEATURES}"
 out="${VENTRA_VERIFY_FILE:-$HOME/.ventra-dashboard/last-verify.json}"

@@ -1,6 +1,6 @@
 # VENTRA roadmap: from today to launch and first revenue
 
-Source for the VENTRA Control "Roadmap" page. Checked 2026-11-03.
+Source for the Agent Dashboard "Roadmap" page. Checked 2026-11-03.
 
 - **Feature steps** (Status = `auto`): their status is computed live from `FEATURES.md` by matching the `Match` text against each feature's "Module · Feature". Done = every matched feature is Working. In progress = at least one is Working or a Local draft. Blocked = blocked with nothing built yet. Otherwise Not started.
 - **Launch steps** (explicit Status): things that are not product features but must happen before real customers pay. Statuses here are maintained by hand with a reason; nothing is marked Done without evidence.

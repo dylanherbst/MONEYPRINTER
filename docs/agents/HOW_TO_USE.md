@@ -36,11 +36,11 @@ Leave that window open. Claude works there, and the same session answers your Te
 
 ## What needs your approval
 
-Merging to `main`, production deploys and migrations, changes to live customer data, payments or passwords, publishing or customer messages, spending money, and deleting projects. Agents prepare a release review and wait. You approve **only in the VENTRA Control app** (macOS asks for Touch ID or your password); a Telegram message can notify you but can never approve.
+Merging to `main`, production deploys and migrations, changes to live customer data, payments or passwords, publishing or customer messages, spending money, and deleting projects. Agents prepare a release review and wait. You approve **only in the Agent Dashboard app** (macOS asks for Touch ID or your password); a Telegram message can notify you but can never approve.
 
 ## Approvals (production releases)
 
-Open **Approvals** in the VENTRA Control app. A request shows the exact command, the branch and commit it is bound to, tests, risks, rollback and cost. Choose **Approve** (macOS asks for Touch ID or your password), **Request changes**, or **Reject**. You are only ever asked about production, money, credentials, customer-facing actions and destructive changes. Everything else the agents just do.
+Open **Approvals** in the Agent Dashboard app. A request shows the exact command, the branch and commit it is bound to, tests, risks, rollback and cost. Choose **Approve** (macOS asks for Touch ID or your password), **Request changes**, or **Reject**. You are only ever asked about production, money, credentials, customer-facing actions and destructive changes. Everything else the agents just do.
 
 ## Switching to Codex (when Claude hits its limit)
 
