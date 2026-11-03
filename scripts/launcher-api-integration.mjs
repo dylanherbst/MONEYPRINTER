@@ -26,6 +26,15 @@ const stop = () => { try { process.kill(-server.pid, 'SIGTERM'); } catch { /* al
 process.on('exit', stop);
 for (let i = 0; i < 60; i++) { try { if ((await fetch(origin + '/api/workspace')).status) break; } catch { await new Promise(r => setTimeout(r, 250)); } }
 
+// Fail with a clear message if the production build is missing or stale (the server would answer with an HTML 404 page).
+{
+  const probe = await fetch(origin + '/api/workspace/launcher?workspace=x&kind=x');
+  if (!(probe.headers.get('content-type') || '').includes('application/json')) {
+    console.error('FAIL: the app build is missing or out of date (route returned HTML). Run: cd ' + ROOT + ' && npm run build');
+    stop(); process.exit(1);
+  }
+}
+
 function client() {
   const jar = new Map();
   return async (url, init = {}) => {
