@@ -23,8 +23,11 @@ export function routeOf(p: Pick<Profile, 'stage' | 'primary'>): RouteId {
   return p.stage === 'existing' ? 'grow' : p.primary === 'education' ? 'education' : 'independent';
 }
 export function applyRoute(p: Profile, route: RouteId): Profile {
+  if (routeOf(p) === route) return p;
   const primary: Pathway = route === 'education' ? 'education' : 'business';
-  return { ...p, primary, pathways: [primary], stage: route === 'grow' ? 'existing' : 'idea' };
+  // A profile that already has both pathways keeps both; changing route never drops one silently.
+  const pathways: Pathway[] = p.pathways.length === 2 ? ['education', 'business'] : [primary];
+  return { ...p, primary, pathways, stage: route === 'grow' ? 'existing' : 'idea' };
 }
 export function enablePathway(profile: Profile, pathway: Pathway): Profile {
   return { ...profile, pathways: [...new Set([...profile.pathways, pathway])] };

@@ -72,3 +72,13 @@ test('three customer routes map onto the one profile model and round-trip', () =
   assert.equal(buildPlan(grown).length, 10, 'grow route adds the existing-business steps');
   assert.equal(routeOf({ ...base, stage: 'existing' }), 'grow', 'an existing business is always the grow route');
 });
+
+test('changing route keeps a second pathway and never alters a profile already on that route', () => {
+  const both = { ...profile('education', 'idea'), pathways: ['education', 'business'] as Pathway[] };
+  assert.equal(applyRoute(both, 'education'), both, 'same route is a no-op');
+  assert.deepEqual(applyRoute(both, 'independent').pathways, ['education', 'business']);
+  assert.equal(applyRoute(both, 'independent').primary, 'business');
+  const existingEdu = { ...profile('education', 'existing') };
+  assert.equal(routeOf(existingEdu), 'grow');
+  assert.equal(applyRoute(existingEdu, 'grow'), existingEdu);
+});

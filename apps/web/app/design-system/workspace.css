@@ -49,3 +49,4 @@ body:has(.v-create-dialog[open]){overflow:hidden}
 .ventra-app .v-legacy-route .link-in-bio-preview[class*=is-theme-] a.link-in-bio-cta-pill{background:var(--accent);color:var(--canvas)}
 
 .ventra-app .v-legacy-route .link-in-bio-preview.is-theme-minimal{color:var(--ink)}
+.v-radio small{display:block}
