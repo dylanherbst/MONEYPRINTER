@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { computeOverview, describeOverview, formatRatio, UNREADABLE } from '../../lib/business-overview';
+import { computeOverview, describeOverview, UNREADABLE } from '../../lib/business-overview';
 import type { Overview, OverviewInput, Part, Section } from '../../lib/business-overview';
 import { contactStorageKey, restoreContacts } from '../../lib/local-crm-contacts';
 import { dealStorageKey, restoreDeals } from '../../lib/local-crm-pipeline';
@@ -14,6 +14,8 @@ import { bookingPageStorageKey, restoreBookingPage } from '../../lib/local-booki
 import { restoreTracker, studentProgressStorageKey } from '../../lib/local-student-progress';
 import { leadFormStorageKey, restoreLeadFormDraft } from '../../lib/local-lead-forms';
 import { formatMoney } from '../../lib/sales-report';
+import { OverviewAside, OverviewCharts, OverviewStats } from './overview-dashboard';
+import { Panel } from '../design-system/charts';
 import type { Profile } from '../../lib/onboarding';
 
 // Reads each module through its own restore function. A failure marks only that part unreadable.
@@ -64,17 +66,15 @@ export default function BusinessOverview({ profile }: { profile: Profile }) {
     <h2>Business overview</h2>
     <p><span className="v-status">Computed from your saved data · browser data · no estimates</span></p>
     <ul>{describeOverview(o).map(s => <li key={s}>{s}</li>)}</ul>
-    <div className="v-sales-metrics">{tiles.map(([label, value]) => <div className="v-glass" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>
-    <h3>Contacts to deals</h3>
-    {o.contactFunnel.status === 'unreadable' ? <p role="alert">Contacts or deals could not be read, so this funnel is not shown.</p> :
-      <table><thead><tr><th>Step</th><th>Count</th><th>Share of the step before</th></tr></thead><tbody>
-        <tr><td>Contacts</td><td>{o.contactFunnel.value.contacts}</td><td>—</td></tr>
-        <tr><td>Contacts with a deal</td><td>{o.contactFunnel.value.withDeal}</td><td>{formatRatio(o.contactFunnel.value.dealRatio)}</td></tr>
-        <tr><td>Deals won</td><td>{o.contactFunnel.value.wonDeals}</td><td>{formatRatio(o.contactFunnel.value.wonRatio)}</td></tr>
-      </tbody></table>}
-    <h3>Lead score mix</h3>
-    {o.leadMix.status === 'unreadable' ? <p role="alert">Contacts or lead scoring rules could not be read.</p> :
-      <p>{o.leadMix.value.hot} hot · {o.leadMix.value.warm} warm · {o.leadMix.value.cold} cold <small>({o.leadMix.value.rules === 'saved' ? 'your saved rules' : 'default rules, none saved'})</small></p>}
+    <div className="v-dash v-overview-dash">
+      <div className="v-dash-main"><OverviewStats o={o} /><OverviewCharts o={o} />
+        <Panel title="Everything saved" sub="One line for each area, counted from your saved data">
+          <ul className="v-overview-kv">{tiles.map(([label, value]) => <li className="v-kv" key={label}><span>{label}</span><b>{value}</b></li>)}</ul>
+        </Panel>
+      </div>
+      <aside className="v-dash-aside" aria-label="Highlights"><OverviewAside o={o} /></aside>
+    </div>
+    <div className="v-overview-lists">
     <h3>Next planned posts</h3>
     {o.content.status === 'unreadable' ? <p role="alert">Saved content could not be read.</p> :
       o.content.value.upcoming.length ? <ul>{o.content.value.upcoming.map(p => <li key={p.id}>{p.plannedDate} · {p.platform} · {p.title || 'Untitled'} ({p.status})</li>)}</ul> : <p>No upcoming planned posts.</p>}
@@ -85,5 +85,6 @@ export default function BusinessOverview({ profile }: { profile: Profile }) {
     <h3>Setup checklist</h3>
     {o.setupChecklist.length === 0 ? <p>Every area has something saved.</p> :
       <ul>{o.setupChecklist.map(i => <li key={i.id}>{i.text} <Link href={i.href}>Open</Link></li>)}</ul>}
+    </div>
   </section>;
 }

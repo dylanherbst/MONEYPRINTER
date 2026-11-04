@@ -157,3 +157,23 @@ body:has(.ventra-app[data-theme=dark]){background:#1d1814;color-scheme:dark}
 .ventra-app[data-theme=dark] .v-local-tabs a:hover{background:rgba(255,255,255,.16)}
 .ventra-app[data-theme=dark] .v-local-tabs a[aria-current]{background:linear-gradient(135deg,#4C6BDB,#6C88E8);color:#fff;border-color:rgba(255,255,255,.35);font-weight:600}
 .ventra-app[data-theme=dark] .v-chips .v-button[aria-pressed=true]{background:linear-gradient(135deg,#4C6BDB,#6C88E8)}
+
+/* Home / dashboard layout (overrides the older .v-dashboard two-column grid and its mobile ordering) */
+.ventra-app .v-dashboard.v-dash{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);gap:20px;align-items:start}
+.ventra-app .v-dashboard.v-dash>*{width:auto;margin:0}
+.ventra-app .v-dash>.v-dash-head,.ventra-app .v-dash>.v-home-feedback{grid-column:1/-1}
+.ventra-app .v-dashboard.v-dash :is(.v-hero,.v-home-recommendations,.v-home-setup,.v-home-activity,.v-home-chart,.v-category-strip,.v-kpis,.v-home-feedback){order:0}
+.ventra-app .v-dash-main .v-hero{min-height:200px}
+.ventra-app .v-dash-main .v-category-strip{grid-column:auto}
+.ventra-app .v-stats.v-kpis{margin:0;gap:14px;align-self:auto}
+.ventra-app .v-dash-head{padding:0}
+@media(max-width:1199px){.ventra-app .v-dashboard.v-dash{grid-template-columns:minmax(0,1fr)}}
+.v-overview-kv{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:10px;font-size:13px}
+.v-overview-kv .v-kv{border-bottom:1px solid var(--v-glass-stroke-subtle);padding-bottom:8px}
+.v-overview-kv .v-kv b{text-align:right;font-weight:500}
+.v-overview-dash{margin:16px 0}
+.v-accent-card .v-sub,.ventra-app .v-accent-card p{color:#fff}
+.ventra-app .v-stat strong,.v-stat-value{font-size:28px}
+@media(min-width:1200px){.v-overview-dash{grid-template-columns:minmax(0,1fr) minmax(0,280px)}}
+.ventra-app .v-editor a.v-stat,.ventra-app a.v-stat{color:var(--v-text);text-decoration:none}
+.ventra-app .v-editor a.v-stat .v-stat-label{color:var(--v-text-muted)}
