@@ -20,3 +20,6 @@ Rules for every item: build it as a local, clearly labelled DEMO feature with th
 | 12 | Integrations status (real checks) | server route + UI | Done, awaiting verification | Env checks and one Supabase health probe; Stripe and OpenAI never verified (no paid or test call); no secrets exposed; browser check not run |
 | 13 | Team members list (read-only) | api + UI | Done, awaiting verification | GET /api/workspace/team (RLS member_read, no migration, no emails, user ids not exposed); Settings > Team and /tools/team-members; browser check not run |
 | 14 | Launch checklist saved to account | wiring + migration | Done, awaiting verification | Migration 202611030013 written, NOT applied (owner applies) |
+| 15 | Lesson quiz saved to account | wiring + migration | Queued | Quiz is nested in the course draft; give it its own kind `lesson-quiz` (new migration, owner applies) |
+| 16 | Service offers and pricing saved to account | wiring + migration | Queued | Offers on /workspace; own kind `service-offers` (new migration, owner applies) |
+| 17 | Growth plan saved to account | wiring + migration | Queued | Local growth plan and manual audit; own kind `growth-plan` (new migration, owner applies) |
