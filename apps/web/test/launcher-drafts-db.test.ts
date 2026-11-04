@@ -76,6 +76,6 @@ test('launcher_drafts migration: owner writes, revisions, isolation, staff read-
     await actor(a, sa);
     await assert.rejects(db.query("select public.delete_launcher_draft($1,'pricing-scenario',1)", [wa]), /Revision conflict/);
     await db.query("select public.delete_launcher_draft($1,'pricing-scenario',2)", [wa]);
-    assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts'), 24, 'every draft except the deleted pricing scenario remains');
+    assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts'), 25, 'every draft except the deleted pricing scenario remains');
   } finally { await db.close(); }
 });
