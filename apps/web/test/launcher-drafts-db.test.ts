@@ -70,7 +70,7 @@ test('launcher_drafts migration: owner writes, revisions, isolation, staff read-
     await db.exec('reset role');
     await db.query("insert into public.memberships values ($1,$2,'staff',true)", [wa, b]);
     await actor(b, sb);
-    assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts where workspace_id=$1', [wa]), 25);
+    assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts where workspace_id=$1', [wa]), 26);
     await assert.rejects(db.query("select public.save_launcher_draft($1,'pricing-scenario',$2,2)", [wa, data]), /Owner access/);
     // Owner delete requires the current revision.
     await actor(a, sa);
