@@ -17,4 +17,6 @@ Rules for every item: build it as a local, clearly labelled DEMO feature with th
 | 9 | Persistent orders table for the Stripe webhook | migration + RPC proposal | Done (proposal written, NOT applied), awaiting owner decision | Written and tested in PGlite, NOT applied; owner decides on the server-side key |
 | 10 | Visual workflow builder (draft only) | new draft + sync | Done, awaiting verification | No execution engine. Migration 202611030012 written, not applied. Queue complete: next items to be chosen |
 | 11 | Business overview analytics (computed from saved data) | computed report | Done, awaiting verification | Contacts to deals to won, lead-score mix, campaign and content counts, per currency; no invented numbers; no migration |
-
+| 12 | Integrations status (real checks) | server route + UI | Done, awaiting verification | Env checks and one Supabase health probe; Stripe and OpenAI never verified (no paid or test call); no secrets exposed; browser check not run |
+| 13 | Team members list (read-only) | api + UI | Queued | Owner sees who has access to the workspace and their role; no invites |
+| 14 | Launch checklist saved to account | wiring + migration | Queued | Needs one new migration |

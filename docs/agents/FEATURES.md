@@ -18,7 +18,7 @@ The Demo column is a path in the VENTRA app. The dashboard opens it on the runni
 | 1 | Platform | Isolated test pages with DEMO/LIVE badges | Working | /tools/course-creator | `/tools/course-creator`, `/tools/onboarding-routes`, `/tools/checkout`, `/tools/launcher-account` | Add to remaining features |
 | 1 | Platform | Teams, permissions, notifications | Not started | | Only owner/staff roles exist in the database | Phase 4 |
 | 1 | Platform | Subscriptions and billing for VENTRA itself | Not started | | none | Needs payment provider decisions |
-| 1 | Platform | Integrations settings | Local draft | | Settings page lists connections as "not connected" | Real connection tests per provider |
+| 1 | Platform | Integrations settings | Local draft | | Settings > Integrations calls /api/integrations/status: server-side env checks plus one 1.5s Supabase auth health probe; no secrets returned; unit tests (no-secret-leak scan). Browser check not run | Stripe and OpenAI stay "Configured (not verified)": verifying needs a test or paid call. Calendar, social, voice still static "not connected" |
 | 1 | Education | Course Creator (create, edit, save, reload, update, delete) | Working | /tools/course-creator | Browser check on the isolated page; unit tests | none |
 | 1 | Education | Course saved to account | Working | /tools/course-creator | `course-api-integration` PASS (save, load, update, stale rejected, other user denied) | none |
 | 1 | Education | Learner preview of a course | Working | /tools/course-creator | Preview button on the Course Creator page (browser-local, no logins) | Real student portal is separate |
