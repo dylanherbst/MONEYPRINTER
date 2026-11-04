@@ -4,6 +4,7 @@ import { featureById } from '../../lib/feature-registry';
 import type { Feature } from '../../lib/feature-registry';
 import { FeatureTile, PlainTile } from '../design-system/feature-tile';
 import { useWorkspace } from './ventra-context';
+import { ExportLink } from '../design-system/export-link';
 
 type Group = { id: string; title: string; intro: string; ids: readonly string[]; extra?: ReactNode };
 const pick = (ids: readonly string[]) => ids.map(featureById).filter((x): x is Feature => !!x);
@@ -20,7 +21,7 @@ function Groups({ groups, openFirst = 1 }: { groups: readonly Group[]; openFirst
 }
 
 export function HubHeading({ title, description }: { title: string; description: string }) {
-  return <div className="v-page-heading"><div><span className="v-eyebrow">YOUR WORKSPACE</span><h1>{title}</h1><p>{description}</p></div></div>;
+  return <div className="v-page-heading"><div><span className="v-eyebrow">YOUR WORKSPACE</span><h1>{title}</h1><p>{description}</p></div><ExportLink /></div>;
 }
 
 const create: Record<string, Group> = {

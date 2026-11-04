@@ -6,7 +6,8 @@ import type { Overview, Section } from '../../lib/business-overview';
 import { dealStages } from '../../lib/local-crm-pipeline';
 import { formatMoney } from '../../lib/sales-report';
 import type { Profile } from '../../lib/onboarding';
-import { AccentCard, BarChart, Donut, EmptyNote, FunnelBars, Panel, PlainCard, ProgressList, StatCard } from '../design-system/charts';
+import { AccentCard, AreaChart, BarChart, DarkCard, Donut, EmptyNote, FunnelBars, GoldCard, Panel, PlainCard, ProgressList, StatCard } from '../design-system/charts';
+import type { Datum } from '../design-system/charts';
 import type { ChipState } from '../design-system/charts';
 import { readOverviewInput } from './business-overview';
 
@@ -24,6 +25,26 @@ export function useOverview(profile: Profile | null): Overview | null {
     return () => { window.removeEventListener('storage', run); window.removeEventListener('ventra:updated', run); };
   }, [profile]);
   return overview;
+}
+
+/** Contacts and deals by the month they were last saved (last 6 months). Counted from saved data only; null when nothing is saved or unreadable. */
+export function useActivity(profile: Profile | null): Datum[] | null {
+  const [series, setSeries] = useState<Datum[] | null>(null);
+  useEffect(() => {
+    if (!profile) { setSeries(null); return; }
+    const run = () => {
+      const input = readOverviewInput(profile, todayLocal());
+      const items = [input.contacts, input.deals].flatMap(p => (Array.isArray(p) ? p : [])) as { updatedAt: string }[];
+      const now = new Date();
+      const months = Array.from({ length: 6 }, (_, i) => { const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1); return { key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, label: d.toLocaleString('en-AU', { month: 'short' }) }; });
+      const out = months.map(m => ({ label: m.label, value: items.filter(x => typeof x.updatedAt === 'string' && x.updatedAt.slice(0, 7) === m.key).length }));
+      setSeries(out.some(d => d.value > 0) ? out : null);
+    };
+    run();
+    window.addEventListener('storage', run); window.addEventListener('ventra:updated', run);
+    return () => { window.removeEventListener('storage', run); window.removeEventListener('ventra:updated', run); };
+  }, [profile]);
+  return series;
 }
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -90,7 +111,7 @@ export function OverviewCharts({ o }: { o: Overview | null }) {
   </>;
 }
 
-export function OverviewAside({ o }: { o: Overview | null }) {
+export function OverviewAside({ o, activity = null }: { o: Overview | null; activity?: Datum[] | null }) {
   const contacts = ok(o?.contacts);
   const gaps = ok(o?.consentGaps);
   const deals = ok(o?.deals);
@@ -104,9 +125,12 @@ export function OverviewAside({ o }: { o: Overview | null }) {
         : <p className="v-sub">Add contacts to see how many have opted in.</p>}
       <Link href="/customers">Open contacts</Link>
     </AccentCard>
-    <PlainCard title="Won value" big={wonValue} chip={deals ? (wonValue === '—' ? 'No won deals yet' : 'Value you entered') : 'No data yet'} state={deals && wonValue !== '—' ? 'ok' : 'empty'}>
-      <ul><li className="v-kv"><span>Deals won</span><b>{deals ? deals.won : '—'}</b></li><li className="v-kv"><span>Open pipeline</span><b>{deals ? formatMoney(deals.openValue) : '—'}</b></li></ul>
-    </PlainCard>
+    <GoldCard title="Won value" big={wonValue} chip={deals ? (wonValue === '—' ? 'No won deals yet' : 'Value you entered') : 'No data yet'} state={deals && wonValue !== '—' ? 'ok' : 'empty'}>
+      <ul className="v-gold-list"><li className="v-kv"><span>Deals won</span><b>{deals ? deals.won : '—'}</b></li><li className="v-kv"><span>Open pipeline</span><b>{deals ? formatMoney(deals.openValue) : '—'}</b></li></ul>
+    </GoldCard>
+    <DarkCard title="Saved activity" big={activity ? String(activity.reduce((n, d) => n + d.value, 0)) : '—'} chip={activity ? 'Contacts and deals, last 6 months' : 'No dated saves yet'} state={activity ? 'ok' : 'empty'}>
+      {activity ? <AreaChart label="Contacts and deals by the month they were last saved" data={activity} /> : <p className="v-sub">A chart appears once you save contacts or deals.</p>}
+    </DarkCard>
     <PlainCard title="Next planned posts">
       {content && content.upcoming.length
         ? <ul>{content.upcoming.map(p => <li key={p.id} className="v-kv"><span>{p.title || 'Untitled'} · {p.platform}</span><b>{p.plannedDate}</b></li>)}</ul>

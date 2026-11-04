@@ -28,7 +28,7 @@ export function StatCard({ icon, label, value, chip, state = 'ok', href, classNa
   const body = <>
     <span className="v-icon-tile"><OutlineIcon name={icon} /></span>
     <span className="v-stat-label">{label}</span>
-    <strong aria-label={state === 'ok' ? undefined : `${label}: ${chip}`}>{value}</strong>
+    <strong className={value.length > 9 ? 'is-long' : undefined} aria-label={state === 'ok' ? undefined : `${label}: ${chip}`}>{value}</strong>
     <Chip state={state}>{chip}</Chip>
   </>;
   const cls = `v-stat v-glass ${className}`;
@@ -104,4 +104,34 @@ export function PlainCard({ title, big, chip, state = 'ok', children }: { title:
     {chip && <Chip state={state}>{chip}</Chip>}
     {children}
   </section>;
+}
+
+/** Smooth area/line chart. Needs at least two points and one value above zero; otherwise renders nothing. Every point's value is printed below. */
+export function AreaChart({ data, label }: { data: readonly Datum[]; label: string }) {
+  const max = Math.max(0, ...data.map(d => d.value));
+  if (data.length < 2 || max === 0) return null;
+  const W = 260, H = 110, pad = 6;
+  const pts = data.map((d, i) => [pad + (i / (data.length - 1)) * (W - 2 * pad), H - pad - (d.value / max) * (H - 2 * pad)] as const);
+  let path = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], cx = (x0 + x1) / 2; path += ` C${cx},${y0} ${cx},${y1} ${x1},${y1}`; }
+  const last = pts[pts.length - 1];
+  return <div role="img" aria-label={`${label}: ${data.map(d => `${d.label} ${fmt(d.value)}`).join(', ')}`}>
+    <svg viewBox={`0 0 ${W} ${H}`} className="v-area" aria-hidden="true" preserveAspectRatio="none">
+      <defs><linearGradient id="v-area-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff" stopOpacity=".35" /><stop offset="1" stopColor="#fff" stopOpacity="0" /></linearGradient></defs>
+      <path d={`${path} L${last[0]},${H} L${pts[0][0]},${H} Z`} fill="url(#v-area-fill)" />
+      <path d={path} fill="none" stroke="#fff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+      <circle cx={last[0]} cy={last[1]} r="4" fill="#fff" />
+    </svg>
+    <div className="v-bar-labels" aria-hidden="true">{data.map(d => <span key={d.label}>{d.label}<br /><b>{fmt(d.value)}</b></span>)}</div>
+  </div>;
+}
+
+/** Warm gold-tinted card (the reference "Credits" card). */
+export function GoldCard({ title, big, chip, state = 'ok', children }: { title: string; big: string; chip: string; state?: ChipState; children?: ReactNode }) {
+  return <section className="v-gold-card" aria-label={title}><h2>{title}</h2><strong className="v-big">{big}</strong><Chip state={state}>{chip}</Chip>{children}</section>;
+}
+
+/** Dark card for an area chart. */
+export function DarkCard({ title, big, chip, state = 'ok', children }: { title: string; big: string; chip: string; state?: ChipState; children?: ReactNode }) {
+  return <section className="v-dark-card" aria-label={title}><h2>{title}</h2><strong className="v-big">{big}</strong><Chip state={state}>{chip}</Chip>{children}</section>;
 }

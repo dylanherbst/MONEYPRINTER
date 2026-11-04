@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import { GlassCard, OutlineIcon } from '../design-system/primitives';
 import { ProfileGate } from './ventra-context';
 import { Anchor, HashAnchor } from '../design-system/anchor';
+import { ExportLink } from '../design-system/export-link';
 import { CustomersHub, GrowHub } from './ventra-hubs';
 import { IntegrationStatus } from './integration-status';
 import { TeamMembersPanel } from './team-members';
@@ -60,7 +61,7 @@ const CrmPipeline = dynamic(() => import('./crm-pipeline'), { loading: () => <p 
 const ServiceInvoiceDraftEditor = dynamic(() => import('./service-invoice-draft'), { loading: () => <p role="status">Loading local editor…</p> });
 import { offerStorageKey, restoreLocalOffers } from '../../lib/local-offers';
 import type { LocalOffer } from '../../lib/local-offers';
-export function PageHeading({title,description,action}:{title:string;description:string;action?:ReactNode}){return <div className="v-page-heading"><div><span className="v-eyebrow">YOUR WORKSPACE</span><h1>{title}</h1><p>{description}</p></div>{action}</div>;}
+export function PageHeading({title,description,action}:{title:string;description:string;action?:ReactNode}){return <div className="v-page-heading"><div><span className="v-eyebrow">YOUR WORKSPACE</span><h1>{title}</h1><p>{description}</p></div>{action??<ExportLink/>}</div>;}
 export function LocalTabs({base,items,current,hub}:{base:string;items:readonly string[];current:string;hub?:string}){return <nav className="v-local-tabs" aria-label="Page sections">{hub&&<Link href={base} className="v-tab-back">← {hub}</Link>}{items.map(tab=><Link key={tab} href={base+'?tab='+tab.toLowerCase().replaceAll(' ','-')} aria-current={current===tab.toLowerCase().replaceAll(' ','-')?'page':undefined}>{tab}</Link>)}</nav>;}
 export function Disconnected({title,children}:{title:string;children:string}){return <GlassCard className="v-disconnected"><span className="v-icon-tile"><OutlineIcon name="settings"/></span><h2>{title}</h2><p>{children}</p><Link className="v-button" href="/settings?section=integrations">Review connection requirements<OutlineIcon name="arrow"/></Link></GlassCard>;}
 function BusinessContent({profile}:{profile:Profile}){

@@ -107,18 +107,19 @@ body:has(.ventra-app) { color-scheme:light; background:#E8EFF1; }
 }
 .ventra-app[data-theme=dark] {
  color-scheme:dark;
- --v-text:#EAF4F4; --v-text-muted:#B7CBCD; --v-text-faint:#97ADB0;
- --v-bg:#0A1A1D; --v-bg-cool:#262019;
- --v-page:radial-gradient(ellipse at 12% 8%,rgba(20,186,184,.16),transparent 46%),radial-gradient(ellipse at 90% 85%,rgba(20,186,184,.10),transparent 50%),radial-gradient(ellipse at 60% 40%,rgba(40,90,95,.30),transparent 60%),#0A1A1D;
+ --v-text:#F6F1EC; --v-text-muted:#CBC0B5; --v-text-faint:#A99D91;
+ --v-bg:#1d1814; --v-bg-cool:#262019;
+ --v-page:radial-gradient(ellipse 42% 55% at 6% 10%,rgba(214,160,108,.55),transparent 62%),radial-gradient(ellipse 36% 46% at 94% 6%,rgba(170,128,98,.45),transparent 64%),radial-gradient(ellipse 34% 44% at 82% 92%,rgba(160,108,74,.50),transparent 62%),radial-gradient(ellipse 52% 30% at 28% 104%,rgba(128,86,58,.55),transparent 66%),linear-gradient(180deg,#3a2f28,#221b16);
+ --v-gold-card:linear-gradient(135deg,rgba(214,176,98,.34),rgba(120,90,50,.30));
  --v-glass:rgba(255,255,255,.07); --v-glass-strong:rgba(255,255,255,.12);
  --v-glass-stroke:rgba(255,255,255,.16); --v-glass-stroke-subtle:rgba(255,255,255,.10);
- --v-accent:#5FD3D1; --v-glow:rgba(20,186,184,.25);
- --v-blue:#5FD3D1; --v-blue-soft:#9BE3E1; --v-blue-card:linear-gradient(135deg,#07565A,#0E8A8D);--v-primary-grad:linear-gradient(135deg,#0B7378,#0E8A8D); --v-on-blue-card:#fff;
+ --v-accent:#8FB0FF; --v-glow:rgba(143,176,255,.25);
+ --v-blue:#8FB0FF; --v-blue-soft:#B9CCFF; --v-blue-card:linear-gradient(135deg,#4C6BDB,#7690EA);--v-primary-grad:linear-gradient(135deg,#4C6BDB,#6C88E8); --v-on-blue-card:#fff;
  --v-field:rgba(255,255,255,.08); --v-nav-on:rgba(255,255,255,.16); --v-nav-on-ink:#fff;
- --v-bar:linear-gradient(180deg,#A5EEEC,#14BAB8); --v-track:rgba(255,255,255,.14);
+ --v-bar:linear-gradient(180deg,#C9D6FF,#7F9BF2); --v-track:rgba(255,255,255,.14);
  --v-success:#6FD3AE; --v-warning:#E5BC76; --v-danger:#F08A92;
- --v-shadow:0 18px 48px rgba(0,0,0,.28); --v-focus:#9BE3E1; --v-link:#9BE3E1;
- --v-series-1:#5FD3D1; --v-series-2:#6FD3AE; --v-series-3:#B9A5F0; --v-series-4:#E5BC76;
+ --v-shadow:0 18px 48px rgba(0,0,0,.28); --v-focus:#B9CCFF; --v-link:#B9CCFF;
+ --v-series-1:#8FB0FF; --v-series-2:#6FD3AE; --v-series-3:#B9A5F0; --v-series-4:#E5BC76;
  background:var(--v-page);background-attachment:fixed;
 }
 .ventra-app :focus-visible{outline-color:var(--v-focus)}

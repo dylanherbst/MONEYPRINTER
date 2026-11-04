@@ -6,7 +6,9 @@ Single source for design agents (`ventra-frontend`, plugins `frontend-design`, `
 
 Light, white-dominant, pastel, frosted glass with one teal accent. Beginner-friendly, calm, minimal. Applies to the new shell (`.ventra-app`, `apps/web/app/design-system/tokens.css`). Do not restyle it into neon.
 
-Update 2026-11-05 (owner brief): the approved brand palette is kept. The reference image guides layout, glass quality and type only; it does not replace colours. **Light is the default** (V5 teal glass). **Dark** is an opt-in variant of the same brand (deep teal ink with the same teal accent), chosen with the Theme button in the sidebar (Light, Dark, Match device; stored in this browser only). The theme is the `data-theme` attribute on `.ventra-app`.
+Update 2026-11-05 (OWNER OVERRIDE, supersedes the teal-only rule): the reference image (`dark frosted-glass dashboard`) is now the DEFAULT look everywhere: warm dark brown frosted-glass panels over a softly blurred warm background (pure CSS: layered radial gradients plus a blurred vertical-bar layer, no images, no dependencies), thin light borders, large rounded corners, soft shadows, serif display titles with a muted subtitle, a soft-blue accent. **Light** (the old V5 teal glass) stays available as the alternative in the sidebar Theme button (Dark, Light, Match device; stored in this browser only). The theme is the `data-theme` attribute on `.ventra-app`. The reference's names and numbers are never used; every figure comes from saved data or shows an honest empty state.
+
+Reference structure applied: one large rounded frame holding a left sidebar (workspace tile, five destinations with a blue-bar active pill, Settings and Support pinned at the bottom) and the page; page header with serif title, muted subtitle and an outlined Export button (opens Settings, where the real data export lives); four glass stat cards (icon chip, label, serif number, small chip); chart panels (bar chart, donut with legend, progress rows, funnel bars); a right column of tall accent cards: blue gradient card with a bar chart, warm gold-tinted card, dark card with an area chart (backed by contacts and deals counted by the month they were last saved, or omitted).
 
 Mobile first: design at 375/390/430, then 768, 1024, 1440. Five destinations in a bottom bar (safe-area aware, 56px targets) and the same five in the desktop sidebar: Home, Create, Grow, Customers, More. Developer `/tools` pages are not in customer navigation.
 
@@ -29,22 +31,22 @@ Shape: pill buttons (radius 999px, min height 44px), cards 18 to 24px radius, ic
 Depth: `0 12px 36px rgba(15,49,54,.08)` plus 1px inner white highlight. Layout: 248px sidebar, content max 1600px, 16 to 24px gaps.
 Focus: 3px solid `#08777b`, offset 4px. Never remove it.
 
-## Dark variant (`[data-theme=dark]`)
+## Dark theme, the default (`[data-theme=dark]`)
 
-Deep teal-ink backdrop, translucent panels with soft borders, rounded corners, light text, the brand teal accent, and a serif display face for page titles and big numbers. All colours below are tokens in `tokens.css`; components use tokens, never raw hex.
+Warm blurred backdrop, translucent brown panels with soft borders, rounded corners, light text, a soft-blue accent, and a serif display face for page titles and big numbers. All colours below are tokens in `tokens.css`; components use tokens, never raw hex.
 
 | Token | Dark value | Use |
 | --- | --- | --- |
-| `--v-page` | teal radial glows over `#0A1A1D` | page background (also `body`) |
-| `--v-text` / `--v-text-muted` / `--v-text-faint` | `#EAF4F4` / `#B7CBCD` / `#97ADB0` | text (muted >= 7:1, faint >= 4.5:1 on panels) |
+| `--v-page` | warm radial glows over `#3a2f28 -> #221b16` | page background (also `body`) |
+| `--v-text` / `--v-text-muted` / `--v-text-faint` | `#F6F1EC` / `#CBC0B5` / `#A99D91` | text (muted >= 7:1, faint >= 4.5:1 on panels) |
 | `--v-glass` / `--v-glass-strong` | `rgba(255,255,255,.07)` / `.12` | panel fill (with blur 22px) |
 | `--v-glass-stroke` / `-subtle` | `rgba(255,255,255,.16)` / `.10` | 1px borders |
-| `--v-blue` / `--v-blue-soft` | `#5FD3D1` / `#9BE3E1` | teal accent tints: bars, links, focus |
-| `--v-blue-card` | gradient `#07565A -> #0E8A8D` | tall accent card (white text, >= 5:1) |
+| `--v-blue` / `--v-blue-soft` | `#8FB0FF` / `#B9CCFF` | soft-blue accent: bars, links, focus |
+| `--v-blue-card` | gradient `#4C6BDB -> #7690EA` (accent card uses `#3f58c4 -> #7c95ea`) | tall accent card (white text, >= 5:1) |
 | `--v-field` | `rgba(255,255,255,.08)` | inputs and chips |
-| `--v-nav-on` | `rgba(255,255,255,.16)` + 3px teal left bar | active nav pill |
+| `--v-nav-on` | `rgba(255,255,255,.16)` + 5px blue left bar (`#4F7BF2`) | active nav pill |
 | `--v-success` / `--v-warning` / `--v-danger` | `#6FD3AE` / `#E5BC76` / `#F08A92` | status text |
-| `--v-focus` | `#9BE3E1` | 3px focus ring, offset 4px |
+| `--v-focus` | `#B9CCFF` | 3px focus ring, offset 4px |
 
 Light values: the table at the top of this file (`--v-blue` is `#0A6A70`; `--v-blue-card` and `--v-primary-grad` are the teal ink gradient `#071F24 -> #07565A`).
 

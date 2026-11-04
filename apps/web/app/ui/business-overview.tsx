@@ -14,7 +14,7 @@ import { bookingPageStorageKey, restoreBookingPage } from '../../lib/local-booki
 import { restoreTracker, studentProgressStorageKey } from '../../lib/local-student-progress';
 import { leadFormStorageKey, restoreLeadFormDraft } from '../../lib/local-lead-forms';
 import { formatMoney } from '../../lib/sales-report';
-import { OverviewAside, OverviewCharts, OverviewStats } from './overview-dashboard';
+import { OverviewAside, OverviewCharts, OverviewStats, useActivity } from './overview-dashboard';
 import { Panel } from '../design-system/charts';
 import type { Profile } from '../../lib/onboarding';
 
@@ -45,6 +45,7 @@ const val = <T,>(s: Section<T>, show: (v: T) => string) => (s.status === 'unread
 
 export default function BusinessOverview({ profile }: { profile: Profile }) {
   const [overview, setOverview] = useState<Overview | null>(null);
+  const activity = useActivity(profile);
   useEffect(() => { setOverview(computeOverview(readOverviewInput(profile, todayLocal()))); }, [profile]);
   if (!overview) return <p role="status">Loading…</p>;
   const o = overview;
@@ -62,18 +63,19 @@ export default function BusinessOverview({ profile }: { profile: Profile }) {
     ['Booking page', val(o.booking, v => (v.configured ? `Saved, ${v.appointmentTypes} appointment type${v.appointmentTypes === 1 ? '' : 's'}` : 'Not saved'))],
     ['Students tracked', val(o.students, String)],
   ];
-  return <section className="v-glass" aria-label="Business overview">
-    <h2>Business overview</h2>
-    <p><span className="v-status">Computed from your saved data · browser data · no estimates</span></p>
-    <ul>{describeOverview(o).map(s => <li key={s}>{s}</li>)}</ul>
+  return <section className="v-overview-root" aria-label="Business overview">
+    <p><span className="v-status">Local draft · computed from your saved data in this browser · no estimates</span></p>
     <div className="v-dash v-overview-dash">
       <div className="v-dash-main"><OverviewStats o={o} /><OverviewCharts o={o} />
         <Panel title="Everything saved" sub="One line for each area, counted from your saved data">
           <ul className="v-overview-kv">{tiles.map(([label, value]) => <li className="v-kv" key={label}><span>{label}</span><b>{value}</b></li>)}</ul>
         </Panel>
       </div>
-      <aside className="v-dash-aside" aria-label="Highlights"><OverviewAside o={o} /></aside>
+      <aside className="v-dash-aside" aria-label="Highlights"><OverviewAside o={o} activity={activity} /></aside>
     </div>
+    <Panel title="In words" sub="The same numbers as a plain list">
+      <ul>{describeOverview(o).map(s => <li key={s}>{s}</li>)}</ul>
+    </Panel>
     <div className="v-overview-lists">
     <h3>Next planned posts</h3>
     {o.content.status === 'unreadable' ? <p role="alert">Saved content could not be read.</p> :

@@ -11,13 +11,13 @@ import '../design-system/workspace.css';
 import '../design-system/refresh.css';
 import '../design-system/theme.css';
 function Wordmark(){return <Link className="v-wordmark" href="/" aria-label="Ventra Home">VENTRA<small>GROW · AUTOMATE · SCALE</small></Link>;}
-// Theme: light (the approved V5 teal glass) by default; dark or match-device are opt-in. Stored only in this browser.
+// Theme: dark warm glass (the reference look) by default; light (V5 teal glass) or match-device are opt-in. Stored only in this browser.
 type ThemeChoice='auto'|'dark'|'light';
 const themeKey='ventra.theme.v1';
 function useTheme(){
- const [choice,setChoice]=useState<ThemeChoice>('light');const [system,setSystem]=useState<'dark'|'light'>('light');
- useEffect(()=>{try{const v=localStorage.getItem(themeKey);if(v==='dark'||v==='auto')setChoice(v);}catch{/* storage unavailable: follow the device */}const q=window.matchMedia('(prefers-color-scheme: light)');const sync=()=>setSystem(q.matches?'light':'dark');sync();q.addEventListener('change',sync);return()=>q.removeEventListener('change',sync);},[]);
- function cycle(){const next:ThemeChoice=choice==='light'?'dark':choice==='dark'?'auto':'light';setChoice(next);try{if(next==='light')localStorage.removeItem(themeKey);else localStorage.setItem(themeKey,next);}catch{/* choice applies for this visit only */}}
+ const [choice,setChoice]=useState<ThemeChoice>('dark');const [system,setSystem]=useState<'dark'|'light'>('dark');
+ useEffect(()=>{try{const v=localStorage.getItem(themeKey);if(v==='light'||v==='auto')setChoice(v);}catch{/* storage unavailable: follow the device */}const q=window.matchMedia('(prefers-color-scheme: light)');const sync=()=>setSystem(q.matches?'light':'dark');sync();q.addEventListener('change',sync);return()=>q.removeEventListener('change',sync);},[]);
+ function cycle(){const next:ThemeChoice=choice==='dark'?'light':choice==='light'?'auto':'dark';setChoice(next);try{if(next==='dark')localStorage.removeItem(themeKey);else localStorage.setItem(themeKey,next);}catch{/* choice applies for this visit only */}}
  return {theme:choice==='auto'?system:choice,choice,cycle};
 }
 function SidebarWorkspace(){
@@ -45,7 +45,7 @@ function ShellContent({children}:{children:ReactNode}){
  const results=searchPages(query);const {theme,choice,cycle}=useTheme();
  return <WorkspaceProvider><div data-theme={theme} className={'ventra-app'+(pathname.startsWith('/services/')?' v-detail-shell':'')}><div className="v-shell-background" ref={background}>
  <a className="v-skip" href="#ventra-main" onClick={e=>{e.preventDefault();document.getElementById('ventra-main')?.focus();}}>Skip to main content</a>
- <aside className="v-sidebar"><Wordmark/><SidebarWorkspace/><nav aria-label="Main navigation">{pages.map(p=>nav(p.href,p.title,p.icon))}</nav><div className="v-sidebar-foot"><span className="v-status">Browser-local workspace</span><p>No external services verified.</p><GlassButton className="v-theme-toggle" onClick={cycle} aria-label={`Colour theme: ${choice==='auto'?'follows your device':choice}. Press to change.`}><OutlineIcon name="settings"/>Theme: {choice==='auto'?'Match device':choice==='dark'?'Dark':'Light'}</GlassButton></div></aside>
+ <aside className="v-sidebar"><Wordmark/><SidebarWorkspace/><nav aria-label="Main navigation">{pages.map(p=>nav(p.href,p.title,p.icon))}</nav><nav className="v-nav-secondary v-nav-pinned" aria-label="Settings and support"><Link href="/settings" aria-current={pathname==='/settings'&&params.get('section')!=='help'?'page':undefined}><OutlineIcon name="settings"/><span>Settings</span></Link><Link href="/settings?section=help" aria-current={pathname==='/settings'&&params.get('section')==='help'?'page':undefined}><OutlineIcon name="help"/><span>Support</span></Link></nav><div className="v-sidebar-foot"><span className="v-status">Browser-local workspace</span><p>No external services verified.</p><GlassButton className="v-theme-toggle" onClick={cycle} aria-label={`Colour theme: ${choice==='auto'?'follows your device':choice}. Press to change.`}><OutlineIcon name="settings"/>Theme: {choice==='auto'?'Match device':choice==='dark'?'Dark':'Light'}</GlassButton></div></aside>
  <div className="v-main-wrap"><header className="v-header"><GlassButton variant="icon" className="v-menu-toggle" ref={menuButton} aria-label={menu?'Close navigation':'Open navigation'} aria-expanded={menu} aria-controls="v-mobile-menu" onClick={()=>{setAccount(false);setMenu(!menu);}}><OutlineIcon name={menu?'close':'menu'}/></GlassButton><div className="v-mobile-brand"><Wordmark/></div>
  {searchField('v-desktop-search')}
  <GlassButton variant="icon" aria-label="Notifications" aria-expanded={notifications} onClick={()=>setNotifications(!notifications)}><OutlineIcon name="bell"/></GlassButton>
