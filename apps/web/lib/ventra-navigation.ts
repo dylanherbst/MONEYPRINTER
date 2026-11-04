@@ -1,16 +1,23 @@
 // Visual labels follow the October master guide; established authoring URLs stay intact.
 export const pages = [
  {title:'Home',href:'/',icon:'home',description:'Your next useful action'},
- {title:'Services',href:'/services',icon:'grid',description:'Find tools, services and guidance'},
- {title:'Create',href:'/create',icon:'plus',description:'Start a local website, offer, course or content draft'},
- {title:'Clients',href:'/customers',icon:'people',description:'Customers, local contacts, enquiries and opportunities'},
- {title:'Marketing',href:'/grow',icon:'chart',description:'Grow with organic research, content and campaign plans'},
- {title:'Automation',href:'/grow?tab=automations',icon:'bolt',description:'Workflow availability; no execution connected'},
- {title:'Sales',href:'/sales',icon:'sales',description:'Appointments, orders and invoice drafts'},
- {title:'Products',href:'/business',icon:'box',description:'Business, website, offers, courses and delivery'},
- {title:'Analytics',href:'/insights',icon:'trend',description:'Insights and manual Growth Audit'},
+ {title:'Create',href:'/create',icon:'plus',description:'Courses, a new business, services and offers, website and store'},
+ {title:'Grow',href:'/grow',icon:'chart',description:'Marketing, content, finding customers, automations'},
+ {title:'Customers',href:'/customers',icon:'people',description:'Contacts, deals, follow-ups, appointments and client projects'},
+ {title:'More',href:'/more',icon:'more',description:'Insights, integrations, team, notifications, account, billing, help'},
 ] as const;
-const extraPages=[{title:'Inbox',href:'/inbox',icon:'phone',description:'Messages, calls and receptionist availability'}, {title:'Settings',href:'/settings',icon:'settings',description:'Profile, integrations, billing, team and help'}, {title:'Original tools',href:'/tools',icon:'grid',description:'Existing local authoring and labelled demo'}];
+// Still reachable and searchable, but not in the main navigation.
+const extraPages=[{title:'Services',href:'/services',icon:'grid',description:'Find tools, services and guidance'},{title:'Automation',href:'/grow?tab=automations',icon:'bolt',description:'Workflow drafts; nothing runs automatically'},{title:'Sales',href:'/sales',icon:'sales',description:'Appointments, orders and invoice drafts'},{title:'Products',href:'/business',icon:'box',description:'Offers, website, courses and delivery'},{title:'Analytics',href:'/insights',icon:'trend',description:'Insights and manual Growth Audit'},{title:'Inbox',href:'/inbox',icon:'phone',description:'Messages, calls and receptionist availability'}, {title:'Settings',href:'/settings',icon:'settings',description:'Profile, integrations, billing, team and help'}];
+/** Which main destination a route belongs to (for the active state in the sidebar and bottom bar). */
+export function activeSection(pathname:string):string{
+ if(pathname==='/')return '/';
+ const is=(...roots:string[])=>roots.some(r=>pathname===r||pathname.startsWith(r+'/'));
+ if(is('/create','/business','/onboarding'))return '/create';
+ if(is('/grow'))return '/grow';
+ if(is('/customers','/sales','/inbox'))return '/customers';
+ if(is('/more','/insights','/settings','/services','/workspace'))return '/more';
+ return '';
+}
 export function searchPages(query:string) { const terms=query.trim().toLowerCase().split(/\s+/).filter(Boolean); return [...pages,...extraPages].filter(p=>terms.every(t=>(p.title+' '+p.description).toLowerCase().includes(t))); }
 export function activePage(pathname:string,tab:string|null,href:string){if(href==='/grow?tab=automations')return pathname==='/grow'&&tab==='automations';if(href==='/grow')return pathname==='/grow'&&tab!=='automations';if(href==='/services')return pathname==='/services'||pathname.startsWith('/services/');return pathname===href;}
 export const createOptions = [

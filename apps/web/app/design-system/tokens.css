@@ -99,7 +99,7 @@ body:has(.ventra-app) { color-scheme:light; background:#E8EFF1; }
  --v-font-display:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
  --v-radius-panel:22px; --v-radius-stat:20px;
  --v-page:linear-gradient(125deg,#f0f5f5,#e3edef 68%,#dce8ea);
- --v-blue:#0a6a70; --v-blue-soft:#075e65; --v-blue-card:linear-gradient(135deg,#071F24,#07565A);
+ --v-blue:#0a6a70; --v-blue-soft:#075e65; --v-blue-card:linear-gradient(135deg,#071F24,#07565A);--v-primary-grad:linear-gradient(130deg,#071F24,#07565A);
  --v-on-blue-card:#fff; --v-field:rgba(255,255,255,.62); --v-nav-on:linear-gradient(115deg,#071F24,#07565A); --v-nav-on-ink:#fff;
  --v-bar:linear-gradient(180deg,#5fd3d1,#14BAB8); --v-track:rgba(7,57,61,.12);
  --v-shadow:0 12px 36px rgba(15,49,54,.10); --v-focus:#08777b; --v-link:#075e65;
@@ -107,18 +107,18 @@ body:has(.ventra-app) { color-scheme:light; background:#E8EFF1; }
 }
 .ventra-app[data-theme=dark] {
  color-scheme:dark;
- --v-text:#F6F1EC; --v-text-muted:#CBC0B5; --v-text-faint:#A99D91;
- --v-bg:#1d1814; --v-bg-cool:#262019;
- --v-page:radial-gradient(ellipse at 12% 8%,rgba(176,126,84,.45),transparent 46%),radial-gradient(ellipse at 90% 85%,rgba(120,84,60,.45),transparent 50%),radial-gradient(ellipse at 60% 40%,rgba(90,70,60,.35),transparent 60%),#1d1814;
+ --v-text:#EAF4F4; --v-text-muted:#B7CBCD; --v-text-faint:#97ADB0;
+ --v-bg:#0A1A1D; --v-bg-cool:#262019;
+ --v-page:radial-gradient(ellipse at 12% 8%,rgba(20,186,184,.16),transparent 46%),radial-gradient(ellipse at 90% 85%,rgba(20,186,184,.10),transparent 50%),radial-gradient(ellipse at 60% 40%,rgba(40,90,95,.30),transparent 60%),#0A1A1D;
  --v-glass:rgba(255,255,255,.07); --v-glass-strong:rgba(255,255,255,.12);
  --v-glass-stroke:rgba(255,255,255,.16); --v-glass-stroke-subtle:rgba(255,255,255,.10);
- --v-accent:#8FB0FF; --v-glow:rgba(143,176,255,.25);
- --v-blue:#8FB0FF; --v-blue-soft:#B9CCFF; --v-blue-card:linear-gradient(135deg,#4C6BDB,#7690EA); --v-on-blue-card:#fff;
+ --v-accent:#5FD3D1; --v-glow:rgba(20,186,184,.25);
+ --v-blue:#5FD3D1; --v-blue-soft:#9BE3E1; --v-blue-card:linear-gradient(135deg,#07565A,#0E8A8D);--v-primary-grad:linear-gradient(135deg,#0B7378,#0E8A8D); --v-on-blue-card:#fff;
  --v-field:rgba(255,255,255,.08); --v-nav-on:rgba(255,255,255,.16); --v-nav-on-ink:#fff;
- --v-bar:linear-gradient(180deg,#C9D6FF,#7F9BF2); --v-track:rgba(255,255,255,.14);
+ --v-bar:linear-gradient(180deg,#A5EEEC,#14BAB8); --v-track:rgba(255,255,255,.14);
  --v-success:#6FD3AE; --v-warning:#E5BC76; --v-danger:#F08A92;
- --v-shadow:0 18px 48px rgba(0,0,0,.28); --v-focus:#B9CCFF; --v-link:#B9CCFF;
- --v-series-1:#8FB0FF; --v-series-2:#6FD3AE; --v-series-3:#B9A5F0; --v-series-4:#E5BC76;
+ --v-shadow:0 18px 48px rgba(0,0,0,.28); --v-focus:#9BE3E1; --v-link:#9BE3E1;
+ --v-series-1:#5FD3D1; --v-series-2:#6FD3AE; --v-series-3:#B9A5F0; --v-series-4:#E5BC76;
  background:var(--v-page);background-attachment:fixed;
 }
 .ventra-app :focus-visible{outline-color:var(--v-focus)}

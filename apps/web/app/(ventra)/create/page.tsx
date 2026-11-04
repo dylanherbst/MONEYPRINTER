@@ -1,2 +1,2 @@
-import {CreateDirectory} from '../../ui/ventra-services';
-export default function Page(){return <CreateDirectory/>;}
+import { CreateHub } from '../../ui/ventra-hubs';
+export default function Page(){return <CreateHub/>;}

@@ -35,7 +35,7 @@ function readLocal(profile: Profile): Omit<TodayInput, 'accountKinds'> {
 }
 
 // In-app only. Worked out from saved data each time; nothing is sent, scheduled or changed.
-export function TodayPanel({ profile }: { profile: Profile }) {
+export function TodayPanel({ profile, limit }: { profile: Profile; limit?: number }) {
   const [view, setView] = useState<TodayView | null>(null);
   useEffect(() => {
     let live = true;
@@ -48,6 +48,9 @@ export function TodayPanel({ profile }: { profile: Profile }) {
   return <section aria-label="Today" data-testid="today-view">
     <h2>Today</h2>
     <p>Worked out from your saved data. Nothing is sent or changed. {view.accountChecked ? 'Your account copy was checked.' : 'Your account copy was not checked (sign in to compare).'}</p>
-    {view.items.length === 0 ? <p role="status" data-testid="today-empty">Nothing needs doing right now.</p> : <ul data-testid="today-list">{view.items.map(i => <li key={i.id} data-kind={i.kind}>{i.text} <Link href={i.href}>Open</Link></li>)}</ul>}
+    {view.items.length === 0 ? <p role="status" data-testid="today-empty">Nothing needs doing right now.</p> : <>
+      <ul data-testid="today-list">{(limit ? view.items.slice(0, limit) : view.items).map(i => <li key={i.id} data-kind={i.kind}>{i.text} <Link href={i.href}>Open</Link></li>)}</ul>
+      {limit && view.items.length > limit && <details className="v-more-items"><summary>Show {view.items.length - limit} more</summary><ul>{view.items.slice(limit).map(i => <li key={i.id} data-kind={i.kind}>{i.text} <Link href={i.href}>Open</Link></li>)}</ul></details>}
+    </>}
   </section>;
 }

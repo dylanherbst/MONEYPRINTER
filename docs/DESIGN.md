@@ -6,7 +6,11 @@ Single source for design agents (`ventra-frontend`, plugins `frontend-design`, `
 
 Light, white-dominant, pastel, frosted glass with one teal accent. Beginner-friendly, calm, minimal. Applies to the new shell (`.ventra-app`, `apps/web/app/design-system/tokens.css`). Do not restyle it into neon.
 
-Update 2026-11-05 (owner-supplied reference image, "dark frosted-glass dashboard"): the shell now has two themes. **Light** is the approved V5 teal glass, unchanged. **Dark** is the new reference look (below). Dark is the default; the theme follows the device setting (`prefers-color-scheme`) and can be overridden with the Theme button in the sidebar (stored in this browser only). The theme is the `data-theme` attribute on `.ventra-app` (`dark` or `light`).
+Update 2026-11-05 (owner brief): the approved brand palette is kept. The reference image guides layout, glass quality and type only; it does not replace colours. **Light is the default** (V5 teal glass). **Dark** is an opt-in variant of the same brand (deep teal ink with the same teal accent), chosen with the Theme button in the sidebar (Light, Dark, Match device; stored in this browser only). The theme is the `data-theme` attribute on `.ventra-app`.
+
+Mobile first: design at 375/390/430, then 768, 1024, 1440. Five destinations in a bottom bar (safe-area aware, 56px targets) and the same five in the desktop sidebar: Home, Create, Grow, Customers, More. Developer `/tools` pages are not in customer navigation.
+
+Feature availability is one registry (`apps/web/lib/feature-registry.ts`, checked against `docs/agents/FEATURES.md` by `test/feature-registry.test.ts`). Tiles: Working opens; Local draft opens with a "Draft only" label; Blocked and Not started are greyed, dashed, not actionable, with the reason printed ("Needs setup" / "Coming soon") and `aria-disabled`.
 
 ## Tokens (`tokens.css`, scoped to `.ventra-app`)
 
@@ -25,24 +29,24 @@ Shape: pill buttons (radius 999px, min height 44px), cards 18 to 24px radius, ic
 Depth: `0 12px 36px rgba(15,49,54,.08)` plus 1px inner white highlight. Layout: 248px sidebar, content max 1600px, 16 to 24px gaps.
 Focus: 3px solid `#08777b`, offset 4px. Never remove it.
 
-## Dark glass theme (reference look, `[data-theme=dark]`)
+## Dark variant (`[data-theme=dark]`)
 
-Warm blurred backdrop, translucent panels with soft borders, rounded corners, white text, one soft-blue accent, and a serif display face for page titles and big numbers. All colours below are tokens in `tokens.css`; components use tokens, never raw hex.
+Deep teal-ink backdrop, translucent panels with soft borders, rounded corners, light text, the brand teal accent, and a serif display face for page titles and big numbers. All colours below are tokens in `tokens.css`; components use tokens, never raw hex.
 
 | Token | Dark value | Use |
 | --- | --- | --- |
-| `--v-page` | warm brown radial gradients over `#1d1814` | page background (also `body`) |
-| `--v-text` / `--v-text-muted` / `--v-text-faint` | `#F6F1EC` / `#CBC0B5` / `#A99D91` | text (muted >= 7:1, faint >= 4.5:1 on panels) |
+| `--v-page` | teal radial glows over `#0A1A1D` | page background (also `body`) |
+| `--v-text` / `--v-text-muted` / `--v-text-faint` | `#EAF4F4` / `#B7CBCD` / `#97ADB0` | text (muted >= 7:1, faint >= 4.5:1 on panels) |
 | `--v-glass` / `--v-glass-strong` | `rgba(255,255,255,.07)` / `.12` | panel fill (with blur 22px) |
 | `--v-glass-stroke` / `-subtle` | `rgba(255,255,255,.16)` / `.10` | 1px borders |
-| `--v-blue` / `--v-blue-soft` | `#8FB0FF` / `#B9CCFF` | soft-blue accent: bars, links, focus |
-| `--v-blue-card` | gradient `#4C6BDB -> #7690EA` | tall accent card (white text, >= 5:1) |
+| `--v-blue` / `--v-blue-soft` | `#5FD3D1` / `#9BE3E1` | teal accent tints: bars, links, focus |
+| `--v-blue-card` | gradient `#07565A -> #0E8A8D` | tall accent card (white text, >= 5:1) |
 | `--v-field` | `rgba(255,255,255,.08)` | inputs and chips |
-| `--v-nav-on` | `rgba(255,255,255,.16)` + 3px blue left bar | active nav pill |
+| `--v-nav-on` | `rgba(255,255,255,.16)` + 3px teal left bar | active nav pill |
 | `--v-success` / `--v-warning` / `--v-danger` | `#6FD3AE` / `#E5BC76` / `#F08A92` | status text |
-| `--v-focus` | `#B9CCFF` | 3px focus ring, offset 4px |
+| `--v-focus` | `#9BE3E1` | 3px focus ring, offset 4px |
 
-Light values: the table at the top of this file (`--v-blue` there is the teal accent `#14BAB8`; `--v-blue-card` is the teal ink gradient `#071F24 -> #07565A`).
+Light values: the table at the top of this file (`--v-blue` is `#0A6A70`; `--v-blue-card` and `--v-primary-grad` are the teal ink gradient `#071F24 -> #07565A`).
 
 Type scale (dark and light): display `--v-font-display` = serif stack (`Iowan Old Style`, `Palatino`, `Georgia`, serif; no webfont, so no network request) for page titles (clamp 30 to 40px, weight 500), stat numbers (30px) and card numbers (40px). Body stays Inter 14px. Labels 12px, chips 11px.
 

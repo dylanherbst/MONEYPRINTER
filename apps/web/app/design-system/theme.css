@@ -80,7 +80,7 @@
 @media(max-width:420px){.v-stats{gap:10px}.ventra-app .v-stat{padding:14px;min-height:140px}.ventra-app .v-stat strong{font-size:26px}.v-dash-aside{grid-template-columns:minmax(0,1fr)}}
 
 /* ---- dark theme ---- */
-body:has(.ventra-app[data-theme=dark]){background:#1d1814;color-scheme:dark}
+body:has(.ventra-app[data-theme=dark]){background:#0A1A1D;color-scheme:dark}
 .ventra-app[data-theme=dark] :is(h1,h2,h3,h4){color:var(--v-text)}
 .ventra-app[data-theme=dark] p{color:var(--v-text-muted)}
 .ventra-app[data-theme=dark] .v-glass,.ventra-app[data-theme=dark] .v-glass-strong{background:linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,.04));border:1px solid var(--v-glass-stroke);box-shadow:var(--v-shadow),inset 0 1px 0 rgba(255,255,255,.14);border-radius:var(--v-radius-panel);backdrop-filter:blur(22px) saturate(120%);-webkit-backdrop-filter:blur(22px) saturate(120%)}
@@ -94,7 +94,7 @@ body:has(.ventra-app[data-theme=dark]){background:#1d1814;color-scheme:dark}
 .ventra-app[data-theme=dark] .v-status{background:var(--v-field);border-color:var(--v-glass-stroke);color:var(--v-text-muted)}
 .ventra-app[data-theme=dark] .v-button{background:var(--v-field);border:1px solid var(--v-glass-stroke);color:var(--v-text)}
 .ventra-app[data-theme=dark] .v-button:hover:not(:disabled){background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3);box-shadow:none}
-.ventra-app[data-theme=dark] :is(.v-button-primary,.v-button[aria-pressed=true]){background:linear-gradient(135deg,#4C6BDB,#6C88E8);border-color:rgba(255,255,255,.3);color:#fff;box-shadow:none}
+.ventra-app[data-theme=dark] :is(.v-button-primary,.v-button[aria-pressed=true]){background:var(--v-primary-grad);border-color:rgba(255,255,255,.3);color:#fff;box-shadow:none}
 .ventra-app[data-theme=dark] .v-button:disabled{background:rgba(255,255,255,.05);color:var(--v-text-faint);border-color:var(--v-glass-stroke-subtle)}
 .ventra-app[data-theme=dark] .v-search{background:var(--v-field);border-color:var(--v-glass-stroke);box-shadow:none}
 .ventra-app[data-theme=dark] .v-input{color:var(--v-text)}
@@ -105,7 +105,7 @@ body:has(.ventra-app[data-theme=dark]){background:#1d1814;color-scheme:dark}
 .ventra-app[data-theme=dark] :is(.v-footer a,.v-text-link,.v-section-heading a,.v-empty>a,.v-editor a){color:var(--v-link)}
 .ventra-app[data-theme=dark] .v-hero{background:var(--v-blue-card);border-color:rgba(255,255,255,.3);box-shadow:var(--v-shadow),inset 0 1px rgba(255,255,255,.35)}
 .ventra-app[data-theme=dark] .v-hero :is(h2,p,small){color:#fff}
-.ventra-app[data-theme=dark] .v-hero .v-hero-cta{background:#fff;color:#1d2a63}
+.ventra-app[data-theme=dark] .v-hero .v-hero-cta{background:#fff;color:#07393D}
 .ventra-app[data-theme=dark] .v-growth-art i{background:linear-gradient(90deg,rgba(255,255,255,.55),rgba(255,255,255,.85) 40%,rgba(255,255,255,.35));border-color:rgba(255,255,255,.6);box-shadow:inset 2px 2px 5px #fff8,0 10px 24px rgba(20,30,90,.3)}
 .ventra-app[data-theme=dark] .v-service-copy>span,.ventra-app[data-theme=dark] .v-service-copy small,.ventra-app[data-theme=dark] .v-step small,.ventra-app[data-theme=dark] .v-kpi small,.ventra-app[data-theme=dark] .v-checklist small,.ventra-app[data-theme=dark] .v-activity-row time{color:var(--v-text-muted)}
 .ventra-app[data-theme=dark] .v-step{border-top-color:var(--v-glass-stroke-subtle)}
@@ -114,49 +114,49 @@ body:has(.ventra-app[data-theme=dark]){background:#1d1814;color-scheme:dark}
 .ventra-app[data-theme=dark] .v-chart-empty{background:repeating-linear-gradient(to bottom,transparent 0,transparent 43px,rgba(255,255,255,.07) 44px)}
 .ventra-app[data-theme=dark] .v-chart-empty>svg{color:var(--v-blue)}
 .ventra-app[data-theme=dark] .v-feedback{background:rgba(229,188,118,.14);border-color:var(--v-warning);color:var(--v-text)}
-.ventra-app[data-theme=dark] .v-skip{background:#2a231d;color:var(--v-text);border-color:var(--v-focus)}
-.ventra-app[data-theme=dark] :is(.v-dock,.v-account-menu,.v-create-dialog,.v-mobile-menu){background:rgba(40,32,26,.92);border:1px solid var(--v-glass-stroke);color:var(--v-text)}
-.ventra-app[data-theme=dark] .v-create-dialog::backdrop{background:rgba(10,8,6,.6)}
+.ventra-app[data-theme=dark] .v-skip{background:#12282B;color:var(--v-text);border-color:var(--v-focus)}
+.ventra-app[data-theme=dark] :is(.v-dock,.v-account-menu,.v-create-dialog,.v-mobile-menu){background:rgba(12,32,35,.94);border:1px solid var(--v-glass-stroke);color:var(--v-text)}
+.ventra-app[data-theme=dark] .v-create-dialog::backdrop{background:rgba(3,12,14,.62)}
 .ventra-app[data-theme=dark] .v-create-options a{background:var(--v-field);border:1px solid var(--v-glass-stroke-subtle);color:var(--v-text);box-shadow:none}
 .ventra-app[data-theme=dark] .v-dock a,.ventra-app[data-theme=dark] .v-dock button{color:var(--v-text-muted)}
 .ventra-app[data-theme=dark] .v-dock :is(a,button)[aria-current]{color:#fff}
 .ventra-app[data-theme=dark] .v-account-menu a{color:var(--v-text)}
 
 /* editors and legacy bridges in dark */
-.ventra-app[data-theme=dark] .v-editor{--ink:#F6F1EC;--muted:#CBC0B5;--surface:#2a231d;--surface-raised:#332a23;--line:rgba(255,255,255,.18);--accent:#B9CCFF;--accent-hover:#DCE5FF;--accent-soft:rgba(143,176,255,.18);--control-border:rgba(255,255,255,.34);--danger:#F08A92;--success:#6FD3AE;--focus:#B9CCFF;color:var(--v-text)}
+.ventra-app[data-theme=dark] .v-editor{--ink:#EAF4F4;--muted:#B7CBCD;--surface:#12282B;--surface-raised:#183236;--line:rgba(255,255,255,.18);--accent:#9BE3E1;--accent-hover:#DCE5FF;--accent-soft:rgba(20,186,184,.18);--control-border:rgba(255,255,255,.34);--danger:#F08A92;--success:#6FD3AE;--focus:#9BE3E1;color:var(--v-text)}
 .ventra-app[data-theme=dark] .v-editor :is(section.card,.crm-contacts,.crm-pipeline,.service-invoice-draft,.website-page-draft,.storefront-draft,.education-course-draft,.market-evidence-notebook,.service-proposals,.local-offer,.preview-card,.portal-card,.worksheet-preview,.saved-draft-preview),.ventra-app[data-theme=dark] .v-editor>section,.ventra-app[data-theme=dark] .v-editor details>section{background:var(--v-glass);border-color:var(--v-glass-stroke);box-shadow:var(--v-shadow);color:var(--v-text)}
 .ventra-app[data-theme=dark] .v-editor :is(button,.primary-button){background:var(--v-field);color:var(--v-text);border-color:var(--v-glass-stroke)}
-.ventra-app[data-theme=dark] .v-editor .primary-button{background:linear-gradient(135deg,#4C6BDB,#6C88E8);color:#fff;border-color:rgba(255,255,255,.3)}
+.ventra-app[data-theme=dark] .v-editor .primary-button{background:var(--v-primary-grad);color:#fff;border-color:rgba(255,255,255,.3)}
 .ventra-app[data-theme=dark] .v-editor button:disabled{background:rgba(255,255,255,.05);color:var(--v-text-faint);border-color:var(--v-glass-stroke-subtle)}
 .ventra-app[data-theme=dark] .v-editor .status-badge{background:var(--v-field);color:var(--v-text-muted);border-color:var(--v-glass-stroke)}
 .ventra-app[data-theme=dark] .v-editor .error{background:rgba(240,138,146,.14);color:#FFC7CC}
 .ventra-app[data-theme=dark] .v-editor .panel-note{color:var(--v-text-muted)}
 .ventra-app[data-theme=dark] :is(label,.v-editor label){color:var(--v-text)}
 .ventra-app[data-theme=dark] :is(input:not([type=checkbox]):not([type=radio]),textarea,select){background:rgba(0,0,0,.28);color:var(--v-text);border-color:var(--v-glass-stroke)}
-.ventra-app[data-theme=dark] .v-editor .website-page-canvas{background:#2a231d;color:var(--v-text);border-color:var(--v-glass-stroke)}
-.ventra-app[data-theme=dark] .v-legacy-route{--canvas:#1d1814;--ink:#F6F1EC;--muted:#CBC0B5;--surface:#2a231d;--surface-raised:#332a23;--line:rgba(255,255,255,.18);--accent:#B9CCFF;--control-border:rgba(255,255,255,.34);--focus:#B9CCFF;--gradient:linear-gradient(135deg,#4C6BDB,#6C88E8)}
+.ventra-app[data-theme=dark] .v-editor .website-page-canvas{background:#12282B;color:var(--v-text);border-color:var(--v-glass-stroke)}
+.ventra-app[data-theme=dark] .v-legacy-route{--canvas:#0A1A1D;--ink:#EAF4F4;--muted:#B7CBCD;--surface:#12282B;--surface-raised:#183236;--line:rgba(255,255,255,.18);--accent:#9BE3E1;--control-border:rgba(255,255,255,.34);--focus:#9BE3E1;--gradient:var(--v-primary-grad)}
 .ventra-app[data-theme=dark] .v-legacy-route :is(.card,.notice,.publication-panel,.empty-panel,.fixture-switch):not([class*=is-theme-]){background:linear-gradient(135deg,rgba(255,255,255,.10),rgba(255,255,255,.04));border-color:var(--v-glass-stroke);box-shadow:var(--v-shadow);color:var(--v-text)}
 .ventra-app[data-theme=dark] .v-legacy-route :is(.workspace-nav button,.notice strong,.workspace-path,.launch-eyebrow,.subtle-label){color:var(--v-text-muted)}
 .ventra-app[data-theme=dark] .v-legacy-route :is(.workspace-avatar,.card-icon,.brand-mark){color:var(--v-blue-soft);background:var(--v-field);border-color:var(--v-glass-stroke)}
-.ventra-app[data-theme=dark] .v-legacy-route :is(.workspace-nav button[aria-current],button[aria-pressed=true]){color:#fff;background:#4C6BDB;border-color:rgba(255,255,255,.3)}
+.ventra-app[data-theme=dark] .v-legacy-route :is(.workspace-nav button[aria-current],button[aria-pressed=true]){color:#fff;background:#0B7378;border-color:rgba(255,255,255,.3)}
 .ventra-app[data-theme=dark] .v-legacy-route .gradient-text{color:var(--v-blue-soft)}
 .ventra-app[data-theme=dark] .v-legacy-route .launch-banner{background:var(--v-glass);border-color:var(--v-glass-stroke);color:var(--v-text)}
 .ventra-app[data-theme=dark] .v-legacy-route .launch-banner :is(h2,p,small){color:var(--v-text)}
 .ventra-app[data-theme=dark] .v-legacy-route .banner-actions button:last-child{color:var(--v-text);background:var(--v-field)}
 .ventra-app[data-theme=dark] .v-legacy-route .course-cover,.ventra-app[data-theme=dark] .v-legacy-route .cover-sheet{background:var(--v-glass);border-color:var(--v-glass-stroke)}
 .ventra-app[data-theme=dark] .v-legacy-route .cover-sheet :is(span,small){color:var(--v-text)}
-.ventra-app[data-theme=dark] .v-legacy-route .primary-button:hover:not(:disabled){background:#6C88E8;color:#fff}
+.ventra-app[data-theme=dark] .v-legacy-route .primary-button:hover:not(:disabled){background:#0E8A8D;color:#fff}
 .ventra-app[data-theme=dark] :is(table,th,td){color:var(--v-text)}
 .ventra-app[data-theme=dark] details>summary{color:var(--v-text)}
 
 /* light: serif/charts already shared; only the sidebar workspace tile needs nothing more */
-@supports not(backdrop-filter:blur(1px)){.ventra-app[data-theme=dark] .v-glass,.ventra-app[data-theme=dark] .v-sidebar{background:#2a231d}}
+@supports not(backdrop-filter:blur(1px)){.ventra-app[data-theme=dark] .v-glass,.ventra-app[data-theme=dark] .v-sidebar{background:#12282B}}
 .ventra-app[data-theme=dark] label.v-search input[type=search]{background:transparent;border:0;color:var(--v-text)}
 .ventra-app[data-theme=dark] .v-eyebrow{color:var(--v-blue-soft)}
 .ventra-app[data-theme=dark] .v-local-tabs a{background:var(--v-field);border-color:var(--v-glass-stroke);color:var(--v-text)}
 .ventra-app[data-theme=dark] .v-local-tabs a:hover{background:rgba(255,255,255,.16)}
-.ventra-app[data-theme=dark] .v-local-tabs a[aria-current]{background:linear-gradient(135deg,#4C6BDB,#6C88E8);color:#fff;border-color:rgba(255,255,255,.35);font-weight:600}
-.ventra-app[data-theme=dark] .v-chips .v-button[aria-pressed=true]{background:linear-gradient(135deg,#4C6BDB,#6C88E8)}
+.ventra-app[data-theme=dark] .v-local-tabs a[aria-current]{background:var(--v-primary-grad);color:#fff;border-color:rgba(255,255,255,.35);font-weight:600}
+.ventra-app[data-theme=dark] .v-chips .v-button[aria-pressed=true]{background:var(--v-primary-grad)}
 
 /* Home / dashboard layout (overrides the older .v-dashboard two-column grid and its mobile ordering) */
 .ventra-app .v-dashboard.v-dash{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);gap:20px;align-items:start}
@@ -177,3 +177,56 @@ body:has(.ventra-app[data-theme=dark]){background:#1d1814;color-scheme:dark}
 @media(min-width:1200px){.v-overview-dash{grid-template-columns:minmax(0,1fr) minmax(0,280px)}}
 .ventra-app .v-editor a.v-stat,.ventra-app a.v-stat{color:var(--v-text);text-decoration:none}
 .ventra-app .v-editor a.v-stat .v-stat-label{color:var(--v-text-muted)}
+
+/* ---- Hubs and feature tiles (mobile first) ---- */
+.v-hub-page{display:grid;gap:16px}
+.v-hub-note{font-size:13px}
+.v-hub{display:grid;gap:14px}
+.ventra-app .v-hub-group{padding:0;border-radius:var(--v-radius-panel);overflow:hidden}
+.v-hub-group>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;padding:14px 18px;cursor:pointer}
+.v-hub-group>summary::-webkit-details-marker{display:none}
+.v-hub-group>summary strong{display:block;font-size:16px;font-weight:600}
+.v-hub-group>summary small{display:block;font-size:12px;color:var(--v-text-muted);line-height:1.4;margin-top:2px}
+.v-hub-count{font-size:11px;color:var(--v-text-muted);white-space:nowrap;border:1px solid var(--v-glass-stroke-subtle);border-radius:999px;padding:3px 9px;background:var(--v-field)}
+.v-hub-group>summary::after{content:"";width:9px;height:9px;border-right:2px solid var(--v-text-muted);border-bottom:2px solid var(--v-text-muted);transform:rotate(45deg);margin-left:6px;flex-shrink:0;transition:transform 160ms}
+.v-hub-group[open]>summary::after{transform:rotate(-135deg)}
+.v-tiles{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:0 14px 16px}
+.ventra-app .v-feature{display:flex;align-items:flex-start;gap:14px;min-height:88px;padding:14px;border-radius:18px;color:inherit;box-shadow:none}
+.v-feature-copy{display:grid;gap:3px;flex:1;min-width:0;justify-items:start}
+.v-feature-copy strong{font-size:15px;font-weight:600;line-height:1.3}
+.v-feature-desc{font-size:13px;color:var(--v-text-muted);line-height:1.4}
+.v-feature-note{font-size:12px;color:var(--v-text-muted);line-height:1.4}
+.v-avail{display:inline-flex;align-items:center;gap:6px;margin-top:4px;font-size:11px;font-weight:600;line-height:1.4;padding:2px 9px;border-radius:999px;border:1px solid var(--v-glass-stroke-subtle);background:var(--v-field);color:var(--v-text)}
+.v-avail::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--v-success);flex-shrink:0}
+.v-avail[data-status=local-draft]::before{border-radius:2px;background:var(--v-warning)}
+.v-avail[data-status=blocked]::before,.v-avail[data-status=not-started]::before{background:transparent;border:1.5px solid var(--v-text-faint)}
+.ventra-app .v-feature.is-disabled{opacity:.72;cursor:not-allowed;background:transparent;border-style:dashed;filter:saturate(.4)}
+.v-feature.is-disabled .v-icon-tile{opacity:.6}
+.v-feature.is-disabled .v-avail{background:transparent;color:var(--v-text-muted)}
+.ventra-app a.v-feature:hover{transform:translateY(-1px)}
+.v-local-tabs .v-tab-back{background:transparent;border-style:dashed}
+@media(min-width:768px){.v-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1200px){.v-tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ---- Mobile shell: bottom nav with five destinations, avatar in the header ---- */
+@media(max-width:1023px){
+ .ventra-app .v-header .v-menu-toggle{display:none!important}
+ .ventra-app .v-header>button[aria-label='Account menu']{display:inline-flex!important;grid-column:1;grid-row:1}
+ .ventra-app .v-dock{padding:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom));bottom:calc(8px + env(safe-area-inset-bottom))}
+ .ventra-app .v-dock a{min-height:56px;font-size:11px;font-weight:500}
+ .ventra-app .v-dock a[aria-current]{background:var(--v-nav-on);color:var(--v-nav-on-ink)}
+ .ventra-app .v-main-wrap{padding-bottom:calc(112px + env(safe-area-inset-bottom))}
+ .ventra-app :is(input,textarea,select){scroll-margin-bottom:120px}
+}
+
+/* ---- Home: one primary action, compact cards ---- */
+.ventra-app .v-primary-action{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 16px;padding:16px 18px}
+.ventra-app .v-primary-action p{margin:2px 0 0;font-size:14px;max-width:44ch}
+.ventra-app .v-action-btn{min-height:52px;flex:0 1 auto}
+.ventra-app .v-growth-row{display:flex;align-items:center;gap:14px;padding:14px;min-height:72px}
+.ventra-app .v-growth-row small{display:block;font-size:12px;color:var(--v-text-muted)}
+.ventra-app .v-draft-overview{display:grid;gap:16px}
+.ventra-app .v-more-items{margin-top:8px;font-size:13px}
+.ventra-app .v-more-items summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--v-link)}
+.ventra-app .v-dash-main{align-content:start}
+@media(max-width:639px){.ventra-app .v-action-btn{width:100%}.ventra-app .v-primary-action{padding:16px}.ventra-app .v-dash-head h1{font-size:28px}}
