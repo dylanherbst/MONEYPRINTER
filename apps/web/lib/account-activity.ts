@@ -32,3 +32,6 @@ export function parseActivityResponse(body: unknown): ActivityEntry[] | null {
   }
   return b.entries as ActivityEntry[];
 }
+
+/** Plain wording for one timeline line. Revision 1 is the first save; later ones are updates. */
+export const describeEntry = (e: ActivityEntry): string => `${e.label}: ${e.revision <= 1 ? 'first saved' : `updated (save number ${e.revision})`}`;

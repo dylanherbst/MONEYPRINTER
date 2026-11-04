@@ -31,3 +31,9 @@ test('parser accepts the route shape and rejects others', () => {
   assert.equal(parseActivityResponse({ signedIn: true, entries: [{ kind: 1 }] }), null);
   assert.equal(parseActivityResponse(null), null);
 });
+test('describeEntry uses plain wording', async () => {
+  const { describeEntry } = await import('../lib/account-activity.ts');
+  const [a, b] = shapeActivity([row('storefront', { revision: 1 }), row('funnels', { revision: 4 })]);
+  assert.equal(describeEntry(b), 'Storefront: first saved');
+  assert.equal(describeEntry(a), 'Funnels: updated (save number 4)');
+});
