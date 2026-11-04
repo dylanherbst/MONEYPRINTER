@@ -1,4 +1,5 @@
 'use client';
+import { Anchor } from '../design-system/anchor';
 import { useEffect, useRef, useState } from 'react';
 import { blankOffer, editLocalOffer, formatOfferPrice, offerCurrencies, offerStorageKey, restoreLocalOffers, saveLocalOffer } from '../../lib/local-offers';
 import type { LocalOffer, OfferDraft } from '../../lib/local-offers';
@@ -111,17 +112,25 @@ export default function OfferBuilder({ profile, offersOnly = false, creationKind
         <>
           <EducationCreatorWorkflow key={`education-creator-${profile.id}`} profile={profile} />
           <EducationCourseDraftEditor key={`education-course-${profile.id}`} profile={profile} />
+          <Anchor id="course-sales-page" />
           <EducationCourseSalesPageDraftEditor key={`education-sales-page-${profile.id}`} profile={profile} offers={offers} />
+          <Anchor id="certificates" />
           <EducationCertificateTemplateDraftEditor key={`education-certificate-template-${profile.id}`} profile={profile} />
+          <Anchor id="coaching" />
           <EducationCoachingProgramDraftEditor key={`education-coaching-program-${profile.id}`} profile={profile} offers={offers} />
+          <Anchor id="workshop" />
           <EducationWorkshopPlanDraftEditor key={`education-workshop-plan-${profile.id}`} profile={profile} offers={offers} />
           <CommunitySpaceDraftEditor key={`community-space-${profile.id}`} profile={profile} />
         </>
       )}
+      <Anchor id="ad-concepts" />
       <AdConceptDraftEditor key={`ad-concept-${profile.id}`} profile={profile} offers={offers} />
+      <Anchor id="storefront" />
       <StorefrontDraftEditor key={`storefront-${profile.id}`} profile={profile} offers={offers} />
       <WebsitePageDraftEditor key={`website-page-${profile.id}`} profileId={profile.id} />
+      <Anchor id="link-in-bio" />
       <LinkInBioDraftEditor key={`link-in-bio-${profile.id}`} profile={profile} offers={offers} />
+      <Anchor id="lead-form" />
       <LeadCaptureBuilder
         key={`lead-capture-${profile.id}`}
         profileId={profile.id}
@@ -131,10 +140,15 @@ export default function OfferBuilder({ profile, offersOnly = false, creationKind
       <CrmPipeline key={`crm-pipeline-${profile.id}`} profileId={profile.id} />
       {profile.pathways.includes('business') && (
         <>
+          <Anchor id="proposals" />
           <ServiceProposals key={profile.id} offers={offers} profileId={profile.id} />
+          <Anchor id="client-portal" />
           <ServiceClientPortalDraftEditor key={`client-portal-${profile.id}`} profileId={profile.id} />
+          <Anchor id="agreements" />
           <ServiceAgreementDraftEditor key={`service-agreement-${profile.id}`} profileId={profile.id} />
+          <Anchor id="invoices" />
           <ServiceInvoiceDraftEditor key={`service-invoice-${profile.id}`} profileId={profile.id} />
+          <Anchor id="client-projects" />
           <ServiceProjectBoardEditor key={`service-project-board-${profile.id}`} profileId={profile.id} />
         </>
       )}

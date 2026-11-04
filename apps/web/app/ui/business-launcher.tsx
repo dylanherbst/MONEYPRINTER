@@ -1,4 +1,5 @@
 'use client';
+import { Anchor } from '../design-system/anchor';
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { initialLauncherState, launcherReducer, profileWithSavedBrief } from '../../lib/launcher-state';
 import { buildPlan, businessTypes, educationOffers, enablePathway, profileErrors, restoreProfile, serializeProfile, storageKey, tools } from '../../lib/onboarding';
@@ -20,7 +21,7 @@ import type { Profile, Pathway } from '../../lib/onboarding';
 
 // Writes a validated account copy into browser storage and reloads so the editor reads it.
 function applyDraft(key: string, raw: string) { localStorage.setItem(key, raw); window.location.reload(); }
-export default function BusinessLauncher({ onOpenDemo }: { onOpenDemo: () => void }) {
+export default function BusinessLauncher({ onOpenDemo, embedded = false }: { onOpenDemo?: () => void; embedded?: boolean }) {
   const [{ profile, saved, toolDrafts }, dispatch] = useReducer(launcherReducer, undefined, initialLauncherState);
   const focusHeading = useRef<HTMLHeadingElement>(null);
   function setProfile(next: Profile) { dispatch({ type: 'profile', profile: next }); }
@@ -62,7 +63,7 @@ export default function BusinessLauncher({ onOpenDemo }: { onOpenDemo: () => voi
   }, [ready, setup, step]);
   const field = (key: 'name' | 'industry' | 'location' | 'audience' | 'goal' | 'expertise' | 'website' | 'channels', title: string, required = false, placeholder = '') => <label>{title}{required ? ' *' : ''}<input value={profile[key]} required={required} maxLength={500} placeholder={placeholder} onChange={e => update(key, e.target.value)} /></label>;
   return <section id="launch-content" className="launch-workspace" tabIndex={-1}>
-    <header className="launch-topbar"><a href="/workspace">Account workspace →</a><a className="launch-wordmark" href="#launch-content"><span className="brand-mark" aria-hidden="true">V</span> Ventraa</a><button onClick={onOpenDemo}>Open course & selling demo <span aria-hidden="true">↗</span></button></header>
+    {!embedded && <header className="launch-topbar"><a href="/workspace">Account workspace →</a><a className="launch-wordmark" href="#launch-content"><span className="brand-mark" aria-hidden="true">V</span> Ventraa</a><button onClick={onOpenDemo ?? (() => undefined)}>Open course & selling demo <span aria-hidden="true">↗</span></button></header>}
     {!ready ? <p role="status">Loading your business setup…</p> : <>
       <header className="launch-hero"><p className="eyebrow">ONE BUSINESS. SHARED POSSIBILITIES.</p><h1 tabIndex={-1} ref={!setup ? focusHeading : undefined}>{setup ? <>Your ambition.<br /><span className="gradient-text">Your next chapter.</span></> : <>{saved.name}<br /><span className="gradient-text">Your next move.</span></>}</h1><p>{setup ? 'Build an education business, launch or grow a service or product business — or bring both together in one place.' : `${saved.stage === 'existing' ? 'Grow your existing business' : 'Turn your idea into a business'} · ${saved.pathways.map(p => p === 'education' ? 'Education' : 'Services').join(' + ')}`}</p></header>
       <p className="launch-local">Local prototype · Setup and checklist stay in this browser. No AI, payments, customer imports or integrations are connected.</p>
@@ -85,17 +86,24 @@ export default function BusinessLauncher({ onOpenDemo }: { onOpenDemo: () => voi
         </form>
       </section> : <>
         <section className="business-summary card"><div className="section-heading"><h2>Your business profile</h2><button onClick={() => { setEditing(true); setStep(0); }}>Edit setup</button></div><p>{saved.audience} · {saved.location || 'Location not set'}</p><p><strong>Your goal:</strong> {saved.goal}</p>{saved.stage === 'existing' && <p>Website: {saved.website || 'Not supplied'} · Channels: {saved.channels || 'Not supplied'} · Not connected</p>}<div className="pathway-chips">{(['education', 'business'] as const).map(p => <div key={p}><span className="status-badge">{p === 'education' ? 'Education' : 'Services'} {saved.pathways.includes(p) ? 'enabled' : 'available'}</span>{!saved.pathways.includes(p) && <button onClick={() => { setProfile(enablePathway(saved, p)); setStep(2); setEditing(true); }}>Activate {p === 'education' ? 'Education' : 'Services'}</button>}</div>)}</div><p className="panel-note">One profile, shared tools. Adding a pathway keeps your business details, checklist progress and saved briefs.</p></section>
-        <BrandDirectionDraftEditor key={`brand-direction-${saved.id}`} profile={saved} />
-        <LauncherAccountSync kind="brand-direction" label="Brand direction" readLocal={() => localStorage.getItem(brandDirectionStorageKey(saved.id))} validate={raw => { restoreBrandDirectionDraft(raw, saved.id); }} onApply={raw => applyDraft(brandDirectionStorageKey(saved.id), raw)} />
+        <Anchor id="start-skills" />
         <SkillAssessmentDraftEditor key={`skill-assessment-${saved.id}`} profile={saved} />
         <LauncherAccountSync kind="skill-assessment" label="Skill assessment" readLocal={() => localStorage.getItem(skillAssessmentStorageKey(saved.id))} validate={raw => { restoreSkillAssessmentDraft(raw, saved.id); }} onApply={raw => applyDraft(skillAssessmentStorageKey(saved.id), raw)} />
+        <Anchor id="start-evidence" />
         <MarketEvidenceNotebookEditor key={`market-evidence-${saved.id}`} profile={saved} />
         <LauncherAccountSync kind="market-evidence" label="Market evidence" readLocal={() => localStorage.getItem(marketEvidenceStorageKey(saved.id))} validate={raw => { restoreMarketEvidenceNotebook(raw, saved.id); }} onApply={raw => applyDraft(marketEvidenceStorageKey(saved.id), raw)} />
+        <Anchor id="start-validate" />
         <OfferValidationWorksheetEditor key={`offer-validation-${saved.id}`} profile={saved} />
         <LauncherAccountSync kind="offer-validation" label="Offer validation" readLocal={() => localStorage.getItem(offerValidationStorageKey(saved.id))} validate={raw => { restoreOfferValidationWorksheet(raw, saved.id); }} onApply={raw => applyDraft(offerValidationStorageKey(saved.id), raw)} />
+        <Anchor id="start-pricing" />
+        <PricingScenarioWorksheetEditor key={`pricing-scenario-${saved.id}`} profile={saved} />
+        <Anchor id="start-branding" />
+        <BrandDirectionDraftEditor key={`brand-direction-${saved.id}`} profile={saved} />
+        <LauncherAccountSync kind="brand-direction" label="Brand direction" readLocal={() => localStorage.getItem(brandDirectionStorageKey(saved.id))} validate={raw => { restoreBrandDirectionDraft(raw, saved.id); }} onApply={raw => applyDraft(brandDirectionStorageKey(saved.id), raw)} />
+        <Anchor id="start-plan" />
         <BusinessPlanDraftEditor key={`business-plan-draft-${saved.id}`} profile={saved} />
         <LauncherAccountSync kind="business-plan" label="Business plan" readLocal={() => localStorage.getItem(businessPlanStorageKey(saved.id))} validate={raw => { restoreBusinessPlanDraft(raw, saved.id); }} onApply={raw => applyDraft(businessPlanStorageKey(saved.id), raw)} />
-        <PricingScenarioWorksheetEditor key={`pricing-scenario-${saved.id}`} profile={saved} />
+        <Anchor id="start-checklist" />
         <section className="launch-plan card" aria-labelledby="plan-title"><div className="section-heading"><h2 id="plan-title">Your launch plan</h2><span className="status-badge">{complete}/{plan.length} reviewed</span></div><p>Based on your setup, not AI-generated. Mark each step as reviewed as you plan your work — this does not perform an integration or publish anything.</p><progress aria-label={`${complete} of ${plan.length} steps reviewed`} value={complete} max={plan.length} /><ol>{plan.map((s, i) => <li key={s.id}><label className="plan-check"><input type="checkbox" checked={saved.completed.includes(s.id)} onChange={e => persist({ ...saved, completed: e.target.checked ? [...saved.completed, s.id] : saved.completed.filter(id => id !== s.id) })} /><span><small>STEP {String(i + 1).padStart(2, '0')}</small><strong>{s.title}</strong><span>{s.detail}</span></span></label>{s.area === 'course' ? <button onClick={onOpenDemo}>Open course workshop demo ↗</button> : tools.some(t => t.id === s.area) && <button onClick={() => { setActiveTool(s.area); document.getElementById('shared-tools')?.scrollIntoView({ behavior: 'smooth' }); }}>Prepare {tools.find(t => t.id === s.area)?.title} →</button>}</li>)}</ol><LauncherAccountSync kind="launch-checklist" label="Launch checklist" readLocal={() => checklistFromProfile(localStorage.getItem(storageKey))} validate={raw => { restoreChecklist(raw); }} onApply={raw => { localStorage.setItem(storageKey, applyChecklistToProfile(localStorage.getItem(storageKey), raw)); window.location.reload(); }} /></section>
         <section id="shared-tools" className="shared-tools" aria-labelledby="tools-title"><div className="section-heading"><h2 id="tools-title">One engine. Both pathways.</h2><span className="subtle-label">Shared business infrastructure</span></div><div className="tool-grid">{tools.map(t => <button key={t.id} aria-pressed={activeTool === t.id} onClick={() => setActiveTool(t.id)}><strong>{t.title}</strong><small>Prepare local brief · Not connected</small></button>)}</div><section className="card tool-brief" aria-labelledby="brief-title"><h3 id="brief-title">{tool.title} brief</h3><p>{tool.prompt}</p><label>Configuration notes<textarea rows={5} maxLength={5000} value={toolDrafts[tool.id] || ''} onChange={e => dispatch({ type: 'note', toolId: tool.id, value: e.target.value })} /></label><button onClick={() => persist(profileWithSavedBrief(saved, toolDrafts, tool.id))}>Save local brief</button><p className="panel-note">Unsaved notes stay in this session when you switch tools or edit setup; only Save local brief saves this tool’s notes. A planning brief only. Saving does not connect a provider, call AI, import customers, create a checkout or send campaigns.</p></section></section>
       </>}
