@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const active = await db.rpc('session_active');
     if (active.error) return reply({ error: 'Account storage is unavailable. Please retry.' }, 503);
     if (!active.data) return reply({ error: 'Session revoked. Sign in again.', signedIn: false }, 401);
-    const result = await db.from('launcher_drafts').select('kind,revision,updated_at').eq('workspace_id', w);
+    const result = await db.from('launcher_drafts').select('kind,revision,updated_at').eq('workspace_id', w).limit(500);
     if (result.error) return reply({ error: 'Unable to load your activity. Please retry.' }, 503);
     const entries = shapeActivity(result.data);
     // RLS returns nothing to non-members; with no rows we cannot tell, so confirm membership before reporting an empty list.

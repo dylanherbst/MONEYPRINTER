@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const active = await db.rpc('session_active');
     if (active.error) return reply({ error: 'Account storage is unavailable. Please retry.' }, 503);
     if (!active.data) return reply({ error: 'Session revoked. Sign in again.', signedIn: false }, 401);
-    const result = await db.from('launcher_drafts').select('kind,data').eq('workspace_id', w);
+    const result = await db.from('launcher_drafts').select('kind,data').eq('workspace_id', w).limit(500);
     if (result.error) return reply({ error: 'Unable to search your data. Please retry.' }, 503);
     const rows = Array.isArray(result.data) ? result.data : [];
     if (!rows.length) {

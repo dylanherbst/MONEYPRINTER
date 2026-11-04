@@ -61,3 +61,18 @@ test('result contains every id once and no secret value or fragment', () => {
     assert.ok(!/https?:\/\//.test(json) && !/zzhost\.test/.test(json));
   }
 });
+
+import { statusRateKey, SIGN_IN_MESSAGE } from '../lib/status-access.ts';
+import { createRateLimiter } from '../lib/rate-limit.ts';
+test('status rate key is per user, else per first forwarded IP', () => {
+  assert.equal(statusRateKey('u1', '1.2.3.4'), 'user:u1');
+  assert.equal(statusRateKey(null, '1.2.3.4, 5.6.7.8'), 'ip:1.2.3.4');
+  assert.equal(statusRateKey(undefined, null), 'ip:unknown');
+  assert.match(SIGN_IN_MESSAGE, /^Sign in to see integration status$/);
+});
+test('one caller hitting the limit does not lock out another', () => {
+  const check = createRateLimiter(2, 60_000);
+  check(statusRateKey('abuser', null)); check(statusRateKey('abuser', null));
+  assert.equal(check(statusRateKey('abuser', null)).allowed, false);
+  assert.equal(check(statusRateKey('owner', null)).allowed, true);
+});
