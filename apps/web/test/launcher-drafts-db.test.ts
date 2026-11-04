@@ -13,7 +13,7 @@ test('launcher_drafts migration: owner writes, revisions, isolation, staff read-
       create function auth.uid() returns uuid language sql stable as $$ select (auth.jwt()->>'sub')::uuid $$;
       grant usage on schema public,auth to authenticated,anon;
       grant execute on function auth.uid(),auth.jwt() to authenticated,anon;`);
-    for (const f of ['202610160001_s01.sql', '202610300001_courses.sql', '202611030001_launcher_drafts.sql', '202611030002_launcher_drafts_crm.sql', '202611030003_launcher_drafts_more.sql', '202611030004_launcher_drafts_services_education.sql', '202611030005_launcher_drafts_lead_scoring.sql', '202611030006_launcher_drafts_content_calendar.sql', '202611030007_launcher_drafts_email_campaigns.sql', '202611030008_launcher_drafts_funnels.sql', '202611030009_launcher_drafts_booking_page.sql', '202611030010_launcher_drafts_student_progress.sql', '202611030012_launcher_drafts_workflow_builder.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
+    for (const f of ['202610160001_s01.sql', '202610300001_courses.sql', '202611030001_launcher_drafts.sql', '202611030002_launcher_drafts_crm.sql', '202611030003_launcher_drafts_more.sql', '202611030004_launcher_drafts_services_education.sql', '202611030005_launcher_drafts_lead_scoring.sql', '202611030006_launcher_drafts_content_calendar.sql', '202611030007_launcher_drafts_email_campaigns.sql', '202611030008_launcher_drafts_funnels.sql', '202611030009_launcher_drafts_booking_page.sql', '202611030010_launcher_drafts_student_progress.sql', '202611030012_launcher_drafts_workflow_builder.sql', '202611030013_launcher_drafts_launch_checklist.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
     const a = '11111111-1111-4111-8111-111111111111', b = '22222222-2222-4222-8222-222222222222';
     const sa = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', sb = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
     await db.query('insert into auth.users values ($1),($2)', [a, b]);
@@ -60,6 +60,7 @@ test('launcher_drafts migration: owner writes, revisions, isolation, staff read-
     assert.equal(await scalar("select public.save_launcher_draft($1,'booking-page',$2,0) as result", [wa, { version: 1 }]), 1, 'new kind is allowed after the ninth migration');
     assert.equal(await scalar("select public.save_launcher_draft($1,'student-progress',$2,0) as result", [wa, { version: 1 }]), 1, 'new kind is allowed after the tenth migration');
     assert.equal(await scalar("select public.save_launcher_draft($1,'workflow-builder',$2,0) as result", [wa, { items: [] }]), 1, 'new kind is allowed after the twelfth migration');
+    assert.equal(await scalar("select public.save_launcher_draft($1,'launch-checklist',$2,0) as result", [wa, { version: 1, completed: [] }]), 1, 'new kind is allowed after the thirteenth migration');
     // Another account sees nothing and cannot write.
     await actor(b, sb);
     assert.equal(await scalar('select count(*)::int as result from public.launcher_drafts'), 0);
