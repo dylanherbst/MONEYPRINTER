@@ -45,7 +45,7 @@ export function computeToday(input: TodayInput): TodayView {
 
   if (input.profile) {
     for (const s of buildPlan(input.profile)) {
-      if (!input.profile.completed.includes(s.id)) out.push({ id: `step-${s.id}`, kind: 'checklist', text: `Launch plan step not reviewed yet: ${s.title}.`, href: '/tools' });
+      if (!input.profile.completed.includes(s.id)) out.push({ id: `step-${s.id}`, kind: 'checklist', text: `Launch plan step not reviewed yet: ${s.title}.`, href: '/create/start#start-checklist' });
     }
   }
 

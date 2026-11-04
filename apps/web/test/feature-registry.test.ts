@@ -27,7 +27,6 @@ test('blocked and not-started entries are never openable and carry no route', ()
   assert.equal(statusLabel('blocked'), 'Needs setup');
   assert.equal(statusLabel('not-started'), 'Coming soon');
 });
-test('customer routes never point at developer pages except the launcher flow still being wrapped', () => {
-  const tools = features.filter(x => x.route?.startsWith('/tools'));
-  assert.ok(tools.every(x => x.section === 'start'), 'only the Start a Business flow may still use /tools');
+test('customer routes never point at developer /tools pages', () => {
+  assert.deepEqual(features.filter(x => x.route?.startsWith('/tools')).map(x => x.id), []);
 });

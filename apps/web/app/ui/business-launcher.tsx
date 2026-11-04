@@ -59,8 +59,8 @@ export default function BusinessLauncher({ onOpenDemo, embedded = false }: { onO
       target.tabIndex = -1;
       target.focus({ preventScroll: true });
       target.scrollIntoView({ block: 'start' });
-    } else focusHeading.current?.focus();
-  }, [ready, setup, step]);
+    } else if (!embedded || step > 0) focusHeading.current?.focus({ preventScroll: embedded });
+  }, [ready, setup, step, embedded]);
   const field = (key: 'name' | 'industry' | 'location' | 'audience' | 'goal' | 'expertise' | 'website' | 'channels', title: string, required = false, placeholder = '') => <label>{title}{required ? ' *' : ''}<input value={profile[key]} required={required} maxLength={500} placeholder={placeholder} onChange={e => update(key, e.target.value)} /></label>;
   return <section id="launch-content" className="launch-workspace" tabIndex={-1}>
     {!embedded && <header className="launch-topbar"><a href="/workspace">Account workspace →</a><a className="launch-wordmark" href="#launch-content"><span className="brand-mark" aria-hidden="true">V</span> Ventraa</a><button onClick={onOpenDemo ?? (() => undefined)}>Open course & selling demo <span aria-hidden="true">↗</span></button></header>}
