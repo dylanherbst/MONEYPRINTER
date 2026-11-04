@@ -9,6 +9,7 @@ import {CategoryChips,ServiceTile} from './ventra-service-components';
 import {useWorkspace} from './ventra-context';
 import {routeOf,routes} from '../../lib/onboarding';
 import {TodayPanel} from './today-view';
+import {DraftSearch} from './draft-search';
 export default function VentraHome(){
  const {profile,ready,error}=useWorkspace();const established=profile?.stage==='existing';
  const [offerReady,setOfferReady]=useState(false);const [auditDate,setAuditDate]=useState('');const [localError,setLocalError]=useState('');const [category,setCategory]=useState<ServiceCategory>('All Services');
@@ -21,6 +22,7 @@ export default function VentraHome(){
  <div className="v-home-top"><section className="v-hero v-glass" aria-labelledby="audit-feature-title"><div className="v-hero-copy"><span className="v-overline">FEATURED</span><h2 id="audit-feature-title">AI Growth Audit</h2><p>Find your next opportunity.<br/>Build a clearer growth plan.</p><Link className="v-button v-hero-cta" href="/services/growth-audit">Get Started <OutlineIcon name="arrow"/></Link><small>Manual review today · AI analysis unavailable</small></div><div className="v-growth-art" aria-hidden="true"><i/><i/><i/></div></section>
  <section className="v-kpis" aria-label="Business performance — no verified provider data">{[{title:'Total Revenue',icon:'chart',href:'/insights?tab=performance',note:'No verified payment data'},{title:'New Clients',icon:'people',href:'/customers',note:'No verified acquisition data'},{title:'Bookings',icon:'calendar',href:'/sales?tab=appointments',note:'Calendar not connected'},{title:'Conversion Rate',icon:'bolt',href:'/insights?tab=performance',note:'No verified baseline'}].map(k=><Link className="v-kpi v-glass" key={k.title} href={k.href}><span className="v-icon-tile"><OutlineIcon name={k.icon}/></span><span><span className="v-kpi-title">{k.title}</span><strong aria-label="Unavailable">—</strong><small>{k.note}</small></span></Link>)}</section></div>
  {profile&&<GlassCard className="v-home-today"><TodayPanel profile={profile}/></GlassCard>}
+ {profile&&<GlassCard className="v-home-search"><DraftSearch profileId={profile.id}/></GlassCard>}
  <CategoryChips value={category} onChange={setCategory}/>
  <section className="v-home-recommendations" aria-labelledby="recommended-title"><div className="v-section-heading"><h2 id="recommended-title">Recommended for you</h2><Link href="/services">View all <OutlineIcon name="arrow"/></Link></div><div className="v-services" aria-live="polite">{recommendations.map(s=><ServiceTile key={s.href} service={s}/>)}</div></section>
  <GlassCard className="v-home-setup"><h2>Get started with Ventra</h2><ol className="v-checklist">{steps.map((step,i)=><li key={step.href}><Link href={step.href}><span className="v-step-number">{step.done?<OutlineIcon name="check"/>:i+1}</span><span><strong>{step.title}</strong><small>{step.note}</small></span><OutlineIcon name="arrow"/></Link></li>)}</ol>{!profile&&<Link className="v-text-link" href="/onboarding">Set up your workspace <OutlineIcon name="arrow"/></Link>}</GlassCard>
