@@ -5,11 +5,25 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { GlassButton, GlassCard, GlassInput, OutlineIcon } from '../design-system/primitives';
 import { activePage, createOptions, pages, searchPages } from '../../lib/ventra-navigation';
-import { WorkspaceProvider } from './ventra-context';
+import { WorkspaceProvider, useWorkspace } from './ventra-context';
 import '../design-system/tokens.css';
 import '../design-system/workspace.css';
 import '../design-system/refresh.css';
+import '../design-system/theme.css';
 function Wordmark(){return <Link className="v-wordmark" href="/" aria-label="Ventra Home">VENTRA<small>GROW · AUTOMATE · SCALE</small></Link>;}
+// Theme: stored choice ('dark' | 'light') or the device setting. Dark is the first paint. Stored only in this browser.
+type ThemeChoice='auto'|'dark'|'light';
+const themeKey='ventra.theme.v1';
+function useTheme(){
+ const [choice,setChoice]=useState<ThemeChoice>('auto');const [system,setSystem]=useState<'dark'|'light'>('dark');
+ useEffect(()=>{try{const v=localStorage.getItem(themeKey);if(v==='dark'||v==='light')setChoice(v);}catch{/* storage unavailable: follow the device */}const q=window.matchMedia('(prefers-color-scheme: light)');const sync=()=>setSystem(q.matches?'light':'dark');sync();q.addEventListener('change',sync);return()=>q.removeEventListener('change',sync);},[]);
+ function cycle(){const next:ThemeChoice=choice==='auto'?'dark':choice==='dark'?'light':'auto';setChoice(next);try{if(next==='auto')localStorage.removeItem(themeKey);else localStorage.setItem(themeKey,next);}catch{/* choice applies for this visit only */}}
+ return {theme:choice==='auto'?system:choice,choice,cycle};
+}
+function SidebarWorkspace(){
+ const {profile}=useWorkspace();const name=profile?.name?.trim();
+ return <div className="v-ws"><span className="v-ws-avatar" aria-hidden="true">{(name||'V').charAt(0).toUpperCase()}</span><span><span className="v-ws-name">{name||'Your workspace'}</span><small>{profile?(profile.stage==='existing'?'Existing business':'New business'):'Set up in Home'}</small></span></div>;
+}
 export default function VentraShell({children}:{children:ReactNode}){return <Suspense fallback={<p>Loading your workspace…</p>}><ShellContent>{children}</ShellContent></Suspense>;}
 function ShellContent({children}:{children:ReactNode}){
  const pathname=usePathname();const params=useSearchParams();const tab=params.get('tab');const section=params.get('section');const [menu,setMenu]=useState(false);const [account,setAccount]=useState(false);const [notifications,setNotifications]=useState(false);const [query,setQuery]=useState('');
@@ -28,10 +42,10 @@ function ShellContent({children}:{children:ReactNode}){
  function closeCreate(){dialog.current?.close();background.current?.removeAttribute('inert');trigger.current?.focus();}
  function nav(href:string,title:string,icon:string){return <Link key={href} href={href} aria-current={(href==='/settings?section=help'?pathname==='/settings'&&section==='help':href==='/settings'?pathname==='/settings'&&section!=='help':activePage(pathname,tab,href))?'page':undefined} onClick={()=>setMenu(false)}><OutlineIcon name={icon}/><span>{title}</span></Link>;}
  function searchField(className:string){return <div className={className}><label className="v-search"><OutlineIcon name="search"/><span className="v-sr-only">Search pages</span><GlassInput type="search" placeholder="Search services, tools or guidance…" value={query} onChange={e=>setQuery(e.target.value)}/></label></div>;}
- const results=searchPages(query);
- return <WorkspaceProvider><div className={'ventra-app'+(pathname.startsWith('/services/')?' v-detail-shell':'')}><div className="v-shell-background" ref={background}>
+ const results=searchPages(query);const {theme,choice,cycle}=useTheme();
+ return <WorkspaceProvider><div data-theme={theme} className={'ventra-app'+(pathname.startsWith('/services/')?' v-detail-shell':'')}><div className="v-shell-background" ref={background}>
  <a className="v-skip" href="#ventra-main" onClick={e=>{e.preventDefault();document.getElementById('ventra-main')?.focus();}}>Skip to main content</a>
- <aside className="v-sidebar"><Wordmark/><nav aria-label="Main navigation">{pages.map(p=>nav(p.href,p.title,p.icon))}</nav><nav className="v-nav-secondary" aria-label="Settings and help">{nav('/settings','Settings','settings')}{nav('/settings?section=help','Help','help')}</nav><div className="v-sidebar-foot"><span className="v-status">Browser-local workspace</span><p>No external services verified.</p><Link href="/tools">Original tools & demo <OutlineIcon name="arrow"/></Link></div></aside>
+ <aside className="v-sidebar"><Wordmark/><SidebarWorkspace/><nav aria-label="Main navigation">{pages.map(p=>nav(p.href,p.title,p.icon))}</nav><nav className="v-nav-secondary" aria-label="Settings and help">{nav('/settings','Settings','settings')}{nav('/settings?section=help','Help','help')}</nav><div className="v-sidebar-foot"><span className="v-status">Browser-local workspace</span><p>No external services verified.</p><GlassButton className="v-theme-toggle" onClick={cycle} aria-label={`Colour theme: ${choice==='auto'?'follows your device':choice}. Press to change.`}><OutlineIcon name="settings"/>Theme: {choice==='auto'?'Auto':choice==='dark'?'Dark':'Light'}</GlassButton><Link href="/tools">Original tools & demo <OutlineIcon name="arrow"/></Link></div></aside>
  <div className="v-main-wrap"><header className="v-header"><GlassButton variant="icon" className="v-menu-toggle" ref={menuButton} aria-label={menu?'Close navigation':'Open navigation'} aria-expanded={menu} aria-controls="v-mobile-menu" onClick={()=>{setAccount(false);setMenu(!menu);}}><OutlineIcon name={menu?'close':'menu'}/></GlassButton><div className="v-mobile-brand"><Wordmark/></div>
  {searchField('v-desktop-search')}
  <GlassButton variant="icon" aria-label="Notifications" aria-expanded={notifications} onClick={()=>setNotifications(!notifications)}><OutlineIcon name="bell"/></GlassButton>
