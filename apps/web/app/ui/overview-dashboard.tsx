@@ -53,7 +53,7 @@ const bad = <T,>(s: Section<T> | undefined) => !!s && s.status === 'unreadable';
 
 type Stat = { value: string; chip: string; state: ChipState };
 function stat<T>(s: Section<T> | undefined, show: (v: T) => Stat, none: string): Stat {
-  if (!s) return { value: '—', chip: none, state: 'empty' };
+  if (!s) return { value: 'None yet', chip: none, state: 'empty' };
   if (s.status === 'unreadable') return { value: '—', chip: 'Could not be read', state: 'error' };
   return show(s.value);
 }
@@ -62,10 +62,11 @@ export function OverviewStats({ o, noProfile = false, kpi = false, sectionClass 
   const none = noProfile ? 'Set up your business first' : 'Reading your saved data';
   const contacts = stat(o?.contacts, n => ({ value: String(n), chip: n ? 'From your saved contacts' : 'None saved yet', state: n ? 'ok' : 'empty' }), none);
   const won = stat(o?.deals, d => ({ value: String(d.won), chip: d.total ? `Of ${d.total} saved deal${d.total === 1 ? '' : 's'}` : 'No deals saved yet', state: d.total ? 'ok' : 'empty' }), none);
-  const wonValue = stat(o?.deals, d => { const v = formatMoney(d.wonValue); return { value: v, chip: v === '—' ? 'No won deals yet' : 'Value you entered', state: v === '—' ? 'empty' : 'ok' }; }, none);
-  const open = stat(o?.deals, d => { const v = formatMoney(d.openValue); return { value: v, chip: v === '—' ? 'No open deals' : 'Value you entered', state: v === '—' ? 'empty' : 'ok' }; }, none);
+  const wonValue = stat(o?.deals, d => { const v = formatMoney(d.wonValue); return { value: v === '—' ? 'None yet' : v, chip: v === '—' ? 'No won deals yet' : 'Value you entered', state: v === '—' ? 'empty' : 'ok' }; }, none);
+  const open = stat(o?.deals, d => { const v = formatMoney(d.openValue); return { value: v === '—' ? 'None yet' : v, chip: v === '—' ? 'No open deals' : 'Value you entered', state: v === '—' ? 'empty' : 'ok' }; }, none);
   const cls = kpi ? 'v-kpi' : '';
   return <section className={'v-stats ' + sectionClass} aria-label="Your saved numbers">
+    {noProfile && <p className="v-stats-note">Set up your business first to see your numbers here. <Link href="/onboarding">Set up now</Link></p>}
     <StatCard className={cls} icon="people" label="Contacts" {...contacts} href="/customers" />
     <StatCard className={cls} icon="check" label="Deals won" {...won} href="/customers?tab=opportunities" />
     <StatCard className={cls} icon="sales" label="Won value" {...wonValue} href="/customers?tab=opportunities" />

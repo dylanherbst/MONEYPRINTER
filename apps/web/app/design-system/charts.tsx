@@ -28,8 +28,8 @@ export function StatCard({ icon, label, value, chip, state = 'ok', href, classNa
   const body = <>
     <span className="v-icon-tile"><OutlineIcon name={icon} /></span>
     <span className="v-stat-label">{label}</span>
-    <strong className={value.length > 9 ? 'is-long' : undefined} aria-label={state === 'ok' ? undefined : `${label}: ${chip}`}>{value}</strong>
-    <Chip state={state}>{chip}</Chip>
+    <strong className={value.length > 9 ? 'is-long' : undefined} aria-label={state === 'ok' ? undefined : `${label}: ${chip}`} title={state === 'empty' ? chip : undefined}>{value}</strong>
+    {state !== 'empty' && <Chip state={state}>{chip}</Chip>}
   </>;
   const cls = `v-stat v-glass ${className}`;
   return href ? <Link className={cls} href={href}>{body}</Link> : <div className={cls}>{body}</div>;

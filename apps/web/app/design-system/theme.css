@@ -532,3 +532,45 @@ body:has(.ventra-app[data-theme=light]){background:#EDE7FB;color-scheme:light}
  .ventra-app .v-editor form .setup-actions{bottom:calc(80px + env(safe-area-inset-bottom))}
  .ventra-app .v-footer{margin-bottom:8px}
 }
+
+/* ===== Group 3: spacing tokens (one rhythm for page, sidebar, cards, sections) ===== */
+.ventra-app{--v-gutter:16px;--v-card-pad:16px;--v-gap:12px;--v-section:24px;--v-target:44px}
+@media(min-width:640px){.ventra-app{--v-gutter:20px;--v-card-pad:20px;--v-gap:14px}}
+@media(min-width:768px){.ventra-app{--v-gutter:24px;--v-card-pad:22px;--v-gap:16px;--v-section:28px}}
+@media(min-width:1024px){.ventra-app{--v-gutter:28px;--v-card-pad:24px;--v-gap:16px;--v-section:32px}}
+.ventra-app .v-main-wrap,.ventra-app[data-theme] .v-main-wrap{padding-left:var(--v-gutter);padding-right:var(--v-gutter)}
+@media(min-width:1024px){.ventra-app[data-theme] .v-main-wrap{padding-top:var(--v-gutter);padding-bottom:var(--v-gutter)}}
+.ventra-app .v-workspace-main>*+*{margin-top:var(--v-section)}
+.ventra-app .v-glass,.ventra-app .v-plain-card,.ventra-app .v-gold-card,.ventra-app .v-dark-card,.ventra-app .v-accent-card{padding:var(--v-card-pad)}
+.ventra-app .v-hub-group.v-glass{padding:0}
+.ventra-app .v-hub-group>summary{padding:var(--v-card-pad) calc(var(--v-card-pad) + 4px);min-height:72px}
+.ventra-app .v-tiles{padding:0 var(--v-card-pad) var(--v-card-pad);gap:var(--v-gap)}
+.ventra-app .v-hub,.ventra-app .v-hub-page,.ventra-app .v-dash-main,.ventra-app .v-dash-aside,.ventra-app .v-draft-overview{gap:var(--v-section)}
+.ventra-app .v-dash{gap:var(--v-section)}
+.ventra-app .v-stats,.ventra-app .v-pair{gap:var(--v-gap)}
+.ventra-app .v-feature{padding:var(--v-card-pad) calc(var(--v-card-pad) - 2px);min-height:88px}
+.ventra-app .v-page-heading{padding:0 0 4px;gap:var(--v-gap)}
+.ventra-app .v-section-heading{gap:var(--v-gap)}
+/* type: supporting text never below 14px; badges 12px */
+.ventra-app :is(.v-feature-desc,.v-feature-note,.v-sub,.v-stat-label,.v-hub-group>summary small,.v-list-note,.v-footer){font-size:14px;line-height:1.5}
+.ventra-app :is(.v-chip,.v-avail,.v-hub-count,.v-status){font-size:12px}
+.ventra-app :is(.v-button,.v-local-tabs a,.v-chips .v-button){min-height:var(--v-target);font-size:14px}
+.ventra-app .v-page-heading p,.ventra-app .v-trust{font-size:15px}
+
+/* ===== Group 4: grids that never leave a hole, calm stat cards ===== */
+.ventra-app .v-tiles{display:flex;flex-wrap:wrap}
+.ventra-app .v-tiles>.v-feature{flex:1 1 min(100%,280px);min-width:0}
+@media(min-width:768px){.ventra-app .v-tiles:has(>:nth-child(4):last-child)>.v-feature{flex-basis:calc(50% - var(--v-gap))}}
+.ventra-app .v-stats{grid-template-columns:repeat(auto-fit,minmax(min(100%,168px),1fr))}
+.ventra-app .v-stats>.v-stats-note{grid-column:1/-1;margin:0;font-size:14px}
+.ventra-app .v-stats-note a{color:var(--v-link);text-decoration:underline}
+.ventra-app .v-stat{min-height:0;gap:6px}
+.ventra-app .v-stat strong{overflow-wrap:normal}
+@media(max-width:639px){
+ .ventra-app .v-stat{padding:14px}
+ .ventra-app .v-stat .v-icon-tile{width:36px;height:36px}
+ .ventra-app .v-stat strong{font-size:28px!important}
+ .ventra-app .v-stat strong.is-long{font-size:20px!important}
+ .ventra-app .v-section-heading:has(.v-status){flex-direction:column;align-items:flex-start;gap:8px}
+}
+@media(max-width:359px){.ventra-app .v-stats{grid-template-columns:minmax(0,1fr)}}
