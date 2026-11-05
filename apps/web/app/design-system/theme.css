@@ -349,3 +349,4 @@ html{scroll-padding-bottom:140px}
  .ventra-app .v-editor form .setup-actions{position:sticky;bottom:calc(84px + env(safe-area-inset-bottom));z-index:6;padding:10px;border-radius:20px;background:var(--v-glass-strong);border:1px solid var(--v-glass-stroke);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
  .ventra-app .v-editor form .setup-actions>*{flex:1 1 140px}
 }
+@media(min-width:700px) and (max-width:1199px){.v-stats{grid-template-columns:repeat(4,minmax(0,1fr))}.v-dash-aside{grid-template-columns:repeat(3,minmax(0,1fr))}}
