@@ -16,6 +16,10 @@ export async function POST(req: NextRequest) {
   try {
     const {data,error} = await createSupabaseClient().auth.getUser(token);
     if (error || !data.user) return reply({error:'Session expired. Sign in again.'},401);
+    const db = createSupabaseClient({fetch:(url,init)=>{const h=new Headers(init?.headers);h.set('Authorization','Bearer '+token);return fetch(url,{...init,headers:h,cache:'no-store'});}});
+    const active = await db.rpc('session_active');
+    if (active.error) return reply({error:'Account storage is unavailable. Please retry.'},503);
+    if (!active.data) return reply({error:'Session revoked. Sign in again.'},401);
     const limited = generationLimit(data.user.id);
     if (!limited.allowed) return NextResponse.json({error:'Too many generations. Try again later.'},{status:429,headers:{'Cache-Control':'no-store','Retry-After':String(limited.retryAfterSeconds)}});
     const input = JSON.parse(await readBoundedRequestBody(req));

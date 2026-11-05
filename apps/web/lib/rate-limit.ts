@@ -30,3 +30,12 @@ export function clientKey(forwardedFor: string | null | undefined): string {
   const ip = (forwardedFor ?? '').split(',')[0].trim().slice(0, 64);
   return 'ip:' + (ip || 'unknown');
 }
+
+/** Limiters for the remaining routes. Same rules: generous for people, tight for loops. */
+export const routeLimits = {
+  courses: createRateLimiter(240, 60_000),            // per user, account course reads/saves (autosave friendly)
+  workspaceRequests: createRateLimiter(300, 60_000),  // per user, all /api/workspace calls after sign-in
+  signInByClient: createRateLimiter(20, 10 * 60_000), // per client address hint, login and signup attempts
+  signInByEmail: createRateLimiter(10, 10 * 60_000),  // per email, so one account can not be hammered from many addresses
+  webhookGlobal: createRateLimiter(600, 60_000),      // all callers, before the HMAC check; Stripe retries are well below this
+};

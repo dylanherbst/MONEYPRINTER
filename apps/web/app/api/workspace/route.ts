@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseClient } from '../../../lib/supabase/client';
 import { checkedImport, checkedOffer, checkedProfile, uuid } from '../../../lib/workspace-validation';
+import { clientKey, routeLimits } from '../../../lib/rate-limit';
 import { sameOrigin } from '../../../lib/request-security';
 import { readBoundedRequestBody, RequestBodyTooLarge } from '../../../lib/request-body';
 import type { Session } from '@supabase/supabase-js';
@@ -42,6 +43,9 @@ async function handle(req: NextRequest) {
       const password = typeof input.password === 'string' ? input.password : '';
       // Bound invalid signup/login before calling Auth; never echo provider field details.
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || password.length < 12 || password.length > 128) return response({ error: 'Use a valid email and a password of 12–128 characters.' }, 400);
+      const attempts = routeLimits.signInByClient(clientKey(req.headers.get('x-forwarded-for')));
+      const byEmail = attempts.allowed ? routeLimits.signInByEmail(email.toLowerCase()) : attempts;
+      if (!byEmail.allowed) return NextResponse.json({ error: 'Too many attempts. Try again in a few minutes.' }, { status: 429, headers: { 'Cache-Control': 'no-store, private', 'Retry-After': String(byEmail.retryAfterSeconds) } });
       const result = input.action === 'signup' ? await client.auth.signUp({ email, password }) : await client.auth.signInWithPassword({ email, password });
       if (result.error) return sessionCookies(response({ error: 'Unable to sign in or create an account. Check your details, email confirmation and try again.' }, 401), null);
       return sessionCookies(response({ signedIn: !!result.data.session, message: result.data.session ? 'Signed in.' : 'Check your email to confirm your account, then sign in.' }), result.data.session);
@@ -58,6 +62,8 @@ async function handle(req: NextRequest) {
       }
     }
     if (!actor?.data.user || actor.error) return sessionCookies(response({ error: 'Please sign in. Your session may have expired.', signedIn: false }, 401), null);
+    const requests = routeLimits.workspaceRequests(actor.data.user.id);
+    if (!requests.allowed) return NextResponse.json({ error: 'Too many requests. Try again shortly.' }, { status: 429, headers: { 'Cache-Control': 'no-store, private', 'Retry-After': String(requests.retryAfterSeconds) } });
     const token = renewed?.access_token ?? access!;
     const db = createSupabaseClient({ fetch: (url, init) => {
       const headers = new Headers(init?.headers); headers.set('Authorization', `Bearer ${token}`);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readBoundedRequestBody, RequestBodyTooLarge } from '../../../../lib/request-body';
+import { routeLimits } from '../../../../lib/rate-limit';
 import { createOrderLedger, orderFromEvent, verifyStripeSignature } from '../../../../lib/stripe-webhook';
 export const dynamic = 'force-dynamic';
 // TEST MODE ONLY. Orders are held in this server process (idempotent by event id) until the owner approves a persistent store.
@@ -8,6 +9,9 @@ export async function POST(req: NextRequest) {
   const reply = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) return reply({ error: 'Webhook is not connected: no signing secret is configured.', configured: false }, 503);
+  // Cheap ceiling before any HMAC work so unauthenticated floods cannot burn CPU. Real Stripe traffic is far below it.
+  const flood = routeLimits.webhookGlobal('stripe-webhook');
+  if (!flood.allowed) return NextResponse.json({ error: 'Too many requests.' }, { status: 429, headers: { 'Cache-Control': 'no-store', 'Retry-After': String(flood.retryAfterSeconds) } });
   try {
     const raw = await readBoundedRequestBody(req, 64_000);
     try { verifyStripeSignature(raw, req.headers.get('stripe-signature'), secret); } catch { return reply({ error: 'Invalid signature.' }, 400); }

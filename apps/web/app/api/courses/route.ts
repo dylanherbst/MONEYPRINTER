@@ -3,6 +3,7 @@ import { createSupabaseClient } from '../../../lib/supabase/client';
 import { sameOrigin } from '../../../lib/request-security';
 import { readBoundedRequestBody, RequestBodyTooLarge } from '../../../lib/request-body';
 import { courseDraftFromInput, editEducationCourseDraft } from '../../../lib/local-education-course';
+import { routeLimits } from '../../../lib/rate-limit';
 import { uuid } from '../../../lib/workspace-validation';
 export const dynamic = 'force-dynamic';
 async function handle(req: NextRequest) {
@@ -14,7 +15,12 @@ async function handle(req: NextRequest) {
  try {
   const auth=await createSupabaseClient().auth.getUser(token);
   if(auth.error || !auth.data.user)return reply({error:'Sign in again.'},401);
+  const rate=routeLimits.courses(auth.data.user.id);
+  if(!rate.allowed)return NextResponse.json({error:'Too many requests. Try again shortly.',code:'rate_limited'},{status:429,headers:{'Cache-Control':'no-store','Retry-After':String(rate.retryAfterSeconds)}});
   const db=createSupabaseClient({fetch:(url,init)=>{const headers=new Headers(init?.headers);headers.set('Authorization','Bearer '+token);return fetch(url,{...init,headers,cache:'no-store'});}});
+  const active=await db.rpc('session_active');
+  if(active.error)return reply({error:'Account storage is unavailable. Please retry.',code:'storage_unavailable'},503);
+  if(!active.data)return reply({error:'Session revoked. Sign in again.',code:'session_revoked'},401);
   if(req.method==='GET') {
    const w=uuid(req.nextUrl.searchParams.get('workspace'));
    const result=await db.from('course_drafts').select('id,data,revision').eq('workspace_id',w);
