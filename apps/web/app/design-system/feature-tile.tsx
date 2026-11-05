@@ -31,7 +31,7 @@ export function FeatureTile({ feature, needs }: { feature: Feature; needs?: { la
     <span className="v-feature-copy">
       <strong>{feature.name}</strong>
       <span className="v-feature-desc">{feature.description}</span>
-      <span className="v-feature-note" id={`note-${feature.id}`}>{feature.availability}</span>
+      <span className={feature.availability.startsWith('Saves on this device') ? 'v-sr-only' : 'v-feature-note'} id={`note-${feature.id}`}>{feature.availability}</span>
       <AvailabilityLabel status={feature.status} />
     </span>
     {open && <span className="v-arrow" aria-hidden="true"><OutlineIcon name="arrow" /></span>}

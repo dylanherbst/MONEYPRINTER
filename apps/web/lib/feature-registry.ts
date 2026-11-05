@@ -28,7 +28,7 @@ export type Feature = {
   verification: string;
 };
 
-const SAVED = 'Saved in this browser and to your account when you are signed in.';
+const SAVED = 'Saves on this device. Sign in to keep a copy in your account.';
 const f = (
   id: string, name: string, description: string, section: FeatureSection, route: string | null,
   status: FeatureStatus, availability: string, row: string, verification: string,
@@ -116,9 +116,9 @@ export const features: readonly Feature[] = [
 export const featureById = (id: string): Feature | undefined => features.find(x => x.id === id);
 export const featuresIn = (...sections: FeatureSection[]): Feature[] => features.filter(x => sections.includes(x.section));
 
-/** Short status text shown on a tile. */
+/** One vocabulary everywhere: Ready, Draft, Needs setup, Coming soon. */
 export function statusLabel(s: FeatureStatus): string {
-  return s === 'working' ? 'Ready' : s === 'local-draft' ? 'Draft only' : s === 'blocked' ? 'Needs setup' : 'Coming soon';
+  return s === 'working' ? 'Ready' : s === 'local-draft' ? 'Draft' : s === 'blocked' ? 'Needs setup' : 'Coming soon';
 }
 /** Only working and local-draft features can be opened. Blocked and not-started are never actionable. */
 export const isOpenable = (x: Feature): boolean => (x.status === 'working' || x.status === 'local-draft') && x.route !== null;

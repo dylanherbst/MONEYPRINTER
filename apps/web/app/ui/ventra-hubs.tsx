@@ -14,9 +14,13 @@ function Groups({ groups, openFirst = 1 }: { groups: readonly Group[]; openFirst
   const needs = (x: Feature) => { const w = pathwayNeeded[x.id]; return profile && w && !profile.pathways.includes(w) ? { label: w === 'education' ? 'Turn on Courses' : 'Turn on Services', href: '/onboarding' } : undefined; };
   return <div className="v-hub">{groups.map((g, i) => {
     const items = pick(g.ids);
-    const ready = items.filter(x => (x.status === 'working' || x.status === 'local-draft') && !needs(x)).length;
+    const ready = items.filter(x => x.status === 'working' && !needs(x)).length;
+    const draft = items.filter(x => x.status === 'local-draft').length;
+    const setup = items.filter(x => x.status === 'blocked' || ((x.status === 'working' || x.status === 'local-draft') && needs(x))).length;
+    const soon = items.filter(x => x.status === 'not-started').length;
+    const counts = [ready && `${ready} ready`, draft && `${draft} draft`, setup && `${setup} needs setup`, soon && `${soon} coming soon`].filter(Boolean).join(' · ');
     return <details className="v-hub-group v-glass" key={g.id} open={i < openFirst}>
-      <summary><span><strong>{g.title}</strong><small>{g.intro}</small></span><span className="v-hub-count">{ready} of {items.length} ready</span></summary>
+      <summary><span><strong>{g.title}</strong><small>{g.intro}</small></span><span className="v-hub-count">{counts}</span></summary>
       <div className="v-tiles">{items.map(x => <FeatureTile key={x.id} feature={x} needs={needs(x)} />)}{g.extra}</div>
     </details>;
   })}</div>;
@@ -68,7 +72,7 @@ const customers: Group[] = [
 ];
 export function CustomersHub() {
   return <div className="v-hub-page">
-    <HubHeading title="Customers" description="Keep relationships simple. Local records, explicit consent, no messages sent." />
+    <HubHeading title="Customers" description="Keep relationships simple. Nothing is sent to anyone from here." />
     <Groups groups={customers} openFirst={2} />
   </div>;
 }
