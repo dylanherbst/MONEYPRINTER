@@ -116,3 +116,47 @@ test('export refuses a response over its byte cap with 413 (search and activity 
   const fake = installFakeSupabase({ tables: { launcher_drafts: rows } });
   try { assert.equal((await call(routes.export, urls.export)).status, 413); } finally { fake.restore(); restoreEnv(); }
 });
+
+test('error responses carry stable codes', async () => {
+  const restoreEnv = setEnv({});
+  try {
+    assert.equal((await call(routes.team, urls.team)).body.code, 'not_configured');
+  } finally { restoreEnv(); }
+  const r2 = setEnv(configuredEnv);
+  try {
+    assert.equal((await call(routes.team, urls.team, { cookie: null })).body.code, 'signed_out');
+    assert.equal((await call(routes.team, urls.team.replace(W, 'x'))).body.code, 'invalid_request');
+    let fake = installFakeSupabase({ sessionActive: false });
+    try { assert.equal((await call(routes.team, urls.team)).body.code, 'session_revoked'); } finally { fake.restore(); }
+    fake = installFakeSupabase({ tables: { memberships: [] } });
+    try { assert.equal((await call(routes.team, urls.team)).body.code, 'no_workspace_access'); } finally { fake.restore(); }
+    fake = installFakeSupabase({ sessionActive: 'error' });
+    try { assert.equal((await call(routes.team, urls.team)).body.code, 'storage_unavailable'); } finally { fake.restore(); }
+  } finally { r2(); }
+});
+
+test('launcher POST: origin, content type, size, body shape, action and revision conflict', async () => {
+  const restoreEnv = setEnv(configuredEnv);
+  const { makeRequest } = await import('./helpers/route-harness.ts');
+  const { POST } = await import('../app/api/workspace/launcher/route.ts');
+  const post = async (body: string, headers: Record<string, string> = {}) => {
+    const res = await POST(makeRequest('/api/workspace/launcher', { method: 'POST', headers: { origin: 'http://localhost:3000', 'content-type': 'application/json', ...headers }, body }));
+    return { status: res.status, body: await res.json() as Record<string, unknown> };
+  };
+  const save = JSON.stringify({ action: 'save', workspace: W, kind: 'business-plan', revision: 1, draft: { a: 1 } });
+  const fake = installFakeSupabase({ rpc: { save_launcher_draft: { body: 2 }, delete_launcher_draft: { status: 400, body: { message: 'conflict' } } } });
+  try {
+    assert.equal((await post(save, { origin: 'http://evil.test' })).status, 403);
+    assert.equal((await post(save, { 'content-type': 'text/plain' })).status, 403);
+    assert.equal((await post(save)).status, 200);
+    assert.equal((await post(save)).body.revision, 2);
+    assert.equal((await post('null')).status, 400);
+    assert.equal((await post('[]')).status, 400);
+    assert.equal((await post('{nope')).status, 400);
+    assert.equal((await post(JSON.stringify({ action: 'save', workspace: W, kind: 'business-plan', revision: -1, draft: {} }))).status, 400);
+    assert.equal((await post(JSON.stringify({ action: 'wipe', workspace: W, kind: 'business-plan', revision: 1 }))).status, 400);
+    assert.equal((await post(JSON.stringify({ action: 'save', workspace: W, kind: 'business-plan', revision: 1, draft: { a: 'x'.repeat(200_000) } }))).status, 413);
+    const del = await post(JSON.stringify({ action: 'delete', workspace: W, kind: 'business-plan', revision: 1 }));
+    assert.equal(del.status, 409); assert.equal(del.body.code, 'conflict');
+  } finally { fake.restore(); restoreEnv(); }
+});
