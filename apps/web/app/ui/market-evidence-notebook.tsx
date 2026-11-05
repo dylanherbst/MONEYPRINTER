@@ -227,7 +227,7 @@ export default function MarketEvidenceNotebookEditor({ profile }: { profile: Pro
       </p>
       <p className="panel-note">
         Your business profile, skill assessment, and offers are stored separately and are not changed by this notebook.
-        Links are stored as text only; Ventraa does not open or verify them for you.
+        Links are stored as text only; VENTRA does not open or verify them for you.
       </p>
       {status && <p role="status">{status}</p>}
       {storageError && (

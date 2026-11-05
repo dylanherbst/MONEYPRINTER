@@ -35,7 +35,7 @@ export function LauncherAccountSync({ kind, label, readLocal, validate, onApply,
     setMessage(next ? `Account copy found at revision ${next.revision}.` : 'No account copy yet. Save to create one.');
   }
   return <section aria-label={`${label} account sync`} data-testid={`account-sync-${kind}`}>
-    <p><span className="v-status" data-testid={`account-sync-mode-${kind}`}>{workspace ? 'LIVE · Account connected' : 'DEMO · Browser only until you connect'}</span> Your {label.toLowerCase()} is saved in this browser. Connect to keep an account copy.</p>
+    <p><span className="v-status" data-testid={`account-sync-mode-${kind}`}>{workspace ? 'LIVE · Account connected' : 'DEMO · Browser only until you connect'}</span> Your {label.toLowerCase()} {/\band\b/i.test(label) || /[^s]s$/i.test(label.trim()) ? 'are' : 'is'} saved in this browser. Connect to keep an account copy.</p>
     <p role="status" data-testid={`account-sync-message-${kind}`}>{message}</p>
     <fieldset disabled={busy}><legend>{label}: account copy</legend>
       <button type="button" onClick={() => void run(async () => {

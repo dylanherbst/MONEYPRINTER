@@ -33,7 +33,7 @@ import { LauncherAccountSync } from './launcher-account-sync';
 type FocusTarget = 'create' | 'edit' | 'preview-saved' | 'preview-unsaved' | 'preview-heading';
 
 const accentLabels: Record<EducationCertificateAccentPreset, string> = {
-  default: 'Ventraa accent (lavender)',
+  default: 'VENTRA accent (lavender)',
   gold: 'Warm gold',
   violet: 'Violet highlight',
   mint: 'Soft mint',

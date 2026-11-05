@@ -199,7 +199,7 @@ export default function CrmPipeline({ profileId }: { profileId: string }) {
         Track simple deal stages linked to your saved CRM contacts. This is not a connected CRM, forecast or revenue report.
       </p>
       <p className="panel-note">
-        Stored only in this browser profile on this device — not your Ventraa account. No payments, bookings, messages or AI actions run from here. Deals may reference contacts that were removed from the contact list.
+        Stored only in this browser profile on this device — not your VENTRA account. No payments, bookings, messages or AI actions run from here. Deals may reference contacts that were removed from the contact list.
       </p>
       {status && <p role="status" className="activity-status">{status}</p>}
       {error && <p role="alert" className="error" id="crm-pipeline-error">{error}</p>}

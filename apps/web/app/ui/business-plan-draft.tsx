@@ -240,7 +240,7 @@ export default function BusinessPlanDraftEditor({ profile }: { profile: Profile 
     setStatus(
       fromSaved
         ? 'Editing saved plan draft. Profile, offers, notebook, and validation worksheet are read-only references.'
-        : 'Write your manual plan sections. Nothing is verified until you choose to act on it outside Ventraa.',
+        : 'Write your manual plan sections. Nothing is verified until you choose to act on it outside VENTRA.',
     );
   }
 

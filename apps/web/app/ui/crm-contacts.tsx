@@ -141,7 +141,7 @@ export default function CrmContacts({
         Capture simple contact records for planning and follow-up. This is not a connected CRM, inbox or import tool.
       </p>
       <p className="panel-note">
-        Stored only in this browser profile on this device — not your Ventraa account. No messages are sent, no imports run and no provider is connected. Anyone using this browser may see these drafts.
+        Stored only in this browser profile on this device — not your VENTRA account. No messages are sent, no imports run and no provider is connected. Anyone using this browser may see these drafts.
       </p>
       {status && <p role="status" className="activity-status">{status}</p>}
       {error && <p role="alert" className="error" id="crm-contacts-error">{error}</p>}

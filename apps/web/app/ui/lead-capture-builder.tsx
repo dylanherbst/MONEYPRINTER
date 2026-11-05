@@ -419,7 +419,7 @@ export default function LeadCaptureBuilder({
                       checked={previewValues.consentGranted}
                       onChange={e => setPreviewValues({ ...previewValues, consentGranted: e.target.checked })}
                     />
-                    I agree this preview may save my details as a browser-local CRM contact draft on this device (not sent to Ventraa servers).
+                    I agree this preview may save my details as a browser-local CRM contact draft on this device (not sent to VENTRA servers).
                   </label>
                   <div className="setup-actions">
                     <button className="primary-button" type="submit" disabled={submitting || !writable}>
