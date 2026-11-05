@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseClient } from '../../../../lib/supabase/client';
+import { workspaceLimits } from '../../../../lib/rate-limit';
 import { uuid } from '../../../../lib/workspace-validation';
 import { byteLength, responseByteCaps } from '../../../../lib/byte-size';
 import { parseQuery, searchDrafts } from '../../../../lib/draft-search';
@@ -16,6 +17,8 @@ export async function GET(req: NextRequest) {
     const w = uuid(req.nextUrl.searchParams.get('workspace'));
     const auth = await createSupabaseClient().auth.getUser(token);
     if (auth.error || !auth.data.user) return reply({ error: 'Sign in again.', signedIn: false }, 401);
+    const rate = workspaceLimits.search(auth.data.user.id);
+    if (!rate.allowed) return NextResponse.json({ error: 'Too many requests. Try again shortly.' }, { status: 429, headers: { 'Cache-Control': 'no-store, private', 'Retry-After': String(rate.retryAfterSeconds) } });
     const db = createSupabaseClient({ fetch: (url, init) => { const h = new Headers(init?.headers); h.set('Authorization', 'Bearer ' + token); return fetch(url, { ...init, headers: h, cache: 'no-store' }); } });
     const active = await db.rpc('session_active');
     if (active.error) return reply({ error: 'Account storage is unavailable. Please retry.' }, 503);

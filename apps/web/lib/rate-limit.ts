@@ -15,3 +15,18 @@ export function createRateLimiter(limit: number, windowMs: number, now: () => nu
     return { allowed: true, retryAfterSeconds: 0 };
   };
 }
+
+type Check = ReturnType<typeof createRateLimiter>;
+/** Per-user limiters for the workspace routes. Generous for normal use (a person clicking around, autosave); they only stop loops and abuse. Per server instance, reset on restart. */
+export const workspaceLimits: Record<'team' | 'export' | 'search' | 'activity' | 'launcher', Check> = {
+  team: createRateLimiter(60, 60_000),
+  export: createRateLimiter(10, 10 * 60_000),
+  search: createRateLimiter(60, 60_000),
+  activity: createRateLimiter(60, 60_000),
+  launcher: createRateLimiter(240, 60_000),
+};
+/** Key for callers we cannot identify (signed-out routes such as checkout). The forwarded address is only a hint; pair it with a global ceiling. */
+export function clientKey(forwardedFor: string | null | undefined): string {
+  const ip = (forwardedFor ?? '').split(',')[0].trim().slice(0, 64);
+  return 'ip:' + (ip || 'unknown');
+}
