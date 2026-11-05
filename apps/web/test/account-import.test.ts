@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildAccountExport } from '../lib/account-export.ts';
 import { isWritable, parseImportFile, planImport, runImport } from '../lib/account-import.ts';
+import { checkedDraftRaw } from '../lib/launcher-drafts.ts';
 import type { RemoteLauncherDraft } from '../lib/launcher-drafts.ts';
 
 const at = '2026-11-04T01:02:03.000Z';
@@ -72,4 +73,18 @@ test('a failed save is reported for that item only', async () => {
   const out = await runImport('w', plan, false, { save: save as never });
   assert.deepEqual(out.map(o => o.result).sort(), ['failed', 'saved']);
   assert.match(out.find(o => o.result === 'failed')!.message, /conflict/);
+});
+test('size limits count bytes, not UTF-16 units', () => {
+  // 2,000,000 euro signs are 2M UTF-16 units but 6M bytes.
+  assert.throws(() => parseImportFile('€'.repeat(2_000_000)), /too large/);
+  // 50,000 four-byte emoji are 100,000 units but 200,000 bytes: over the 128,000 draft limit.
+  assert.throws(() => checkedDraftRaw(JSON.stringify({ a: '\u{1F600}'.repeat(50_000) })), /too large/);
+  assert.deepEqual(checkedDraftRaw(JSON.stringify({ a: '€'.repeat(1000) })), { a: '€'.repeat(1000) });
+});
+test('plan flags a file exported from a different workspace', () => {
+  const p = parseImportFile(file([row('storefront', 3)]));
+  assert.equal(planImport(p, new Map())[0].otherWorkspace, false, 'no target given');
+  assert.equal(planImport(p, new Map(), 'w1')[0].otherWorkspace, false);
+  assert.equal(planImport(p, new Map(), 'W1')[0].otherWorkspace, false, 'case-insensitive');
+  assert.equal(planImport(p, new Map(), '11111111-1111-4111-8111-111111111111')[0].otherWorkspace, true);
 });

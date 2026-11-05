@@ -2,20 +2,22 @@ import { checkedDraftRaw, launcherKinds, loadLauncherDraft, saveLauncherDraft } 
 import type { LauncherKind, RemoteLauncherDraft } from './launcher-drafts.ts';
 import type { CourseRequest } from './course-account.ts';
 import { parseAccountExport } from './account-export.ts';
+import { byteLength } from './byte-size.ts';
 
 // Restore from a file made by "Download my data". Pure planning plus a sequential runner that uses the same revisioned save as every other draft.
 // Rule: an account copy that is the same or newer than the file is never overwritten. Older copies are replaced only after the owner agrees.
 
 export const importFileByteLimit = 5_000_000;
 export type ImportStatus = 'new' | 'unchanged' | 'older-in-account' | 'newer-in-account';
-export type ImportItem = { kind: LauncherKind; fileRevision: number; accountRevision: number; status: ImportStatus; raw: string };
+/** `otherWorkspace` is true when the file was exported from a different workspace than the import target. It is false when no target is given. */
+export type ImportItem = { kind: LauncherKind; fileRevision: number; accountRevision: number; status: ImportStatus; raw: string; otherWorkspace: boolean };
 export type ImportRejected = { kind: string; reason: string };
 export type ParsedImport = { exportedAt: string; workspaceId: string; items: { kind: LauncherKind; revision: number; raw: string }[]; rejected: ImportRejected[] };
 
 /** Validates the file text. Throws a plain message when the whole file is unusable; bad single drafts are listed in `rejected`. */
 export function parseImportFile(text: string): ParsedImport {
   if (typeof text !== 'string' || !text.trim()) throw new Error('The file is empty.');
-  if (text.length > importFileByteLimit) throw new Error('The file is too large to be a VENTRA export.');
+  if (byteLength(text) > importFileByteLimit) throw new Error('The file is too large to be a VENTRA export.');
   let json: unknown;
   try { json = JSON.parse(text); } catch { throw new Error('The file is not valid JSON.'); }
   const file = parseAccountExport(json);
@@ -42,12 +44,13 @@ const canonical = (v: unknown): unknown => Array.isArray(v) ? v.map(canonical) :
 const same = (a: string, b: string) => JSON.stringify(canonical(JSON.parse(a))) === JSON.stringify(canonical(JSON.parse(b)));
 
 /** Compares each file item with what the account holds now. `account` maps kind to the current account copy (null or absent: none). */
-export function planImport(parsed: ParsedImport, account: ReadonlyMap<LauncherKind, RemoteLauncherDraft | null>): ImportItem[] {
+export function planImport(parsed: ParsedImport, account: ReadonlyMap<LauncherKind, RemoteLauncherDraft | null>, targetWorkspaceId?: string): ImportItem[] {
+  const otherWorkspace = !!targetWorkspaceId && parsed.workspaceId.toLowerCase() !== targetWorkspaceId.toLowerCase();
   return parsed.items.map(i => {
     const cur = account.get(i.kind) ?? null;
     const accountRevision = cur ? cur.revision : 0;
     const status: ImportStatus = !cur ? 'new' : same(cur.raw, i.raw) ? 'unchanged' : cur.revision < i.revision ? 'older-in-account' : 'newer-in-account';
-    return { kind: i.kind, fileRevision: i.revision, accountRevision, status, raw: i.raw };
+    return { kind: i.kind, fileRevision: i.revision, accountRevision, status, raw: i.raw, otherWorkspace };
   });
 }
 export const isWritable = (i: ImportItem) => i.status === 'new' || i.status === 'older-in-account';

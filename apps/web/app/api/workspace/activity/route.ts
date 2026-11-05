@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseClient } from '../../../../lib/supabase/client';
 import { uuid } from '../../../../lib/workspace-validation';
+import { byteLength, responseByteCaps } from '../../../../lib/byte-size';
 import { shapeActivity } from '../../../../lib/account-activity';
 export const dynamic = 'force-dynamic';
 // Read-only list of what the signed-in user saved to the account (kind, revision, time). Authorisation is the launcher_drafts read policy (RLS) under the caller's own lp-access token; no service key, no writes, draft content is not selected.
@@ -26,7 +27,9 @@ export async function GET(req: NextRequest) {
       if (member.error) return reply({ error: 'Unable to load your activity. Please retry.' }, 503);
       if (!member.data?.length) return reply({ error: 'Workspace access is unavailable.' }, 403);
     }
-    return reply({ signedIn: true, entries });
+    const out = { signedIn: true, entries };
+    if (byteLength(JSON.stringify(out)) > responseByteCaps.activity) return reply({ error: 'Too much activity to show at once.' }, 413);
+    return reply(out);
   } catch (error) {
     return reply({ error: error instanceof Error && /^Choose a valid/.test(error.message) ? error.message : 'Invalid request.' }, 400);
   }

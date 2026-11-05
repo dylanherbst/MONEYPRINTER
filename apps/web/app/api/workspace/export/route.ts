@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseClient } from '../../../../lib/supabase/client';
 import { uuid } from '../../../../lib/workspace-validation';
+import { byteLength, responseByteCaps } from '../../../../lib/byte-size';
 import { buildAccountExport, exportFileName } from '../../../../lib/account-export';
 export const dynamic = 'force-dynamic';
 // Read-only download of the signed-in user's saved drafts. Authorisation is the database launcher_drafts read policy (RLS) using the caller's own lp-access token; no service key, no writes.
@@ -28,7 +29,9 @@ export async function GET(req: NextRequest) {
       if (member.error) return reply({ error: 'Unable to load your data. Please retry.' }, 503);
       if (!member.data?.length) return reply({ error: 'Workspace access is unavailable.' }, 403);
     }
-    return new NextResponse(JSON.stringify(body, null, 2), { status: 200, headers: { ...headers, 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': `attachment; filename="${exportFileName(exportedAt)}"` } });
+    const text = JSON.stringify(body, null, 2);
+    if (byteLength(text) > responseByteCaps.export) return reply({ error: 'Your data is too large to download in one file.' }, 413);
+    return new NextResponse(text, { status: 200, headers: { ...headers, 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': `attachment; filename="${exportFileName(exportedAt)}"` } });
   } catch (error) {
     return reply({ error: error instanceof Error && /^Choose a valid/.test(error.message) ? error.message : 'Invalid request.' }, 400);
   }

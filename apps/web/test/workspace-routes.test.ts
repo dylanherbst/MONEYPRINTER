@@ -108,3 +108,11 @@ test('launcher POST: revoked session is rejected before any write', async () => 
     assert.equal(fake.calls.some(c => c.path.endsWith('/save_launcher_draft')), false);
   } finally { fake.restore(); restoreEnv(); }
 });
+
+test('export refuses a response over its byte cap with 413 (search and activity caps are defence in depth; their payloads are bounded by shaping)', async () => {
+  const restoreEnv = setEnv(configuredEnv);
+  const kinds = ['business-plan', 'storefront', 'funnels', 'booking-page', 'link-in-bio'];
+  const rows = kinds.map(kind => ({ kind, data: { text: 'x'.repeat(1_000_000) }, revision: 1, updated_at: '2026-11-01T00:00:00Z' }));
+  const fake = installFakeSupabase({ tables: { launcher_drafts: rows } });
+  try { assert.equal((await call(routes.export, urls.export)).status, 413); } finally { fake.restore(); restoreEnv(); }
+});

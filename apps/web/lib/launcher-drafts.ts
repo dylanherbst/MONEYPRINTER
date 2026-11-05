@@ -1,6 +1,7 @@
 import { accountRequest } from './course-account.ts';
 import type { CourseRequest } from './course-account.ts';
 import { uuid } from './workspace-validation.ts';
+import { byteLength } from './byte-size.ts';
 
 export const launcherKinds = ['skill-assessment', 'market-evidence', 'offer-validation', 'pricing-scenario', 'brand-direction', 'business-plan', 'crm-contacts', 'crm-pipeline', 'lead-forms', 'storefront', 'link-in-bio', 'ad-concepts', 'community-space', 'website-page', 'service-proposals', 'service-agreement', 'service-invoice', 'service-portal', 'service-projects', 'education-certificate', 'education-sales-page', 'education-coaching', 'education-workshop', 'lead-scoring', 'content-calendar', 'email-campaigns', 'funnels', 'booking-page', 'student-progress', 'workflow-builder', 'launch-checklist', 'lesson-quiz', 'service-offers', 'growth-plan', 'growth-audit', 'notification-prefs', 'lead-followups', 'membership-plans'] as const;
 export type LauncherKind = typeof launcherKinds[number];
@@ -24,7 +25,7 @@ export function checkedKind(value: unknown): LauncherKind {
 }
 // The server only checks size and shape; the module that owns each draft re-validates it with its own restore function before use.
 export function checkedDraftRaw(raw: unknown): Record<string, unknown> {
-  if (typeof raw !== 'string' || !raw || raw.length > launcherDraftByteLimit) throw new Error('Draft is empty or too large.');
+  if (typeof raw !== 'string' || !raw || byteLength(raw) > launcherDraftByteLimit) throw new Error('Draft is empty or too large.');
   let value: unknown;
   try { value = JSON.parse(raw); } catch { throw new Error('Draft is not valid JSON.'); }
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Draft must be an object.');

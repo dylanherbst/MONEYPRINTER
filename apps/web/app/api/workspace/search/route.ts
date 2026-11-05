@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseClient } from '../../../../lib/supabase/client';
 import { uuid } from '../../../../lib/workspace-validation';
+import { byteLength, responseByteCaps } from '../../../../lib/byte-size';
 import { parseQuery, searchDrafts } from '../../../../lib/draft-search';
 export const dynamic = 'force-dynamic';
 // Read-only search of the signed-in user's saved drafts. Authorisation is the launcher_drafts read policy (RLS) under the caller's own lp-access token; no service key, no writes. Only short snippets are returned, never whole drafts.
@@ -27,7 +28,9 @@ export async function GET(req: NextRequest) {
       if (member.error) return reply({ error: 'Unable to search your data. Please retry.' }, 503);
       if (!member.data?.length) return reply({ error: 'Workspace access is unavailable.' }, 403);
     }
-    return reply({ signedIn: true, hits: searchDrafts(rows.map(r => ({ kind: String((r as { kind: unknown }).kind), data: (r as { data: unknown }).data })), terms, 'account') });
+    const out = { signedIn: true, hits: searchDrafts(rows.map(r => ({ kind: String((r as { kind: unknown }).kind), data: (r as { data: unknown }).data })), terms, 'account') };
+    if (byteLength(JSON.stringify(out)) > responseByteCaps.search) return reply({ error: 'Too many results. Try a more specific search.' }, 413);
+    return reply(out);
   } catch (error) {
     return reply({ error: error instanceof Error && /^Choose a valid/.test(error.message) ? error.message : 'Invalid request.' }, 400);
   }
