@@ -15,6 +15,9 @@ async function handle(req: NextRequest) {
     const auth = await createSupabaseClient().auth.getUser(token);
     if (auth.error || !auth.data.user) return reply({ error: 'Sign in again.' }, 401);
     const db = createSupabaseClient({ fetch: (url, init) => { const headers = new Headers(init?.headers); headers.set('Authorization', 'Bearer ' + token); return fetch(url, { ...init, headers, cache: 'no-store' }); } });
+    const active = await db.rpc('session_active');
+    if (active.error) return reply({ error: 'Account storage is unavailable. Please retry.' }, 503);
+    if (!active.data) return reply({ error: 'Session revoked. Sign in again.' }, 401);
     if (req.method === 'GET') {
       const w = uuid(req.nextUrl.searchParams.get('workspace'));
       const kind = checkedKind(req.nextUrl.searchParams.get('kind'));
