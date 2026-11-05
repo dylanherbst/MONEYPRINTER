@@ -30,3 +30,17 @@ test('blocked and not-started entries are never openable and carry no route', ()
 test('customer routes never point at developer /tools pages', () => {
   assert.deepEqual(features.filter(x => x.route?.startsWith('/tools')).map(x => x.id), []);
 });
+
+test('customer-facing source never links to /tools (developer verification pages)', () => {
+  const files = [
+    'app/ui/ventra-pages.tsx', 'app/ui/ventra-home.tsx', 'app/ui/ventra-context.tsx', 'app/ui/ventra-hubs.tsx', 'app/ui/ventra-shell.tsx',
+    'app/ui/ventra-services.tsx', 'app/ui/ventra-grow.tsx', 'app/ui/ventra-insights.tsx', 'app/ui/ventra-onboarding.tsx', 'app/ui/start-business.tsx',
+    'app/ui/home-progress.tsx', 'app/ui/today-view.tsx', 'app/ui/draft-search.tsx', 'app/ui/notifications-centre.tsx', 'app/ui/business-overview.tsx',
+    'app/ui/overview-dashboard.tsx', 'lib/draft-registry.ts', 'lib/today-view.ts', 'lib/ventra-navigation.ts', 'lib/notifications.ts',
+  ];
+  for (const f of files) {
+    let src: string;
+    try { src = readFileSync(new URL('../' + f, import.meta.url), 'utf8'); } catch { continue; }
+    assert.doesNotMatch(src, /["'`]\/tools[/"'`?#]/, `${f} links to /tools`);
+  }
+});
