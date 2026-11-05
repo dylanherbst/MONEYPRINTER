@@ -20,7 +20,11 @@ export function AvailabilityLabel({ status }: { status: FeatureStatus }) {
 }
 
 /** One feature, one look. Working: opens. Local draft: opens, subdued label. Blocked and not started: greyed, no action, reason printed. */
-export function FeatureTile({ feature }: { feature: Feature }) {
+export function FeatureTile({ feature, needs }: { feature: Feature; needs?: { label: string; href: string } }) {
+  if (needs) return <div className="v-feature v-glass is-disabled" data-status="not-started" role="group" aria-disabled="true" aria-label={`${feature.name}. ${needs.label} first.`} aria-describedby={`note-${feature.id}`}>
+    <span className="v-icon-tile" aria-hidden="true"><OutlineIcon name={ICONS[feature.id] ?? 'grid'} /></span>
+    <span className="v-feature-copy"><strong>{feature.name}</strong><span className="v-feature-desc">{feature.description}</span><span className="v-feature-note" id={`note-${feature.id}`}>Not on for your business yet. {needs.label} in your setup to use this.</span><Link className="v-avail" data-status="not-started" href={needs.href}>{needs.label}</Link></span>
+  </div>;
   const open = isOpenable(feature);
   const body: ReactNode = <>
     <span className="v-icon-tile" aria-hidden="true"><OutlineIcon name={ICONS[feature.id] ?? 'grid'} /></span>

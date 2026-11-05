@@ -44,3 +44,15 @@ test('customer-facing source never links to /tools (developer verification pages
     assert.doesNotMatch(src, /["'`]\/tools[/"'`?#]/, `${f} links to /tools`);
   }
 });
+
+test('every openable tile with an anchor lands on a section that exists in the page source', () => {
+  const read = (f: string) => readFileSync(new URL('../app/ui/' + f, import.meta.url), 'utf8');
+  const pages = [read('ventra-pages.tsx'), read('offer-extras.tsx'), read('ventra-insights.tsx')].join('\n');
+  const launcher = read('business-launcher.tsx');
+  for (const x of features.filter(y => isOpenable(y) && y.route!.includes('#'))) {
+    const [path, hash] = [x.route!.split('#')[0].split('?')[0], x.route!.split('#')[1]];
+    const src = path === '/create/start' ? launcher : pages;
+    const found = new RegExp(`<Anchor id="${hash}"|<details id="${hash}"|<Section id="${hash}"`).test(src);
+    assert.ok(found, `${x.id}: no anchor #${hash} for ${path}`);
+  }
+});

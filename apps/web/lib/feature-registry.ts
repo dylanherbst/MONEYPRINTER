@@ -122,3 +122,9 @@ export function statusLabel(s: FeatureStatus): string {
 }
 /** Only working and local-draft features can be opened. Blocked and not-started are never actionable. */
 export const isOpenable = (x: Feature): boolean => (x.status === 'working' || x.status === 'local-draft') && x.route !== null;
+
+/** Features whose editor only appears when that pathway is on in the business profile. The hubs show these as "Turn on ..." instead of Ready when it is off. */
+export const pathwayNeeded: Readonly<Record<string, 'education' | 'business'>> = {
+  'course-editor': 'education', 'lesson-quizzes': 'education', 'learner-preview': 'education', 'course-sales-page': 'education', 'coaching-programs': 'education', certificates: 'education', 'student-progress': 'education',
+  proposals: 'business', agreements: 'business', 'client-portal': 'business', 'project-board': 'business', 'client-projects': 'business',
+};

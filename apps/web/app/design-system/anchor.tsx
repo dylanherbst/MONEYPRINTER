@@ -13,9 +13,13 @@ export function HashAnchor() {
       if (el) {
         window.clearInterval(timer);
         if (el instanceof HTMLDetailsElement) el.open = true;
-        if (!el.hasAttribute('tabindex')) el.tabIndex = -1;
-        el.scrollIntoView({ block: 'start' });
-        el.focus({ preventScroll: true });
+        // The anchor may be a zero-height marker placed before the section: use the section that follows it.
+        const root = el.classList.contains('v-anchor') && el.nextElementSibling instanceof HTMLElement ? el.nextElementSibling : el;
+        root.scrollIntoView({ block: 'start' });
+        const control = root.querySelector<HTMLElement>('input:not([type=hidden]):not(:disabled),textarea:not(:disabled),select:not(:disabled),button:not(:disabled)');
+        const target = control ?? root;
+        if (!control && !target.hasAttribute('tabindex')) target.tabIndex = -1;
+        target.focus({ preventScroll: true });
       } else if (++tries > 30) window.clearInterval(timer);
     }, 100);
     return () => window.clearInterval(timer);

@@ -1,6 +1,6 @@
 'use client';
 import type { ReactNode } from 'react';
-import { featureById } from '../../lib/feature-registry';
+import { featureById, pathwayNeeded } from '../../lib/feature-registry';
 import type { Feature } from '../../lib/feature-registry';
 import { FeatureTile, PlainTile } from '../design-system/feature-tile';
 import { useWorkspace } from './ventra-context';
@@ -10,12 +10,14 @@ type Group = { id: string; title: string; intro: string; ids: readonly string[];
 const pick = (ids: readonly string[]) => ids.map(featureById).filter((x): x is Feature => !!x);
 
 function Groups({ groups, openFirst = 1 }: { groups: readonly Group[]; openFirst?: number }) {
+  const { profile } = useWorkspace();
+  const needs = (x: Feature) => { const w = pathwayNeeded[x.id]; return profile && w && !profile.pathways.includes(w) ? { label: w === 'education' ? 'Turn on Courses' : 'Turn on Services', href: '/onboarding' } : undefined; };
   return <div className="v-hub">{groups.map((g, i) => {
     const items = pick(g.ids);
-    const ready = items.filter(x => x.status === 'working' || x.status === 'local-draft').length;
+    const ready = items.filter(x => (x.status === 'working' || x.status === 'local-draft') && !needs(x)).length;
     return <details className="v-hub-group v-glass" key={g.id} open={i < openFirst}>
       <summary><span><strong>{g.title}</strong><small>{g.intro}</small></span><span className="v-hub-count">{ready} of {items.length} ready</span></summary>
-      <div className="v-tiles">{items.map(x => <FeatureTile key={x.id} feature={x} />)}{g.extra}</div>
+      <div className="v-tiles">{items.map(x => <FeatureTile key={x.id} feature={x} needs={needs(x)} />)}{g.extra}</div>
     </details>;
   })}</div>;
 }
