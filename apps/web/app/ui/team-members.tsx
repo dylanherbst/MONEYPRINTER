@@ -1,4 +1,5 @@
 'use client';
+import { fetchWorkspaces } from './workspace-list';
 import { useCallback, useEffect, useState } from 'react';
 import { parseTeamResponse, roleWording, shapeMembers } from '../../lib/team-members';
 import type { TeamMember } from '../../lib/team-members';
@@ -17,7 +18,7 @@ export function TeamMembersPanel({ onMode }: { onMode?: (mode: 'LIVE' | 'DEMO' |
   const [state, setState] = useState<State>({ phase: 'loading' });
   useEffect(() => { onMode?.(state.phase === 'live' ? 'LIVE' : state.phase === 'demo' ? 'DEMO' : 'LOADING'); }, [state.phase, onMode]);
   useEffect(() => {
-    fetch('/api/workspace', { credentials: 'same-origin', cache: 'no-store' })
+    fetchWorkspaces()
       .then(async r => { const b = await r.json().catch(() => null); if (r.ok && Array.isArray(b?.workspaces) && b.workspaces.length) { setWorkspaces(b.workspaces); setWorkspace(b.workspaces[0].id); } else setState({ phase: 'demo', reason: r.status === 401 ? 'Sign in to see your real team.' : r.ok ? 'No workspace yet.' : 'Account storage is not available here.' }); })
       .catch(() => setState({ phase: 'demo', reason: 'Could not reach the account service.' }));
   }, []);

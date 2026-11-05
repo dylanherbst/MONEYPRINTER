@@ -1,4 +1,5 @@
 'use client';
+import { fetchWorkspaces } from './workspace-list';
 import { useEffect, useState } from 'react';
 import { accountRequest } from '../../lib/course-account';
 import { isWritable, loadAccountState, parseImportFile, planImport, runImport } from '../../lib/account-import';
@@ -21,7 +22,7 @@ export function AccountImportPanel({ onMode }: { onMode?: (mode: Mode, reason: s
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    fetch('/api/workspace', { credentials: 'same-origin', cache: 'no-store' })
+    fetchWorkspaces()
       .then(async r => {
         const b = await r.json().catch(() => null);
         if (r.ok && Array.isArray(b?.workspaces) && b.workspaces.length) { setWorkspaces(b.workspaces); setWorkspace(b.workspaces[0].id); onMode?.('LIVE', ''); }

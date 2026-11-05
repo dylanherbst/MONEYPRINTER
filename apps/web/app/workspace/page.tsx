@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { forgetWorkspaces } from '../ui/workspace-list';
 import { blankProfile, storageKey } from '../../lib/onboarding';
 import { blankOffer, editLocalOffer, formatOfferPrice, offerStorageKey, saveLocalOffer } from '../../lib/local-offers';
 import { checkedImport, checkedProfile } from '../../lib/workspace-validation';
@@ -10,6 +11,7 @@ type SavedOffer = { id: string; data: LocalOffer; revision: number };
 type Snapshot = { signedIn?: boolean; configured?: boolean; workspaces?: { id: string; name: string }[]; role?: string; profile?: SavedProfile | null; offers?: SavedOffer[]; workspace?: string; message?: string; result?: string };
 const demoBypass = process.env.NEXT_PUBLIC_DEMO_BYPASS_AUTH === 'true';
 async function api(body?: Record<string, unknown>, workspace = ''): Promise<Snapshot> {
+  if (body) forgetWorkspaces();
   const res = await fetch('/api/workspace' + (workspace ? `?workspace=${encodeURIComponent(workspace)}` : ''), { method: body ? 'POST' : 'GET', cache: 'no-store', ...(body ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}) });
   const data = await res.json();
   if (!res.ok) throw Object.assign(new Error(data.error || 'Please retry.'), { status: res.status });

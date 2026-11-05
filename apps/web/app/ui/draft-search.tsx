@@ -1,4 +1,5 @@
 'use client';
+import { fetchWorkspaces } from './workspace-list';
 import { useState } from 'react';
 import Link from 'next/link';
 import { mergeHits, parseQuery, parseSearchResponse, searchDrafts } from '../../lib/draft-search';
@@ -21,7 +22,7 @@ function searchBrowser(profileId: string, terms: string[]): { hits: SearchHit[];
 }
 async function searchAccount(q: string): Promise<{ hits: SearchHit[] | null; reason: string }> {
   try {
-    const w = await fetch('/api/workspace', { credentials: 'same-origin', cache: 'no-store' });
+    const w = await fetchWorkspaces();
     const wb = await w.json().catch(() => null);
     if (!w.ok || !Array.isArray(wb?.workspaces) || !wb.workspaces.length) return { hits: null, reason: w.status === 401 ? 'Sign in to search your account too.' : w.ok ? 'No workspace yet, so only this browser was searched.' : 'Account storage is not available here.' };
     const r = await fetch(`/api/workspace/search?workspace=${encodeURIComponent(wb.workspaces[0].id)}&q=${encodeURIComponent(q)}`, { credentials: 'same-origin', cache: 'no-store' });

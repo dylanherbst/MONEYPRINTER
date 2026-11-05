@@ -1,4 +1,5 @@
 'use client';
+import { fetchWorkspaces } from './workspace-list';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { computeToday, localDraftKinds, UNREADABLE } from '../../lib/today-view';
@@ -14,7 +15,7 @@ const todayLocal = () => { const d = new Date(); return `${d.getFullYear()}-${St
 /** Which draft kinds exist in the account, or null when that could not be checked. Read-only. */
 export async function fetchAccountKinds(): Promise<string[] | null> {
   try {
-    const w = await fetch('/api/workspace', { credentials: 'same-origin', cache: 'no-store' });
+    const w = await fetchWorkspaces();
     const wb = await w.json().catch(() => null);
     if (!w.ok || !Array.isArray(wb?.workspaces) || !wb.workspaces.length) return null;
     const r = await fetch('/api/workspace/activity?workspace=' + encodeURIComponent(wb.workspaces[0].id), { credentials: 'same-origin', cache: 'no-store' });

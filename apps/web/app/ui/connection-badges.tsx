@@ -1,4 +1,5 @@
 'use client';
+import { fetchWorkspaces } from './workspace-list';
 import { useEffect, useState } from 'react';
 import { accountConnection } from '../../lib/connection-state';
 import type { ConnectionState } from '../../lib/connection-state';
@@ -8,7 +9,7 @@ export function ConnectionBadges({ ai = false }: { ai?: boolean }) {
   const [account, setAccount] = useState<ConnectionState | null>(null);
   useEffect(() => {
     let live = true;
-    fetch('/api/workspace', { credentials: 'same-origin', cache: 'no-store' })
+    fetchWorkspaces()
       .then(async r => accountConnection(r.status, await r.json().catch(() => null)))
       .catch(() => accountConnection(null, null))
       .then(s => { if (live) setAccount(s); });
