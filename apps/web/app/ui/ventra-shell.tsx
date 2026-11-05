@@ -35,8 +35,8 @@ function ShellContent({children}:{children:ReactNode}){
   const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();if(account){setAccount(false);accountButton.current?.focus();}else{setMenu(false);menuButton.current?.focus();}}};
   const outside=(e:PointerEvent)=>{const t=e.target as Node;if(menu&&!menuPanel.current?.contains(t)&&!menuButton.current?.contains(t))setMenu(false);if(account&&!accountPanel.current?.contains(t)&&!accountButton.current?.contains(t))setAccount(false);};
   const blur=(e:FocusEvent)=>{const t=e.target as Node;if(menu&&!menuPanel.current?.contains(t)&&!menuButton.current?.contains(t))setMenu(false);if(account&&!accountPanel.current?.contains(t)&&!accountButton.current?.contains(t))setAccount(false);};
-  window.addEventListener('keydown',close);window.addEventListener('pointerdown',outside);window.addEventListener('focusin',blur);
-  return()=>{window.removeEventListener('keydown',close);window.removeEventListener('pointerdown',outside);window.removeEventListener('focusin',blur);};
+  window.addEventListener('keydown',close);window.addEventListener('pointerdown',outside);window.addEventListener('focusin',blur);const back=()=>{setMenu(false);setAccount(false);};window.addEventListener('popstate',back);
+  return()=>{window.removeEventListener('keydown',close);window.removeEventListener('pointerdown',outside);window.removeEventListener('focusin',blur);window.removeEventListener('popstate',back);};
  },[menu,account]);
  useEffect(()=>{if(menu)menuPanel.current?.querySelector<HTMLElement>('a')?.focus();if(account)accountPanel.current?.querySelector<HTMLElement>('a')?.focus();},[menu,account]);
  function openCreate(event:React.MouseEvent<HTMLButtonElement>){trigger.current=event.currentTarget;dialog.current?.showModal();background.current?.setAttribute('inert','');}
