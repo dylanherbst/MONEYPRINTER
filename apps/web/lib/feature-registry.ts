@@ -128,3 +128,10 @@ export const pathwayNeeded: Readonly<Record<string, 'education' | 'business'>> =
   'course-editor': 'education', 'lesson-quizzes': 'education', 'learner-preview': 'education', 'course-sales-page': 'education', 'coaching-programs': 'education', certificates: 'education', 'student-progress': 'education',
   proposals: 'business', agreements: 'business', 'client-portal': 'business', 'project-board': 'business', 'client-projects': 'business',
 };
+
+/** Search by feature name or description (all words must match). Used by the global search box. */
+export function searchFeatures(query: string): Feature[] {
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!terms.length) return [];
+  return features.filter(x => terms.every(t => (x.name + ' ' + x.description).toLowerCase().includes(t)));
+}

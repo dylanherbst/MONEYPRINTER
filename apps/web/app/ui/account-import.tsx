@@ -45,7 +45,7 @@ export function AccountImportPanel({ onMode }: { onMode?: (mode: Mode, reason: s
     try {
       const p = parseImportFile(await file.text());
       const state = await loadAccountState(workspace, p.items.map(i => i.kind));
-      setParsed(p); setPlan(planImport(p, state));
+      setParsed(p); setPlan(planImport(p, state, workspace));
       setMessage(`Read ${p.items.length} item${p.items.length === 1 ? '' : 's'} from the file${p.rejected.length ? `; ${p.rejected.length} skipped as invalid` : ''}. Nothing has been changed yet.`);
     } catch (e) { setMessage(e instanceof Error ? e.message : 'Could not read the file.'); }
     finally { setBusy(false); }
@@ -70,7 +70,7 @@ export function AccountImportPanel({ onMode }: { onMode?: (mode: Mode, reason: s
     {workspace && role === '' && <p role="alert" data-testid="account-import-role">Your access level could not be confirmed, so restore is off.</p>}
     {workspace && role && !owner && <p role="alert" data-testid="account-import-role">Only the workspace owner can restore data. You have read-only access.</p>}
     <label>Export file <input type="file" accept="application/json,.json" data-testid="account-import-file" disabled={!owner || busy} onChange={e => void choose(e.target.files?.[0])} /></label>
-    {parsed && parsed.workspaceId !== workspace && <p role="status" data-testid="account-import-other-workspace">This file came from a different workspace. Items will be saved into the selected workspace.</p>}
+    {plan?.some(i => i.otherWorkspace) && <p role="alert" data-testid="account-import-other-workspace"><strong>Warning: this file came from a different workspace.</strong> {plan.filter(i => i.otherWorkspace).length} of {plan.length} items will be saved into the workspace selected above{workspaces.find(w => w.id === workspace) ? ` (${workspaces.find(w => w.id === workspace)!.name})` : ''}. Check that this is the one you mean before you restore.</p>}
     {plan && <ul data-testid="account-import-plan">{plan.map(i => <li key={i.kind} data-status={i.status}>{i.kind}: {statusText[i.status]}</li>)}</ul>}
     {parsed?.rejected.length ? <ul data-testid="account-import-rejected">{parsed.rejected.map((r, n) => <li key={n}>{r.kind}: {r.reason}</li>)}</ul> : null}
     {older && <label><input type="checkbox" checked={replaceOlder} onChange={e => setReplaceOlder(e.target.checked)} /> Also replace older versions in my account with the file&apos;s version</label>}
