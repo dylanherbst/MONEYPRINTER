@@ -92,6 +92,19 @@ export function bearerMatches(header: string | null, secret: string): boolean {
   return got.length === want.length && timingSafeEqual(got, want);
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** Every channel the runner should work through. Jobs belong to the channel the lead came in on, so each configured
+ * channel (SMS, website chat, email) is claimed separately. Invalid or missing pairs are skipped; duplicates removed. */
+export function runnerChannels(env: Record<string, string | undefined>): { name: string; auth: ChannelAuth }[] {
+  const pairs: [string, string, string][] = [['sms', 'FRONT_OFFICE_CHANNEL_ID', 'FRONT_OFFICE_CHANNEL_KEY'], ['web-chat', 'FRONT_OFFICE_CHAT_CHANNEL_ID', 'FRONT_OFFICE_CHAT_CHANNEL_KEY'], ['email', 'FRONT_OFFICE_EMAIL_CHANNEL_ID', 'FRONT_OFFICE_EMAIL_CHANNEL_KEY']];
+  const out: { name: string; auth: ChannelAuth }[] = [];
+  for (const [name, idKey, keyKey] of pairs) {
+    const channel = (env[idKey] ?? '').trim(), key = (env[keyKey] ?? '').trim();
+    if (UUID_RE.test(channel) && key.length >= 32 && !out.some(o => o.auth.channel === channel)) out.push({ name, auth: { channel, key } });
+  }
+  return out;
+}
+
 /** Runner secrets that are long enough to trust: Vercel Cron's CRON_SECRET and our own FRONT_OFFICE_CRON_SECRET. */
 export function runnerSecrets(env: Record<string, string | undefined>): string[] {
   return [env.CRON_SECRET, env.FRONT_OFFICE_CRON_SECRET].map(s => (s ?? '').trim()).filter(s => s.length >= 32);
