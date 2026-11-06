@@ -76,7 +76,7 @@ function Sheet({ onClose }: { onClose: () => void }) {
           <input aria-label="Message" placeholder="Type your message" value={text} onChange={e => setText(e.target.value)} maxLength={2000} />
           <button className="vs-btn vs-btn-primary vs-btn-sm" disabled={busy} type="submit">{busy ? '…' : 'Send'}</button>
         </form>
-        <p className="vs-fine">You’re chatting with an AI assistant. Messages are stored to reply to you (see our privacy policy).</p>
+        <p className="vs-fine">You’re chatting with an AI assistant, and a person from our team can step in at any time. Messages are stored to reply to you (see our privacy policy).</p>
       </div>}
       {goal && chatState !== 'ready' && <a className="vs-btn vs-btn-primary" href={mail} onClick={() => track('email_capture', { goal })}>Book a free strategy call by email</a>}
       {goal && <div className="vs-glass vs-card" style={{ padding: 16 }}>
