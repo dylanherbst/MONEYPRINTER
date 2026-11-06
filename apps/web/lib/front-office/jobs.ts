@@ -91,3 +91,15 @@ export function bearerMatches(header: string | null, secret: string): boolean {
   const got = Buffer.from(header?.match(/^Bearer (.+)$/)?.[1] ?? ''), want = Buffer.from(secret);
   return got.length === want.length && timingSafeEqual(got, want);
 }
+
+/** Runner secrets that are long enough to trust: Vercel Cron's CRON_SECRET and our own FRONT_OFFICE_CRON_SECRET. */
+export function runnerSecrets(env: Record<string, string | undefined>): string[] {
+  return [env.CRON_SECRET, env.FRONT_OFFICE_CRON_SECRET].map(s => (s ?? '').trim()).filter(s => s.length >= 32);
+}
+
+/** True when the Authorization header carries any configured runner secret (each compared in constant time). */
+export function runnerAuthorized(header: string | null, secrets: string[]): boolean {
+  let ok = false;
+  for (const s of secrets) if (bearerMatches(header, s)) ok = true;
+  return ok;
+}

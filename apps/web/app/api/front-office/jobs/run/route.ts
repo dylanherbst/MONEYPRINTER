@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseClient } from '../../../../../lib/supabase/client';
 import { supabaseConfigured } from '../../../../../lib/workspace-route';
-import { bearerMatches, runDueJobs } from '../../../../../lib/front-office/jobs';
+import { runDueJobs, runnerAuthorized, runnerSecrets } from '../../../../../lib/front-office/jobs';
 import type { Rpc } from '../../../../../lib/front-office/orchestrator';
 import { senderFromEnv } from '../../../../../lib/front-office/sms-send';
 import { emailSenderFromEnv } from '../../../../../lib/front-office/email';
@@ -9,16 +9,17 @@ import { ventraSetterConfig } from '../../../../../lib/front-office/setter/confi
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-// Job runner (tracker 1.4, 1.5): sends due follow-ups, reminders and no-show rescues for Ventra's channel. Call every minute:
-//   POST /api/front-office/jobs/run   Authorization: Bearer <FRONT_OFFICE_CRON_SECRET>
-// Texts are logged; they are only really sent when FRONT_OFFICE_SEND_LIVE=1.
+// Job runner (tracker 1.4, 1.5): sends due follow-ups, reminders and no-show rescues for Ventra's channel.
+//   GET  /api/front-office/jobs/run   called every minute by Vercel Cron (vercel.json), Authorization: Bearer <CRON_SECRET>
+//   POST /api/front-office/jobs/run   for any other scheduler,       Authorization: Bearer <FRONT_OFFICE_CRON_SECRET>
+// Either secret is accepted on either method. Texts are logged; they are only really sent when FRONT_OFFICE_SEND_LIVE=1.
 const reply = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export async function POST(req: NextRequest) {
-  const secret = process.env.FRONT_OFFICE_CRON_SECRET ?? '';
-  if (secret.length < 32) return reply({ error: 'Job runner is not configured.', configured: false }, 503);
-  if (!bearerMatches(req.headers.get('authorization'), secret)) return reply({ error: 'Not allowed.' }, 401);
+async function run(req: NextRequest) {
+  const secrets = runnerSecrets(process.env);
+  if (!secrets.length) return reply({ error: 'Job runner is not configured.', configured: false }, 503);
+  if (!runnerAuthorized(req.headers.get('authorization'), secrets)) return reply({ error: 'Not allowed.' }, 401);
   const channel = process.env.FRONT_OFFICE_CHANNEL_ID ?? '', key = process.env.FRONT_OFFICE_CHANNEL_KEY ?? '';
   if (!supabaseConfigured() || !UUID.test(channel) || key.length < 32) return reply({ error: 'Front office channel is not configured.', configured: false }, 503);
   const db = createSupabaseClient();
@@ -30,3 +31,6 @@ export async function POST(req: NextRequest) {
     return reply({ error: 'Front office storage is unavailable.' }, 503);
   }
 }
+
+export async function GET(req: NextRequest) { return run(req); }
+export async function POST(req: NextRequest) { return run(req); }
