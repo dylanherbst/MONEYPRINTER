@@ -3,6 +3,27 @@
 Things only the owner can do. Building continues around them; each line says what it unblocks.
 Never paste a secret into a chat: put values in the server environment (`.env.local` on the Mac, or the host's env settings).
 
+## Production status (2026-11-07)
+
+- Website and app live at https://www.aiventra.com.au (apex redirects to www). Vercel team `ventra14`, project `ventra` (Pro trial), deployed from `apps/web` with `vercel --prod`.
+- Database: Supabase project "Ventra AI" (ref `radmzhrdgqooukzhtdgg`), all migrations applied. Auth Site URL set to https://www.aiventra.com.au/workspace.
+- Google OAuth app "Ventra Front Office" published to production with home, privacy and terms links on aiventra.com.au.
+- In Vercel env (Production): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL`, `FRONT_OFFICE_PUBLIC_ORIGIN`, `FRONT_OFFICE_MODEL` (`claude-sonnet-5-5`), `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` (rotated 2026-11-07), `ANTHROPIC_API_KEY`, `POSTMARK_SERVER_TOKEN`, `FRONT_OFFICE_CRON_SECRET`.
+- Delete `apps/web/.env.vercel` on the Mac now that its values are in Vercel.
+
+## Next, in order (production)
+
+- [ ] Re-save `TWILIO_AUTH_TOKEN`, `ANTHROPIC_API_KEY`, `POSTMARK_SERVER_TOKEN` and `FRONT_OFFICE_CRON_SECRET` as type **Secret** in Vercel (they were saved as Config, readable by team members; Vercel shows "Needs Attention"). Use Rotate Variable.
+- [ ] Add funds to the Claude Console (balance A$0): the Setter cannot answer until then.
+- [ ] Create your owner account and a workspace named **Ventra** at https://www.aiventra.com.au/workspace.
+- [ ] Run `docs/agents/sql/create_channels.sql` in the Supabase SQL editor (edit the Postmark inbound address at the top first, or leave it to skip email). Copy each channel id and key from the result into Vercel as Secret: `FRONT_OFFICE_CHAT_CHANNEL_ID`/`_KEY`, `FRONT_OFFICE_EMAIL_CHANNEL_ID`/`_KEY` (and later `FRONT_OFFICE_CHANNEL_ID`/`_KEY` for SMS).
+- [ ] Add `CRON_SECRET` in Vercel (Secret) with the same value as `FRONT_OFFICE_CRON_SECRET`. `vercel.json` runs the job runner every minute; Vercel sends `CRON_SECRET`. Every-minute crons need a Pro team: on Hobby the deploy fails, so change the schedule to daily or use an outside scheduler with POST.
+- [ ] Email channel: add `FRONT_OFFICE_EMAIL_FROM` (verified Postmark sender) and `FRONT_OFFICE_EMAIL_WEBHOOK_SECRET` (16+ random characters), then set the Postmark inbound webhook (see One-time setup).
+- [ ] Google Calendar: refresh token from OAuth Playground, then `GOOGLE_CALENDAR_CLIENT_ID`, `_CLIENT_SECRET`, `_REFRESH_TOKEN`, `_ID` in Vercel.
+- [ ] Redeploy (`vercel --prod` in `apps/web`) after the commits on `feature/ventra-website` and after every env change.
+- [ ] Test the website chat on the live site yourself, then approve `FRONT_OFFICE_CHAT_LIVE=1` (AI answers) and later `FRONT_OFFICE_SEND_LIVE=1` (real SMS/email).
+- [ ] Choose the Vercel Pro plan before commercial use (trial).
+
 ## Run on the Mac
 
 - [ ] `ventra-verify` on `feature/front-office-pivot` (runs `next build` and the local Supabase integration, which the Cowork VM cannot).
@@ -11,10 +32,10 @@ Never paste a secret into a chat: put values in the server environment (`.env.lo
 
 ## Blocked for now
 
-- [x] Twilio (2026-11-06): account set up by the owner in their own Chrome (the built-in browser fails Twilio's human check). Still to confirm: AU mobile number bought, and its values put in `.env.local`.
+- [ ] Twilio: account set up and auth token rotated (2026-11-07; SID and token in Vercel). Still blocked: buy an AU mobile number (needs ID), then `TWILIO_FROM_NUMBER` and the SMS channel (edit the number in `create_channels.sql`).
 - [x] Public URL (2026-11-07): deployed to Vercel (team `ventra14`, project `ventra`, Pro trial) at https://ventra-rho.vercel.app. Production DB is Supabase project "Ventra AI" (ref `radmzhrdgqooukzhtdgg`), all migrations applied. Redeploy from `apps/web` with `vercel --prod`.
 
-- [ ] Google app publishing (2026-11-06): Google needs a home page, privacy policy and a verified domain before the calendar login can be published (otherwise it expires every 7 days). aiventrai.com is a "Coming soon" page. Draft pages are in `/Users/dylan/Developer/aiventrai-site/` (business name and ABN left out for now; add them once registered; have the privacy policy checked). Upload them to the domain's hosting, verify the domain in Google Search Console, then Claude finishes Branding and publishes.
+- [x] Google app publishing (2026-11-07): published to production with the aiventra.com.au links. The old drafts in `/Users/dylan/Developer/aiventrai-site/` are superseded by `/site`.
 
 ## Logins and keys (server env)
 
@@ -25,14 +46,14 @@ Never paste a secret into a chat: put values in the server environment (`.env.lo
 | Webhook URL signing behind a proxy or tunnel | `FRONT_OFFICE_PUBLIC_ORIGIN` (e.g. `https://ventra.example.com`) | Your public URL |
 | Google Calendar (1.2, 1.3). Done: project `ventra-front-office`, Calendar API on, OAuth app + web client "Ventra calendar booking" (redirect: OAuth Playground). Left: publish the app, get the refresh token | `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, `GOOGLE_CALENDAR_REFRESH_TOKEN`, `GOOGLE_CALENDAR_ID` | Google Cloud console: enable Calendar API, OAuth client (web), consent screen; get a refresh token for the bookings calendar with scopes `calendar.events` + `calendar.freebusy` |
 | Setter AI (1.1) | `ANTHROPIC_API_KEY`, `FRONT_OFFICE_MODEL` (exact Claude model id to use) | console.anthropic.com; pick the model id from the models page |
-| Follow-up and reminder runner (1.4, 1.5) | `FRONT_OFFICE_CRON_SECRET` (32+ random characters), `FRONT_OFFICE_CHANNEL_ID`, `FRONT_OFFICE_CHANNEL_KEY` | Generate the secret yourself; channel id and key come from `fo_create_channel` |
+| Follow-up and reminder runner (1.4, 1.5) | `FRONT_OFFICE_CRON_SECRET` and `CRON_SECRET` (same 32+ character value); it works through every configured channel pair: `FRONT_OFFICE_CHANNEL_*` (SMS), `FRONT_OFFICE_CHAT_CHANNEL_*`, `FRONT_OFFICE_EMAIL_CHANNEL_*` | Generate the secret yourself; channel ids and keys come from `docs/agents/sql/create_channels.sql` |
 | Website chat (1.8) | `FRONT_OFFICE_CHAT_CHANNEL_ID`, `FRONT_OFFICE_CHAT_CHANNEL_KEY`; `FRONT_OFFICE_CHAT_ORIGINS` if the widget sits on another site; `FRONT_OFFICE_CHAT_LIVE=1` to let the AI answer | Create a `web-chat` channel with `fo_create_channel` (address = your site, e.g. `ventra.com.au`) |
 | Email (1.9) | `POSTMARK_SERVER_TOKEN`, `FRONT_OFFICE_EMAIL_FROM` (verified sender), `FRONT_OFFICE_EMAIL_WEBHOOK_SECRET` (16+ random characters) | Postmark account: a server, a verified sender domain, and an inbound address. Create an `email` channel with `fo_create_channel` |
-| Something that calls the runner every minute | `POST /api/front-office/jobs/run` with `Authorization: Bearer <FRONT_OFFICE_CRON_SECRET>` | A cron on the host, or the VENTRA dashboard's Scheduled jobs |
+| Something that calls the runner every minute | Vercel Cron (`apps/web/vercel.json`, GET with `Bearer <CRON_SECRET>`), or any scheduler with `POST /api/front-office/jobs/run` and `Bearer <FRONT_OFFICE_CRON_SECRET>` | Built in; needs `CRON_SECRET` in Vercel and a Pro team |
 
 ## One-time setup
 
-- [ ] Create Ventra's SMS channel: as the workspace owner, call `fo_create_channel(<workspace id>, 'sms', '<Twilio number>', '<new 40-character key>')`. Keep the key; it goes in the webhook URL and `FRONT_OFFICE_CHANNEL_KEY`.
+- [ ] Create Ventra's channels with `docs/agents/sql/create_channels.sql` (Supabase SQL editor). Keep each key; it goes in Vercel and in the webhook URLs.
 - [ ] Twilio number, "A message comes in": `POST https://<public origin>/api/front-office/sms/inbound?channel=<channel id>&key=<channel key>`.
 - [ ] Postmark inbound webhook URL: `https://ventra:<FRONT_OFFICE_EMAIL_WEBHOOK_SECRET>@<public origin>/api/front-office/email/inbound?channel=<email channel id>&key=<channel key>`. Forward Ventra's enquiry address to the Postmark inbound address.
 - [ ] After any change to the Setter's prompt or questions, run the live replay: `ANTHROPIC_API_KEY=... FRONT_OFFICE_MODEL=... node --experimental-strip-types apps/web/test/live/setter-live.ts` (from the repo, env vars in the shell, not in a file). Costs a few cents.
@@ -55,7 +76,7 @@ Code is built: webhook, signature check, 24-hour reply window, approval queue at
 - [ ] Set real prices in `apps/web/lib/site/content.ts` (`plans[].priceMonthlyAud`). Until then the site says "Founding price, confirmed on your call" and offers no checkout.
 - [ ] Online checkout (Stripe Express Checkout: Apple Pay, Google Pay, Link) is not built yet: needs real prices, Stripe test keys, then your approval (`NEXT_PUBLIC_SITE_CHECKOUT=1`). Live payments need a separate approval.
 - [x] Hosting: live at https://www.aiventra.com.au; app deployed; `aiventra.com.au` (redirects to www) and `www.aiventra.com.au` added in Vercel. GoDaddy DNS: A `@` -> `216.198.79.1`, CNAME `www` -> `fe83dd68d6dd39cf.vercel-dns-017.com` (owner clicks Save).
-- [ ] Vercel environment variables (Settings > Environment Variables), then redeploy. Pick the Pro plan before commercial use.
+- [x] Vercel environment variables added (2026-11-07); see Production status. Pick the Pro plan before commercial use.
 - [x] Google Cloud Branding links + authorised domain saved and app published to production (2026-11-07). Next: get the refresh token in OAuth Playground (see Logins and keys).
 - [ ] Have the privacy policy checked. A draft Google Sites site "Ventra website" was started and is unpublished; delete it in sites.google.com if not needed.
 

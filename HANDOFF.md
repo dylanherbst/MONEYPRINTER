@@ -2,7 +2,7 @@
 
 Shared state between Claude Code and Codex. The assistant that stops updates this file; the one that starts reads it. Template and rules: `docs/agents/CODEX_HANDOFF.md`.
 
-- **Updated:** 2026-11-06
+- **Updated:** 2026-11-07
 - **Last editor:** claude
 - **Repo:** /Users/dylan/Developer/VENTRA-FEATURES
 
@@ -12,6 +12,19 @@ Owner approved the pivot on 2026-11-06 (Ventra Pivot Master Plan + Implementatio
 (Setter, Sales, Receptionist) and freeze everything else in the backend. Branch `feature/front-office-pivot`, made from
 `frontend/glass-dashboard-reference` at b611bed. Work done from a Cowork session (Claude, Linux VM on this Mac's folders).
 Committed from the Cowork VM with plain git at the owner's request (ventra-git only runs on the Mac). Same secret scan as ventra-git: 0 hits. Only the files below were staged.
+
+## Production (2026-11-07, owner approved hosting)
+
+- Live: https://www.aiventra.com.au (Vercel team `ventra14`, project `ventra`, Pro trial; GoDaddy DNS A @ 216.198.79.1,
+  CNAME www to Vercel). Deployed by the owner with `vercel --prod` from `apps/web` (`.vercelignore` keeps uploads small).
+- DB: Supabase "Ventra AI" (ref `radmzhrdgqooukzhtdgg`), all 27 migrations applied via the SQL editor. Auth Site URL
+  https://www.aiventra.com.au/workspace. Google OAuth app published.
+- Vercel env present: see `docs/agents/OWNER_TODO.md` > Production status. Four secrets were saved as Config and need
+  re-saving as Secret. Claude Console balance is A$0 (Setter cannot answer until funded).
+- Added on `feature/ventra-website` (not deployed until the owner redeploys): Vercel Cron for the job runner (`vercel.json`,
+  GET + `CRON_SECRET`), the runner now covers every configured channel (SMS, chat, email), `docs/agents/sql/create_channels.sql`
+  for the owner to create channels, a "person can step in" line on the site chat, and the Sales agent foundation
+  (`lib/front-office/sales/`, not wired live).
 
 ## Acceptance criteria
 
@@ -120,7 +133,7 @@ fe8a1ad Keep restored course textarea accessible names stable
 
 ## Tests run and results
 
-Run in the Cowork Linux VM with Node 22.23 (the project pins 24.21; run `ventra-verify` on the Mac to confirm):
+2026-11-07: Node 24.21 in the Cowork VM: 582 pass, 0 fail; tsc and eslint pass. Earlier run (Node 22.23):
 - `tsc --noEmit`: pass. `eslint . --max-warnings 0`: pass.
 - `node --experimental-strip-types --test test/*.test.ts`: 557 pass, 0 fail (514 before the pivot). Gate 0.7 covered by
   `front-office-db.test.ts` on PGlite with the real migration (fixture Auth, NOT Supabase integration).
@@ -138,9 +151,10 @@ Run in the Cowork Linux VM with Node 22.23 (the project pins 24.21; run `ventra-
 
 ## Next steps
 
-1. Owner: work through `docs/agents/OWNER_TODO.md` (verify on the Mac, keys, channel, approvals).
-2. Build next: 1.11 reactivation (needs consent confirmed), 1.12 Google Business replies (needs Google Business Profile access),
-   then Phase 2 (Sales agent: offer config, objection playbook, payment link).
+1. Owner: `docs/agents/OWNER_TODO.md` > "Next, in order (production)": Secret re-save, Claude funds, workspace, run
+   create_channels.sql, CRON_SECRET, Google refresh token, redeploy, test chat, approvals.
+2. Build next: Sales payment step once a provider is chosen (2.9), wire `AgentHooks.sales` on approval, 1.11 reactivation
+   (needs consent confirmed), 1.12 Google Business replies (needs profile access).
 
 ## Do not touch
 
