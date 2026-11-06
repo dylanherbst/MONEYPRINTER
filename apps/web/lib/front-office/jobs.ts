@@ -7,6 +7,7 @@ import type { ChannelAuth, Rpc } from './orchestrator';
 import { fillTemplate } from './setter/config';
 import type { SetterConfig } from './setter/config';
 import type { SmsSender } from './sms-send';
+import type { EmailSender } from './email';
 
 const MIN = 60_000, HOUR = 60 * MIN, DAY = 24 * HOUR;
 /** Gap before each follow-up: touches at 5 min, 1 h, 1 d, 3 d, 7 d after going quiet, then monthly. */
@@ -34,10 +35,11 @@ export async function markNoShow(rpc: Rpc, auth: ChannelAuth, contact: string, n
 }
 
 type Job = { id: string; contact: string; kind: 'follow-up' | 'reminder-24h' | 'reminder-2h' | 'no-show-rescue'; step: number; appointment: string | null };
-type Ctx = { contact: { name: string | null; phone: string | null; state: string; optedOut: boolean }; appointment: { id: string; starts: string } | null };
+type Ctx = { contact: { name: string | null; phone: string | null; email: string | null; state: string; optedOut: boolean }; appointment: { id: string; starts: string } | null };
 export type JobOutcome = { id: string; kind: Job['kind']; outcome: 'done' | 'cancelled' | 'failed'; note: string; sent: boolean };
 
-export async function runDueJobs(i: { rpc: Rpc; auth: ChannelAuth; send: SmsSender; config: SetterConfig; now: number; max?: number }): Promise<JobOutcome[]> {
+/** Texts go by SMS when the contact has a mobile, otherwise by email when an email sender is given. */
+export async function runDueJobs(i: { rpc: Rpc; auth: ChannelAuth; send: SmsSender; email?: EmailSender; config: SetterConfig; now: number; max?: number }): Promise<JobOutcome[]> {
   const a = { channel: i.auth.channel, channel_key: i.auth.key };
   const jobs = await i.rpc('fo_claim_jobs', { ...a, max_jobs: i.max ?? 25 }) as Job[];
   const out: JobOutcome[] = [];
@@ -46,7 +48,8 @@ export async function runDueJobs(i: { rpc: Rpc; auth: ChannelAuth; send: SmsSend
     try {
       const ctx = await i.rpc('fo_contact_context', { ...a, contact: job.contact }) as Ctx;
       let text: string | null = null, prompt = FOLLOW_UP_PROMPT, next: { step: number; gap: number; kind: Job['kind'] } | null = null;
-      if (ctx.contact.optedOut || !ctx.contact.phone) { outcome = 'cancelled'; note = 'Opted out or no phone'; }
+      const reachable = !!ctx.contact.phone || (!!ctx.contact.email && !!i.email);
+      if (ctx.contact.optedOut || !reachable) { outcome = 'cancelled'; note = 'Opted out or no way to reach them'; }
       else if (job.kind === 'follow-up') {
         if (done.has(ctx.contact.state)) { outcome = 'cancelled'; note = `Contact is ${ctx.contact.state}`; }
         else {
@@ -70,7 +73,7 @@ export async function runDueJobs(i: { rpc: Rpc; auth: ChannelAuth; send: SmsSend
       }
       if (text) {
         await i.rpc('fo_log_outbound', { ...a, contact: job.contact, message: text, agent_name: 'setter', prompt });
-        sent = (await i.send(ctx.contact.phone!, text)).sent;
+        sent = ctx.contact.phone ? (await i.send(ctx.contact.phone, text)).sent : (await i.email!(ctx.contact.email as string, `${i.config.businessName}: ${job.kind.startsWith('reminder') ? 'your booking' : 'following up'}`, text)).sent;
         note = sent ? 'Sent' : 'Logged (live sending off)';
         if (next) await i.rpc('fo_schedule_job', { ...a, contact: job.contact, job_kind: next.kind, job_step: next.step, due: iso(i.now + next.gap), appointment: null });
       }

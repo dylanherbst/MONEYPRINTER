@@ -108,11 +108,21 @@ fe8a1ad Keep restored course textarea accessible names stable
   discount ask, guardrails, jobs). The model is scripted; a live replay against the real model is still to build.
 - Owner actions are listed in `docs/agents/OWNER_TODO.md`.
 
+### Web chat, email and the live replay (tracker 1.8, 1.9, 1.10)
+
+- Migration `202611060004_front_office_chat_email.sql`: web chat visitors as contacts, generic `fo_ingest` for chat and email,
+  `fo_save_details` (answers + name/email/mobile, never silently merges records), `fo_chat_history`.
+- `POST/GET /api/front-office/chat` + `/tools/front-office-chat` test page: AI answers only with FRONT_OFFICE_CHAT_LIVE=1.
+- `lib/front-office/email.ts` (Postmark, assumed) + `POST /api/front-office/email/inbound`: basic-auth secret, only the new
+  part of the email is read, replies thread with In-Reply-To. The job runner emails follow-ups to contacts with no mobile.
+- Setter is channel-aware (style and length per channel; asks for mobile or email before booking on chat and email).
+- `apps/web/test/live/setter-live.ts`: replays the scenarios against the real model (needs the key; not part of `npm test`).
+
 ## Tests run and results
 
 Run in the Cowork Linux VM with Node 22.23 (the project pins 24.21; run `ventra-verify` on the Mac to confirm):
 - `tsc --noEmit`: pass. `eslint . --max-warnings 0`: pass.
-- `node --experimental-strip-types --test test/*.test.ts`: 550 pass, 0 fail (514 before the pivot). Gate 0.7 covered by
+- `node --experimental-strip-types --test test/*.test.ts`: 557 pass, 0 fail (514 before the pivot). Gate 0.7 covered by
   `front-office-db.test.ts` on PGlite with the real migration (fixture Auth, NOT Supabase integration).
 - One flaky timing test seen once (`local-service-client-portal-draft`, "source drift"); passes on rerun, untouched code.
 - NOT run: `next build` (node_modules hold macOS binaries) and `npm run test:local-integration`.
@@ -129,8 +139,8 @@ Run in the Cowork Linux VM with Node 22.23 (the project pins 24.21; run `ventra-
 ## Next steps
 
 1. Owner: work through `docs/agents/OWNER_TODO.md` (verify on the Mac, keys, channel, approvals).
-2. Build next: 1.8 web chat channel, 1.9 email channel, live replay of the Setter test set against the real model,
-   1.11 reactivation (needs consent confirmed), 1.12 Google Business replies (needs Google Business Profile access).
+2. Build next: 1.11 reactivation (needs consent confirmed), 1.12 Google Business replies (needs Google Business Profile access),
+   then Phase 2 (Sales agent: offer config, objection playbook, payment link).
 
 ## Do not touch
 

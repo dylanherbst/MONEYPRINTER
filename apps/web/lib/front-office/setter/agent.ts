@@ -7,7 +7,7 @@ import type { Offer } from '../booking';
 import type { CalendarProvider } from '../calendar/google';
 import { formatSlot } from '../calendar/slots';
 import { checkedHandoff } from '../handoff';
-import type { Agent, Handoff } from '../handoff';
+import type { Agent, Channel, Handoff } from '../handoff';
 import { scheduleReminders, startFollowUps } from '../jobs';
 import type { Llm, LlmMessage, ToolResultBlock, ToolSpec, ToolUseBlock } from '../llm';
 import type { ChannelAuth, Rpc } from '../orchestrator';
@@ -24,10 +24,11 @@ type Context = {
   handoffs: { from: string; owner: string; intent: string; summary: string }[];
 };
 export type SetterTurn = { reply: string | null; state: ContactState; booked: boolean; handedTo: Agent | null; tools: string[] };
-export type SetterDeps = { llm: Llm; rpc: Rpc; auth: ChannelAuth; calendar: CalendarProvider | null; send: SmsSender; config: SetterConfig; now: number };
+export type SetterDeps = { llm: Llm; rpc: Rpc; auth: ChannelAuth; calendar: CalendarProvider | null; send: SmsSender; config: SetterConfig; now: number; channel?: Channel };
+const replyLimit: Record<Channel, number> = { sms: 320, 'web-chat': 600, email: 1500, voice: 400, form: 600 };
 
 export const setterTools: ToolSpec[] = [
-  { name: 'save_answers', description: 'Save qualification answers by question id, and the contact name or email if given.', input_schema: { type: 'object', properties: { answers: { type: 'object', additionalProperties: { type: 'string' } }, name: { type: 'string' }, email: { type: 'string' } }, required: ['answers'] } },
+  { name: 'save_answers', description: 'Save qualification answers by question id, and the contact name, email or mobile if given.', input_schema: { type: 'object', properties: { answers: { type: 'object', additionalProperties: { type: 'string' } }, name: { type: 'string' }, email: { type: 'string' }, phone: { type: 'string', description: 'Mobile in E.164, e.g. +61412345678' } }, required: ['answers'] } },
   { name: 'set_stage', description: 'Move the contact to qualifying, qualified, disqualified or nurture.', input_schema: { type: 'object', properties: { stage: { type: 'string', enum: ['qualifying', 'qualified', 'disqualified', 'nurture'] }, reason: { type: 'string' } }, required: ['stage', 'reason'] } },
   { name: 'offer_times', description: 'Get two or three open times from the live calendar. Only once the contact is qualified.', input_schema: { type: 'object', properties: {} } },
   { name: 'book_time', description: 'Book one of the times returned by offer_times, using its start value.', input_schema: { type: 'object', properties: { start: { type: 'string' } }, required: ['start'] } },
@@ -54,6 +55,7 @@ export function transcript(messages: Context['messages']): LlmMessage[] {
 
 export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<SetterTurn> {
   const a = { channel: d.auth.channel, channel_key: d.auth.key };
+  const channel: Channel = d.channel ?? 'sms';
   const ctx = await d.rpc('fo_contact_context', { ...a, contact: contactId }) as Context;
   const used: string[] = [];
   let state = ctx.contact.state, booked = false, handedTo: Agent | null = null, offers: Offer[] = [], bookedReply: string | null = null;
@@ -66,7 +68,7 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
     ctx.appointment ? `Already booked: ${formatSlot(Date.parse(ctx.appointment.starts), d.config.availability.timeZone)}.` : '',
     ctx.handoffs.length ? `Earlier handoffs: ${ctx.handoffs.map(h => `${h.from} to ${h.owner}: ${h.intent}`).join('; ')}.` : '',
   ].filter(Boolean).join('\n');
-  const system = setterSystemPrompt(d.config, formatSlot(d.now, d.config.availability.timeZone)) + '\n\n' + contactLine;
+  const system = setterSystemPrompt(d.config, formatSlot(d.now, d.config.availability.timeZone), channel) + '\n\n' + contactLine;
   const messages = transcript(ctx.messages);
 
   async function moveTo(target: ContactState, reason: string) {
@@ -79,7 +81,7 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
   async function handoff(owner: Agent, intent: string, summary: string, nextAction: string) {
     const h: Handoff = checkedHandoff({
       contact: { id: contactId, name: ctx.contact.name, phone: ctx.contact.phone, email: ctx.contact.email, state },
-      channel: 'sms', intent: intent || 'follow up', answers: ctx.contact.answers, summary: summary || 'See the conversation.', nextAction, from: 'setter', owner,
+      channel, intent: intent || 'follow up', answers: ctx.contact.answers, summary: summary || 'See the conversation.', nextAction, from: 'setter', owner,
     });
     await d.rpc('fo_record_handoff', { ...a, contact: contactId, handoff: h });
     handedTo = owner;
@@ -93,13 +95,17 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
         const answers: Record<string, string> = {};
         const ids = new Set(d.config.questions.map(q => q.id));
         for (const [k, v] of Object.entries((input.answers ?? {}) as Record<string, unknown>)) if (ids.has(k) && typeof v === 'string' && v.trim()) answers[k] = v.trim().slice(0, 1000);
-        const email = str(input.email, 254);
-        const merged = await d.rpc('fo_save_answers', { ...a, contact: contactId, new_answers: answers, contact_name: str(input.name, 160) || null, contact_email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null }) as Record<string, string>;
-        ctx.contact.answers = merged ?? { ...ctx.contact.answers, ...answers };
+        const email = str(input.email, 254), phone = str(input.phone, 20).replace(/[\s()-]/g, '');
+        const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), okPhone = /^\+[1-9][0-9]{6,14}$/.test(phone);
+        const r = await d.rpc('fo_save_details', { ...a, contact: contactId, new_answers: answers, contact_name: str(input.name, 160) || null, contact_email: okEmail ? email : null, contact_phone: okPhone ? phone : null }) as { answers: Record<string, string>; skipped: string[] } | null;
+        ctx.contact.answers = r?.answers ?? { ...ctx.contact.answers, ...answers };
+        const skipped = r?.skipped ?? [];
         if (str(input.name, 160)) ctx.contact.name = str(input.name, 160);
-        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) ctx.contact.email = email.toLowerCase();
+        if (okEmail && !skipped.includes('email')) ctx.contact.email = email.toLowerCase();
+        if (okPhone && !skipped.includes('phone')) ctx.contact.phone = phone;
+        const note = (phone && !okPhone ? ' The mobile was not in +61 format; ask again.' : '') + (skipped.length ? ` Not saved (already on another record): ${skipped.join(', ')}. A person will check.` : '');
         const missing = d.config.questions.filter(q => q.required && !ctx.contact.answers[q.id]).map(q => q.id);
-        return missing.length ? `Saved. Still needed: ${missing.join(', ')}.` : 'Saved. All required answers are in.';
+        return (missing.length ? `Saved. Still needed: ${missing.join(', ')}.` : 'Saved. All required answers are in.') + note;
       }
       case 'set_stage': {
         const stage = input.stage;
@@ -120,6 +126,7 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
       case 'book_time': {
         const start = Date.parse(str(input.start, 40));
         if (!d.calendar) return 'The calendar is not connected.';
+        if (!ctx.contact.phone && !ctx.contact.email) return 'Ask for their mobile or email first, and save it, so the confirmation reaches them.';
         if (!offers.length) offers = await offerTimes(d.calendar, d.config.availability, d.now, 12);
         if (!offers.some(o => o.start === start)) return 'That is not one of the offered times. Call offer_times and use a start value from it.';
         if (state !== 'qualified') await moveTo('qualified', 'Picked a time');
@@ -161,9 +168,9 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
     if (booked) break;
   }
   // After a booking the logged confirmation is the reply; otherwise the model's text (capped to two SMS).
-  let text = booked ? bookedReply : (reply.replace(/\s+/g, ' ').trim().slice(0, 320) || null);
+  let text = booked ? bookedReply : ((channel === 'email' ? reply.trim() : reply.replace(/\s+/g, ' ').trim()).slice(0, replyLimit[channel]) || null);
   if (text && !booked) await d.rpc('fo_log_outbound', { ...a, contact: contactId, message: text, agent_name: 'setter', prompt: SETTER_PROMPT_VERSION });
-  if (text && !booked && !handedTo && !['booked', 'disqualified', 'customer'].includes(state)) await startFollowUps(d.rpc, d.auth, contactId, d.now);
+  if (text && !booked && !handedTo && (ctx.contact.phone || ctx.contact.email) && !['booked', 'disqualified', 'customer'].includes(state)) await startFollowUps(d.rpc, d.auth, contactId, d.now);
   if (!text) text = null;
   return { reply: text, state, booked, handedTo, tools: used };
 }

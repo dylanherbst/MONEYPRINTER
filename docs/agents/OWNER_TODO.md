@@ -7,7 +7,7 @@ Never paste a secret into a chat: put values in the server environment (`.env.lo
 
 - [ ] `ventra-verify` on `feature/front-office-pivot` (runs `next build` and the local Supabase integration, which the Cowork VM cannot).
 - [ ] `ventra-handoff status`, then `ventra-handoff recover` if the Nov 3 lock (pid 49645) is stale.
-- [ ] Apply the front-office migrations to the LOCAL Supabase stack only: `supabase migration up` (files `202611060001` to `202611060003`). Production migrations need a release review.
+- [ ] Apply the front-office migrations to the LOCAL Supabase stack only: `supabase migration up` (files `202611060001` to `202611060004`). Production migrations need a release review.
 
 ## Logins and keys (server env)
 
@@ -19,12 +19,16 @@ Never paste a secret into a chat: put values in the server environment (`.env.lo
 | Google Calendar (1.2, 1.3) | `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, `GOOGLE_CALENDAR_REFRESH_TOKEN`, `GOOGLE_CALENDAR_ID` | Google Cloud console: enable Calendar API, OAuth client (web), consent screen; get a refresh token for the bookings calendar with scopes `calendar.events` + `calendar.freebusy` |
 | Setter AI (1.1) | `ANTHROPIC_API_KEY`, `FRONT_OFFICE_MODEL` (exact Claude model id to use) | console.anthropic.com; pick the model id from the models page |
 | Follow-up and reminder runner (1.4, 1.5) | `FRONT_OFFICE_CRON_SECRET` (32+ random characters), `FRONT_OFFICE_CHANNEL_ID`, `FRONT_OFFICE_CHANNEL_KEY` | Generate the secret yourself; channel id and key come from `fo_create_channel` |
+| Website chat (1.8) | `FRONT_OFFICE_CHAT_CHANNEL_ID`, `FRONT_OFFICE_CHAT_CHANNEL_KEY`; `FRONT_OFFICE_CHAT_ORIGINS` if the widget sits on another site; `FRONT_OFFICE_CHAT_LIVE=1` to let the AI answer | Create a `web-chat` channel with `fo_create_channel` (address = your site, e.g. `ventra.com.au`) |
+| Email (1.9) | `POSTMARK_SERVER_TOKEN`, `FRONT_OFFICE_EMAIL_FROM` (verified sender), `FRONT_OFFICE_EMAIL_WEBHOOK_SECRET` (16+ random characters) | Postmark account: a server, a verified sender domain, and an inbound address. Create an `email` channel with `fo_create_channel` |
 | Something that calls the runner every minute | `POST /api/front-office/jobs/run` with `Authorization: Bearer <FRONT_OFFICE_CRON_SECRET>` | A cron on the host, or the VENTRA dashboard's Scheduled jobs |
 
 ## One-time setup
 
 - [ ] Create Ventra's SMS channel: as the workspace owner, call `fo_create_channel(<workspace id>, 'sms', '<Twilio number>', '<new 40-character key>')`. Keep the key; it goes in the webhook URL and `FRONT_OFFICE_CHANNEL_KEY`.
 - [ ] Twilio number, "A message comes in": `POST https://<public origin>/api/front-office/sms/inbound?channel=<channel id>&key=<channel key>`.
+- [ ] Postmark inbound webhook URL: `https://ventra:<FRONT_OFFICE_EMAIL_WEBHOOK_SECRET>@<public origin>/api/front-office/email/inbound?channel=<email channel id>&key=<channel key>`. Forward Ventra's enquiry address to the Postmark inbound address.
+- [ ] After any change to the Setter's prompt or questions, run the live replay: `ANTHROPIC_API_KEY=... FRONT_OFFICE_MODEL=... node --experimental-strip-types apps/web/test/live/setter-live.ts` (from the repo, env vars in the shell, not in a file). Costs a few cents.
 - [ ] Share the bookings Google Calendar with the account that made the refresh token (if they differ).
 
 ## Decisions and approvals
@@ -32,5 +36,6 @@ Never paste a secret into a chat: put values in the server environment (`.env.lo
 - [ ] Approve live sending to real people: set `FRONT_OFFICE_SEND_LIVE=1` (until then every message is logged, not sent). Test on your own phone first.
 - [ ] Check the Setter's questions and wording for Ventra in `apps/web/lib/front-office/setter/config.ts` (drafted by Claude from the master plan; assumed a 30-minute strategy call by phone, Mon to Fri 9 am to 5 pm Perth).
 - [ ] AU Spam Act: confirm leads texting the number counts as consent for replies, and that past-lead reactivation (1.11) has consent before it is switched on.
+- [ ] Email provider: Claude assumed Postmark (only `lib/front-office/email.ts` changes if you prefer another).
 - [ ] Master plan decisions still open: payment provider (Phase 2), Sales escalation threshold, first three target clients, organic channels to start.
 - [ ] Approve a Git remote if you want the branch pushed.

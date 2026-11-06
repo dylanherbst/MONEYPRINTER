@@ -58,10 +58,9 @@ export async function bookSlot(i: BookInput): Promise<BookResult> {
   const booked = await i.rpc('fo_book', { ...auth, contact: i.contact.id, starts: new Date(i.start).toISOString(), ends: new Date(i.start + dur).toISOString(), calendar_provider: 'google', event_id: eventId }) as Record<string, unknown>;
   if (booked.duplicate === true) return { appointment: String(booked.appointment), duplicate: true, eventId, confirmation: '', sent: false };
   const confirmation = confirmationText(i.businessName, i.start, i.availability.timeZone, i.where);
+  // Logged before anything is sent (tracker 0.6). By SMS when there is a mobile; on chat or email it is the reply itself.
+  await i.rpc('fo_log_outbound', { ...auth, contact: i.contact.id, message: confirmation, agent_name: 'setter', prompt: BOOKING_CONFIRMATION_PROMPT });
   let sent = false;
-  if (i.contact.phone) {
-    await i.rpc('fo_log_outbound', { ...auth, contact: i.contact.id, message: confirmation, agent_name: 'setter', prompt: BOOKING_CONFIRMATION_PROMPT });
-    sent = (await i.send(i.contact.phone, confirmation)).sent;
-  }
+  if (i.contact.phone) sent = (await i.send(i.contact.phone, confirmation)).sent;
   return { appointment: String(booked.appointment), duplicate: false, eventId, confirmation, sent };
 }

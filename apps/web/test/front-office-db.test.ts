@@ -15,7 +15,7 @@ async function setup() {
     create function auth.uid() returns uuid language sql stable as $$ select (auth.jwt()->>'sub')::uuid $$;
     grant usage on schema public,auth to authenticated,anon;
     grant execute on function auth.uid(),auth.jwt() to authenticated,anon;`);
-  for (const f of ['202610160001_s01.sql', '202611060001_front_office.sql', '202611060002_front_office_appointments.sql', '202611060003_front_office_setter.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
+  for (const f of ['202610160001_s01.sql', '202611060001_front_office.sql', '202611060002_front_office_appointments.sql', '202611060003_front_office_setter.sql', '202611060004_front_office_chat_email.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
   const owner = '11111111-1111-4111-8111-111111111111', staff = '22222222-2222-4222-8222-222222222222';
   const so = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', ss = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
   await db.query('insert into auth.users values ($1),($2)', [owner, staff]);
@@ -144,5 +144,31 @@ test('setter store: context, answers, jobs cancelled by a reply or opt-out, clai
     await db.exec('reset role');
     const rows = (await db.query<{ step: number; status: string; detail: string }>('select step, status, detail from public.fo_jobs order by created_at, step')).rows;
     assert.deepEqual(rows.map(r => [r.step, r.status, r.detail]), [[1, 'cancelled', 'Replaced'], [2, 'done', 'Sent'], [3, 'cancelled', 'Contact replied'], [1, 'cancelled', 'Contact replied']]);
+  } finally { await db.close(); }
+});
+test('chat and email: visitor contacts, email contacts, details saved without silent merges, history', async () => {
+  const { db, as, one, w } = await setup();
+  try {
+    const chat = await one<string>("select public.fo_create_channel($1,'web-chat','ventra.com.au',$2) as r", [w, KEY]);
+    const mail = await one<string>("select public.fo_create_channel($1,'email','hello@ventra.com.au',$2) as r", [w, KEY]);
+    const sms = await one<string>("select public.fo_create_channel($1,'sms',$2,$3) as r", [w, '+61400000009', KEY]);
+    await as(null);
+    const ing = 'select public.fo_ingest($1,$2,$3,$4,$5,$6,$7) as r';
+    const visitor = 'v_abcdefghijklmnop';
+    const v = await one<Record<string, string | boolean>>(ing, [chat, KEY, visitor, 'Hi, do you work with gyms?', 'chat-0001', false, false]);
+    assert.equal(v.created, true); assert.equal(v.state, 'new');
+    assert.equal((await one<Record<string, unknown>>(ing, [chat, KEY, visitor, 'Hi, do you work with gyms?', 'chat-0001', false, false])).duplicate, true);
+    await assert.rejects(db.query(ing, [chat, KEY, 'short', 'x', 'chat-0002', false, false]), /Visitor id/);
+    await assert.rejects(db.query(ing, [sms, KEY, visitor, 'x', 'chat-0003', false, false]), /Channel not recognised/, 'SMS uses fo_ingest_sms');
+    const e = await one<Record<string, string>>(ing, [mail, KEY, 'Sam@Example.com', 'Subject: Pricing', '<m1@example.com>', false, false]);
+    assert.notEqual(e.contact, v.contact);
+    const details = 'select public.fo_save_details($1,$2,$3,$4,$5,$6,$7) as r';
+    const saved = await one<{ skipped: string[] }>(details, [chat, KEY, v.contact, { business: 'Gym' }, 'Sam', 'sam@example.com', '+61411111111']);
+    assert.deepEqual(saved.skipped, ['email'], 'email belongs to another contact: not moved');
+    const bad = await one<{ skipped: string[] }>(details, [chat, KEY, v.contact, {}, null, null, '0411 111 111']);
+    assert.deepEqual(bad.skipped, ['phone'], 'phone must be E.164');
+    const hist = await one<{ direction: string; body: string }[]>('select public.fo_chat_history($1,$2,$3) as r', [chat, KEY, visitor]);
+    assert.deepEqual(hist.map(h => h.body), ['Hi, do you work with gyms?']);
+    assert.deepEqual(await one('select public.fo_chat_history($1,$2,$3) as r', [chat, KEY, 'v_nobody_here_12345']), []);
   } finally { await db.close(); }
 });

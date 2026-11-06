@@ -4,6 +4,7 @@ import { supabaseConfigured } from '../../../../../lib/workspace-route';
 import { bearerMatches, runDueJobs } from '../../../../../lib/front-office/jobs';
 import type { Rpc } from '../../../../../lib/front-office/orchestrator';
 import { senderFromEnv } from '../../../../../lib/front-office/sms-send';
+import { emailSenderFromEnv } from '../../../../../lib/front-office/email';
 import { ventraSetterConfig } from '../../../../../lib/front-office/setter/config';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
   const db = createSupabaseClient();
   const rpc: Rpc = async (fn, args) => { const r = await db.rpc(fn, args); if (r.error) throw new Error(r.error.message); return r.data; };
   try {
-    const results = await runDueJobs({ rpc, auth: { channel, key }, send: senderFromEnv(), config: ventraSetterConfig, now: Date.now() });
+    const results = await runDueJobs({ rpc, auth: { channel, key }, send: senderFromEnv(), email: emailSenderFromEnv(), config: ventraSetterConfig, now: Date.now() });
     return reply({ ran: results.length, results: results.map(r => ({ kind: r.kind, outcome: r.outcome, note: r.note, sent: r.sent })) });
   } catch {
     return reply({ error: 'Front office storage is unavailable.' }, 503);

@@ -59,6 +59,7 @@ export function checkedHandoff(input: unknown): Handoff {
     nextAction: text(h.nextAction, 500, 'next action'),
     from, owner,
   };
-  if (!handoff.contact.phone && !handoff.contact.email) throw new Error('Handoff contact needs a phone or an email.');
+  // A web chat visitor may not have shared either yet; the next owner answers in the same chat.
+  if (!handoff.contact.phone && !handoff.contact.email && handoff.channel !== 'web-chat') throw new Error('Handoff contact needs a phone or an email.');
   return handoff;
 }

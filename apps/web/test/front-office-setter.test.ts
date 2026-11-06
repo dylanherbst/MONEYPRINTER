@@ -5,11 +5,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import './helpers/route-harness.ts';
 
+const { store } = await import('./helpers/front-office-store.ts');
 const { runSetterTurn, transcript } = await import('../lib/front-office/setter/agent.ts');
 const { ventraSetterConfig, checkedSetterConfig, fillTemplate } = await import('../lib/front-office/setter/config.ts');
 const { SETTER_PROMPT_VERSION, setterSystemPrompt } = await import('../lib/front-office/setter/prompt.ts');
 const { runDueJobs, markNoShow, gapBefore, bearerMatches } = await import('../lib/front-office/jobs.ts');
-const { canTransition } = await import('../lib/front-office/state.ts');
 const { anthropicLlm, anthropicConfigFromEnv } = await import('../lib/front-office/llm.ts');
 type Llm = import('../lib/front-office/llm.ts').Llm;
 type Block = import('../lib/front-office/llm.ts').Block;
@@ -17,44 +17,6 @@ type Block = import('../lib/front-office/llm.ts').Block;
 const NOW = Date.parse('2026-11-09T00:30:00Z'); // Monday 8:30 am Perth
 const auth = { channel: 'ch', key: 'k'.repeat(40) };
 
-/** In-memory stand-in for the fo_* RPCs with the same rules (state machine, opt-out, one pending ladder). */
-function store(state = 'new', messages: { direction: 'inbound' | 'outbound'; body: string }[] = [{ direction: 'inbound', body: 'Hi, saw your ad' }]) {
-  const db = {
-    contact: { id: 'c1', name: null as string | null, phone: '+61411111111', email: null as string | null, state, optedOut: false, answers: {} as Record<string, string> },
-    messages: messages.map(m => ({ ...m, agent: null, at: '' })),
-    appointment: null as null | { id: string; starts: string; ends: string; status: string },
-    handoffs: [] as Record<string, unknown>[], outbound: [] as { message: string; prompt: string }[],
-    jobs: [] as { id: string; contact: string; kind: string; step: number; appointment: string | null; due: string; status: string }[],
-    states: [state] as string[],
-  };
-  const rpc = async (fn: string, a: Record<string, unknown>): Promise<unknown> => {
-    switch (fn) {
-      case 'fo_contact_context': return structuredClone({ contact: db.contact, messages: db.messages, appointment: db.appointment, handoffs: db.handoffs });
-      case 'fo_save_answers': Object.assign(db.contact.answers, a.new_answers); if (a.contact_name) db.contact.name = a.contact_name as string; if (a.contact_email) db.contact.email = a.contact_email as string; return { ...db.contact.answers };
-      case 'fo_set_state':
-        if (!canTransition(db.contact.state as never, a.new_state as never)) throw new Error(`Contact cannot move from ${db.contact.state} to ${a.new_state}.`);
-        db.contact.state = a.new_state as string; db.states.push(db.contact.state); return db.contact.state;
-      case 'fo_record_handoff': db.handoffs.push(a.handoff as Record<string, unknown>); return 'h' + db.handoffs.length;
-      case 'fo_log_outbound':
-        if (db.contact.optedOut) throw new Error('Contact opted out.');
-        if (!a.prompt) throw new Error('prompt version required');
-        db.outbound.push({ message: a.message as string, prompt: a.prompt as string }); return 'm';
-      case 'fo_schedule_job':
-        if (a.job_kind === 'follow-up' || a.job_kind === 'no-show-rescue') for (const j of db.jobs) if (j.kind === a.job_kind && j.status === 'pending') j.status = 'cancelled';
-        db.jobs.push({ id: 'j' + db.jobs.length, contact: a.contact as string, kind: a.job_kind as string, step: a.job_step as number, appointment: a.appointment as string | null, due: a.due as string, status: 'pending' }); return 'j';
-      case 'fo_booking_for_event': return null;
-      case 'fo_book':
-        if (!canTransition(db.contact.state as never, 'booked')) throw new Error('cannot book');
-        db.contact.state = 'booked'; db.states.push('booked');
-        db.appointment = { id: 'appt-1', starts: a.starts as string, ends: a.ends as string, status: 'booked' };
-        return { appointment: 'appt-1', state: 'booked', duplicate: false };
-      case 'fo_claim_jobs': { const due = db.jobs.filter(j => j.status === 'pending' && Date.parse(j.due) <= (a.__now as number ?? Infinity)); due.forEach(j => { j.status = 'running'; }); return due.map(j => ({ ...j })); }
-      case 'fo_finish_job': { const j = db.jobs.find(x => x.id === a.job); if (j) j.status = a.outcome as string; return null; }
-      default: throw new Error('unknown rpc ' + fn);
-    }
-  };
-  return { db, rpc };
-}
 /** A model that plays back a script: each step is the assistant content for one round. */
 function scripted(steps: Block[][]): { llm: Llm; seen: string[] } {
   const seen: string[] = []; let i = 0;
@@ -185,4 +147,19 @@ test('anthropic client: needs key and model; sends the documented request; error
   assert.equal(seen!.url, 'https://api.anthropic.com/v1/messages'); assert.equal(seen!.headers['anthropic-version'], '2023-06-01'); assert.equal(seen!.body.model, 'model-x');
   const bad = anthropicLlm({ apiKey: 'sk-secret', model: 'm' }, (async () => new Response('{}', { status: 401 })) as typeof fetch);
   await assert.rejects(bad({ system: 's', messages: [], tools: [] }), (e: Error) => /401/.test(e.message) && !/sk-secret/.test(e.message));
+});
+test('scenario web chat visitor: no booking until a mobile or email is saved; chat-style prompt', async () => {
+  const { db, rpc } = store('qualified', [{ direction: 'inbound', body: 'Tuesday 9am works' }], null);
+  const { llm } = scripted([
+    [tool('book_time', { start: '2026-11-10T01:00:00.000Z' })],
+    [tool('save_answers', { answers: {}, phone: '0412 345 678' })],
+    [tool('save_answers', { answers: {}, phone: '+61412345678' }, 's2')],
+    [tool('book_time', { start: '2026-11-10T01:00:00.000Z' }, 'b2')],
+  ]);
+  const turn = await runSetterTurn('c1', { ...deps(llm, rpc), channel: 'web-chat' });
+  assert.equal(turn.booked, true); assert.equal(db.contact.phone, '+61412345678');
+  assert.deepEqual(turn.tools, ['book_time', 'save_answers', 'save_answers', 'book_time']);
+  assert.equal(db.outbound.length, 1, 'the confirmation is logged even on chat');
+  const p = setterSystemPrompt(ventraSetterConfig, 'now', 'web-chat');
+  assert.match(p, /website chat/); assert.match(p, /ask for their mobile number or email/);
 });
