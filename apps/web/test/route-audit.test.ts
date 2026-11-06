@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { W, call, configuredEnv, installFakeSupabase, makeRequest, setEnv } from './helpers/route-harness.ts';
+// These suites cover the route logic behind the scope freeze; test/scope-freeze.test.ts covers the freeze itself.
+process.env.VENTRA_SCOPE_FREEZE = 'off';
 import { signForTest } from '../lib/stripe-webhook.ts';
 
 const workspace = await import('../app/api/workspace/route.ts');

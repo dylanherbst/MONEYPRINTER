@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readBoundedRequestBody, RequestBodyTooLarge } from '../../../../lib/request-body';
 import { routeLimits } from '../../../../lib/rate-limit';
 import { createOrderLedger, orderFromEvent, verifyStripeSignature } from '../../../../lib/stripe-webhook';
+import { frozenReply } from '../../../../lib/scope-freeze';
 export const dynamic = 'force-dynamic';
 // TEST MODE ONLY. Orders are held in this server process (idempotent by event id) until the owner approves a persistent store.
 const ledger = createOrderLedger();
 export async function POST(req: NextRequest) {
+  const paused = frozenReply('stripe-webhook', { retry: true }); if (paused) return paused; // scope freeze: docs/agents/SCOPE_FREEZE.md
   const reply = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) return reply({ error: 'Webhook is not connected: no signing secret is configured.', configured: false }, 503);

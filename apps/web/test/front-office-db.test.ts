@@ -1,0 +1,95 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
+import { contactStates, transitions } from '../lib/front-office/state.ts';
+
+const KEY = 'k'.repeat(40), NUMBER = '+61400000001', LEAD = '+61411111111';
+
+async function setup() {
+  const db = new PGlite();
+  await db.exec(`create role anon; create role authenticated;
+    create schema auth; create table auth.users(id uuid primary key);
+    create table auth.sessions(id uuid primary key,user_id uuid,not_after timestamptz);
+    create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;
+    create function auth.uid() returns uuid language sql stable as $$ select (auth.jwt()->>'sub')::uuid $$;
+    grant usage on schema public,auth to authenticated,anon;
+    grant execute on function auth.uid(),auth.jwt() to authenticated,anon;`);
+  for (const f of ['202610160001_s01.sql', '202611060001_front_office.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
+  const owner = '11111111-1111-4111-8111-111111111111', staff = '22222222-2222-4222-8222-222222222222';
+  const so = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', ss = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  await db.query('insert into auth.users values ($1),($2)', [owner, staff]);
+  await db.query('insert into auth.sessions(id,user_id) values ($1,$2),($3,$4)', [so, owner, ss, staff]);
+  const as = async (id: string | null, session?: string) => {
+    await db.exec('reset role');
+    await db.query("select set_config('request.jwt.claims',$1,false)", [id ? JSON.stringify({ sub: id, session_id: session }) : '']);
+    await db.exec(id ? 'set role authenticated' : 'set role anon');
+  };
+  const one = async <T = unknown>(sql: string, params: unknown[] = []) => (await db.query<{ r: T }>(sql, params)).rows[0]?.r as T;
+  await as(owner, so);
+  const w = await one<string>("select public.create_workspace('Ventra') as r");
+  const channel = await one<string>("select public.fo_create_channel($1,'sms',$2,$3) as r", [w, NUMBER, KEY]);
+  return { db, as, one, w, channel, owner, so, staff, ss };
+}
+const ingest = 'select public.fo_ingest_sms($1,$2,$3,$4,$5,$6,$7,$8) as r';
+
+test('state machine in SQL matches lib/front-office/state.ts exactly', async () => {
+  const { db, one } = await setup();
+  try {
+    for (const from of contactStates) for (const to of contactStates)
+      assert.equal(await one<boolean>('select public.fo_transition_ok($1,$2) as r', [from, to]), transitions[from].includes(to), `${from} -> ${to}`);
+  } finally { await db.close(); }
+});
+test('gate 0.7: a text to the number creates a contact with a state, once per message id', async () => {
+  const { db, as, one, channel, w } = await setup();
+  try {
+    await as(null); // the webhook has no user session
+    const first = await one<Record<string, unknown>>(ingest, [channel, KEY, LEAD, NUMBER, 'Hi, how much is it?', 'SM0000000001', false, false]);
+    assert.equal(first.created, true); assert.equal(first.state, 'new'); assert.equal(first.duplicate, false); assert.equal(first.workspace, w);
+    const again = await one<Record<string, unknown>>(ingest, [channel, KEY, LEAD, NUMBER, 'Hi, how much is it?', 'SM0000000001', false, false]);
+    assert.equal(again.duplicate, true, 'Twilio retries do not double-log'); assert.equal(again.contact, first.contact);
+    const second = await one<Record<string, unknown>>(ingest, [channel, KEY, LEAD, NUMBER, 'Still there?', 'SM0000000002', false, false]);
+    assert.equal(second.created, false); assert.equal(second.contact, first.contact);
+    await assert.rejects(db.query(ingest, [channel, 'wrong-key'.padEnd(40, 'x'), LEAD, NUMBER, 'x', 'SM0000000003', false, false]), /Channel not recognised/);
+    await assert.rejects(db.query(ingest, [channel, KEY, LEAD, '+61499999999', 'x', 'SM0000000004', false, false]), /Channel not recognised/, 'To must be the channel number');
+    await assert.rejects(db.query('select * from public.fo_contacts'), /permission denied/, 'anon cannot read contacts');
+    await assert.rejects(db.query("select public.fo_create_channel($1,'sms','+61400000009',$2)", [w, KEY]), /permission denied/);
+  } finally { await db.close(); }
+});
+test('state moves, outbound log needs a prompt version, opt-out stops automation, members read under RLS', async () => {
+  const { db, as, one, channel, owner, so, staff, ss } = await setup();
+  try {
+    await as(null);
+    const r = await one<Record<string, string>>(ingest, [channel, KEY, LEAD, NUMBER, 'Hello', 'SM0000000010', false, false]);
+    const c = r.contact;
+    assert.equal(await one('select public.fo_set_state($1,$2,$3,$4,$5,$6) as r', [channel, KEY, c, 'qualifying', 'setter', 'asked first question']), 'qualifying');
+    await assert.rejects(db.query('select public.fo_set_state($1,$2,$3,$4,$5,$6)', [channel, KEY, c, 'customer', 'setter', 'skip']), /cannot move from qualifying to customer/);
+    await assert.rejects(db.query('select public.fo_log_outbound($1,$2,$3,$4,$5,$6)', [channel, KEY, c, 'Hi!', 'setter', null]), /check constraint/, 'automated sends need a prompt version');
+    assert.ok(await one('select public.fo_log_outbound($1,$2,$3,$4,$5,$6) as r', [channel, KEY, c, 'Hi! What are you after?', 'setter', 'setter/qualify@1']));
+    await one('select public.fo_log_dispatch($1,$2,$3,$4,$5) as r', [channel, KEY, c, 'setter', 'Contact is qualifying.']);
+    const out = await one<Record<string, unknown>>(ingest, [channel, KEY, LEAD, NUMBER, 'STOP', 'SM0000000011', true, false]);
+    assert.equal(out.optedOut, true);
+    await assert.rejects(db.query('select public.fo_log_outbound($1,$2,$3,$4,$5,$6)', [channel, KEY, c, 'Last chance!', 'setter', 'setter/follow-up@1']), /opted out/);
+    assert.ok(await one('select public.fo_log_outbound($1,$2,$3,$4,$5,$6) as r', [channel, KEY, c, 'You are unsubscribed.', 'system', 'system/opt-out-confirmation@1']), 'one confirmation is allowed');
+    const back = await one<Record<string, unknown>>(ingest, [channel, KEY, LEAD, NUMBER, 'START', 'SM0000000012', false, true]);
+    assert.equal(back.optedOut, false);
+    await as(owner, so);
+    const kinds = (await db.query<{ kind: string }>('select kind from public.fo_events where contact_id=$1 order by id', [c])).rows.map(x => x.kind);
+    assert.deepEqual(kinds, ['created', 'inbound', 'state', 'dispatch', 'inbound', 'opt-out', 'inbound', 'opt-in']);
+    assert.equal(await one("select count(*)::int as r from public.fo_messages where contact_id=$1 and direction='outbound' and prompt_version is null", [c]), 0);
+    await assert.rejects(db.query("update public.fo_contacts set state='customer'"), /permission denied/, 'no direct writes');
+    await as(staff, ss);
+    assert.equal(await one('select count(*)::int as r from public.fo_contacts'), 0, 'non-members see nothing');
+  } finally { await db.close(); }
+});
+test('handoff rows need a changed owner and the full object', async () => {
+  const { db, as, one, channel } = await setup();
+  try {
+    await as(null);
+    const c = (await one<Record<string, string>>(ingest, [channel, KEY, LEAD, NUMBER, 'Hi', 'SM0000000020', false, false])).contact;
+    const h = { from: 'setter', owner: 'sales', channel: 'sms', intent: 'book a strategy call', answers: { need: 'more leads' }, summary: 'Runs a gym, wants more trial bookings.', nextAction: 'Run the booked call Tue 6pm' };
+    assert.ok(await one('select public.fo_record_handoff($1,$2,$3,$4) as r', [channel, KEY, c, h]));
+    await assert.rejects(db.query('select public.fo_record_handoff($1,$2,$3,$4)', [channel, KEY, c, { ...h, owner: 'setter' }]), /check constraint/);
+    await assert.rejects(db.query('select public.fo_record_handoff($1,$2,$3,$4)', [channel, KEY, c, { ...h, summary: undefined }]), /null value|check constraint/);
+  } finally { await db.close(); }
+});

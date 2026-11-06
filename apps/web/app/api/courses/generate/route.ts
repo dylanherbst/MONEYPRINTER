@@ -6,8 +6,10 @@ import { generateOpenAICourse } from '../../../../lib/openai-course';
 import { createRateLimiter } from '../../../../lib/rate-limit';
 // Paid provider call: at most 5 generations per user per 10 minutes on this server instance.
 const generationLimit = createRateLimiter(5, 10 * 60_000);
+import { frozenReply } from '../../../../lib/scope-freeze';
 export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
+  const paused = frozenReply('course-generation'); if (paused) return paused; // scope freeze: docs/agents/SCOPE_FREEZE.md
   const reply = (body: unknown, status: number) => NextResponse.json(body, {status, headers: {'Cache-Control':'no-store'}});
   if (!sameOrigin(req.headers.get('origin'),req.headers.get('host'),req.nextUrl.protocol,process.env.LAUNCHPAD_APP_ORIGIN) || !req.headers.get('content-type')?.startsWith('application/json')) return reply({error:'Use same-origin JSON requests.'},403);
   if (!process.env.OPENAI_API_KEY || !process.env.OPENAI_MODEL || !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) return reply({error:'AI generation requires approved server AI and Supabase configuration. Manual drafts are unchanged.'},503);

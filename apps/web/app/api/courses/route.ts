@@ -5,8 +5,10 @@ import { readBoundedRequestBody, RequestBodyTooLarge } from '../../../lib/reques
 import { courseDraftFromInput, editEducationCourseDraft } from '../../../lib/local-education-course';
 import { routeLimits } from '../../../lib/rate-limit';
 import { uuid } from '../../../lib/workspace-validation';
+import { frozenReply } from '../../../lib/scope-freeze';
 export const dynamic = 'force-dynamic';
 async function handle(req: NextRequest) {
+  const paused = frozenReply('courses'); if (paused) return paused; // scope freeze: docs/agents/SCOPE_FREEZE.md
  const reply=(body:unknown,status=200)=>NextResponse.json(body,{status,headers:{'Cache-Control':'no-store'}});
  if(req.method==='POST' && (!sameOrigin(req.headers.get('origin'),req.headers.get('host'),req.nextUrl.protocol,process.env.LAUNCHPAD_APP_ORIGIN) || !req.headers.get('content-type')?.startsWith('application/json'))) return reply({error:'Use same-origin JSON.'},403);
  if(!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) return reply({error:'Account storage is not configured. Browser drafts are unchanged.'},503);

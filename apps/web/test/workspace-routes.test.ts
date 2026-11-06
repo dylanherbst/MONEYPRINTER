@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { W, USER, call, configuredEnv, installFakeSupabase, setEnv } from './helpers/route-harness.ts';
+// These suites cover the route logic behind the scope freeze; test/scope-freeze.test.ts covers the freeze itself.
+process.env.VENTRA_SCOPE_FREEZE = 'off';
 
 const routes = {
   team: (await import('../app/api/workspace/team/route.ts')).GET,

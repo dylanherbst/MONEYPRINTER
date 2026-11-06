@@ -37,5 +37,6 @@ export const routeLimits = {
   workspaceRequests: createRateLimiter(300, 60_000),  // per user, all /api/workspace calls after sign-in
   signInByClient: createRateLimiter(20, 10 * 60_000), // per client address hint, login and signup attempts
   signInByEmail: createRateLimiter(10, 10 * 60_000),  // per email, so one account can not be hammered from many addresses
-  webhookGlobal: createRateLimiter(600, 60_000),      // all callers, before the HMAC check; Stripe retries are well below this
+  webhookGlobal: createRateLimiter(600, 60_000),
+  smsWebhookGlobal: createRateLimiter(600, 60_000),   // all callers of the front-office SMS webhook, before the signature check      // all callers, before the HMAC check; Stripe retries are well below this
 };

@@ -5,12 +5,14 @@ import { checkoutErrors, createTestCheckout } from '../../../lib/stripe-checkout
 import { clientKey, createRateLimiter } from '../../../lib/rate-limit';
 import { offerCurrencies } from '../../../lib/local-offers';
 import type { OfferCurrency } from '../../../lib/local-offers';
+import { frozenReply } from '../../../lib/scope-freeze';
 export const dynamic = 'force-dynamic';
 // TEST MODE ONLY: createTestCheckout refuses any non-test Stripe key. Success and cancel addresses are built here, never taken from the request.
 // Checkout is anonymous, so the key is the client address hint; a global ceiling still bounds the total if that hint is spoofed.
 const limit = createRateLimiter(10, 10 * 60_000);
 const globalLimit = createRateLimiter(200, 10 * 60_000);
 export async function POST(req: NextRequest) {
+  const paused = frozenReply('checkout'); if (paused) return paused; // scope freeze: docs/agents/SCOPE_FREEZE.md
   const reply = (body: unknown, status = 200, headers: Record<string, string> = {}) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store', ...headers } });
   if (!sameOrigin(req.headers.get('origin'), req.headers.get('host'), req.nextUrl.protocol, process.env.LAUNCHPAD_APP_ORIGIN) || !req.headers.get('content-type')?.startsWith('application/json')) return reply({ error: 'Use a same-origin JSON request.' }, 403);
   const key = process.env.STRIPE_SECRET_KEY;

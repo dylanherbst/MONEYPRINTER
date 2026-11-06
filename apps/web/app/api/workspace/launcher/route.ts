@@ -7,6 +7,7 @@ import { workspaceLimits } from '../../../../lib/rate-limit';
 import { isPlainObject, isSameOriginJson, safeInteger } from '../../../../lib/api-errors';
 import { apiReply, supabaseConfigured } from '../../../../lib/workspace-route';
 import { uuid } from '../../../../lib/workspace-validation';
+import { frozenKindReply } from '../../../../lib/scope-freeze';
 export const dynamic = 'force-dynamic';
 const noStore = { 'Cache-Control': 'no-store, private' };
 async function handle(req: NextRequest) {
@@ -27,12 +28,14 @@ async function handle(req: NextRequest) {
     if (req.method === 'GET') {
       const w = uuid(req.nextUrl.searchParams.get('workspace'));
       const kind = checkedKind(req.nextUrl.searchParams.get('kind'));
+      const pausedGet = frozenKindReply(kind); if (pausedGet) return pausedGet;
       const result = await db.from('launcher_drafts').select('data,revision,updated_at').eq('workspace_id', w).eq('kind', kind).maybeSingle();
       return result.error ? apiReply('storage_unavailable', 'Unable to load the account draft. Check that the database is up to date.') : ok({ draft: result.data });
     }
     const input = JSON.parse(await readBoundedRequestBody(req, launcherDraftByteLimit + 4096));
     if (!isPlainObject(input)) return apiReply('invalid_request', 'Invalid request. Review the fields.');
     const w = uuid(input.workspace), kind = checkedKind(input.kind);
+    const paused = frozenKindReply(kind); if (paused) return paused;
     const revision = safeInteger(input.revision);
     if (revision === null) return apiReply('invalid_request', 'Refresh before saving.');
     if (input.action === 'delete') {
