@@ -12,7 +12,7 @@ Never paste a secret into a chat: put values in the server environment (`.env.lo
 ## Blocked for now
 
 - [x] Twilio (2026-11-06): account set up by the owner in their own Chrome (the built-in browser fails Twilio's human check). Still to confirm: AU mobile number bought, and its values put in `.env.local`.
-- [ ] Public URL: VENTRA is not deployed, so Twilio, Postmark and the job runner cannot reach the webhooks yet. Options: a tunnel from the Mac for testing (e.g. Cloudflare Tunnel), or a deploy (needs a release review and owner approval).
+- [x] Public URL (2026-11-07): deployed to Vercel (team `ventra14`, project `ventra`, Pro trial) at https://ventra-rho.vercel.app. Production DB is Supabase project "Ventra AI" (ref `radmzhrdgqooukzhtdgg`), all migrations applied. Redeploy from `apps/web` with `vercel --prod`.
 
 - [ ] Google app publishing (2026-11-06): Google needs a home page, privacy policy and a verified domain before the calendar login can be published (otherwise it expires every 7 days). aiventrai.com is a "Coming soon" page. Draft pages are in `/Users/dylan/Developer/aiventrai-site/` (business name and ABN left out for now; add them once registered; have the privacy policy checked). Upload them to the domain's hosting, verify the domain in Google Search Console, then Claude finishes Branding and publishes.
 
@@ -54,9 +54,21 @@ Code is built: webhook, signature check, 24-hour reply window, approval queue at
 
 - [ ] Set real prices in `apps/web/lib/site/content.ts` (`plans[].priceMonthlyAud`). Until then the site says "Founding price, confirmed on your call" and offers no checkout.
 - [ ] Online checkout (Stripe Express Checkout: Apple Pay, Google Pay, Link) is not built yet: needs real prices, Stripe test keys, then your approval (`NEXT_PUBLIC_SITE_CHECKOUT=1`). Live payments need a separate approval.
-- [ ] Hosting: deploy the app (e.g. Vercel) and point aiventra.com.au + www at it in GoDaddy DNS. The app already serves the site at the root of those two hosts.
-- [ ] After hosting: Google Cloud > Branding: home `https://www.aiventra.com.au`, privacy `/privacy`, terms `/terms`, authorised domain `aiventra.com.au`, then Publish.
+- [x] Hosting: live at https://www.aiventra.com.au; app deployed; `aiventra.com.au` (redirects to www) and `www.aiventra.com.au` added in Vercel. GoDaddy DNS: A `@` -> `216.198.79.1`, CNAME `www` -> `fe83dd68d6dd39cf.vercel-dns-017.com` (owner clicks Save).
+- [ ] Vercel environment variables (Settings > Environment Variables), then redeploy. Pick the Pro plan before commercial use.
+- [x] Google Cloud Branding links + authorised domain saved and app published to production (2026-11-07). Next: get the refresh token in OAuth Playground (see Logins and keys).
 - [ ] Have the privacy policy checked. A draft Google Sites site "Ventra website" was started and is unpublished; delete it in sites.google.com if not needed.
+
+## Sales agent (tracker 2.6 to 2.11, foundation built, not live)
+
+Code: `apps/web/lib/front-office/sales/` (offer config, ten-objection playbook, prompt `sales/close@1`, `runSalesTurn`). It quotes only from the config and hands anything else to a person. Nothing calls it yet (the orchestrator's `AgentHooks.sales` hook is not passed by any route).
+
+- [ ] Decide the payment provider (one, e.g. Stripe Payment Links or Square). Until then every close goes to a person to send the agreement and payment details.
+- [ ] Set package prices in `lib/front-office/sales/config.ts` (and the matching site plans in `lib/site/content.ts`). With no price the agent never states one.
+- [ ] Confirm the escalation threshold: deals above A$2,000 (after discount) go to a person. Draft default; change `escalateAboveAud`.
+- [ ] Approve any guarantees or discounts the agent may offer (none today), and the contract/refund terms it may state (none today; it escalates).
+- [ ] Review the ten objection responses in the config for Ventra's voice.
+- [ ] Approve switching the Sales agent on for booked leads (wires `AgentHooks.sales` in the chat and email routes).
 
 ## Decisions and approvals
 

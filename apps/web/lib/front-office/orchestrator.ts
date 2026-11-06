@@ -20,7 +20,8 @@ export const OPT_IN_CONFIRMATION = 'You are subscribed again. Reply STOP at any 
 export const OPT_IN_PROMPT_VERSION = 'system/opt-in-confirmation@1';
 
 /** Agents that can take a turn after the dispatch. Each is called at most once per new inbound message. */
-export type AgentHooks = { setter?: (contact: string) => void };
+/** sales: called for booked contacts; not passed by any live route until the owner approves the Sales agent. */
+export type AgentHooks = { setter?: (contact: string) => void; sales?: (contact: string) => void };
 
 export async function handleInboundSms(rpc: Rpc, auth: ChannelAuth, sms: InboundSms, agents: AgentHooks = {}): Promise<InboundResult> {
   return handleInbound(rpc, auth, { via: 'sms', sender: sms.from, to: sms.to, body: sms.body, messageId: sms.messageSid }, agents);
@@ -50,5 +51,6 @@ export async function handleInbound(rpc: Rpc, auth: ChannelAuth, m: InboundMessa
   }
   // System replies (opt-out, opt-in) end the turn; otherwise the owning agent replies on its own.
   if (!reply && route.agent === 'setter' && agents.setter) agents.setter(base.contact);
+  if (!reply && route.agent === 'sales' && agents.sales) agents.sales(base.contact);
   return { ...base, route, reply };
 }
