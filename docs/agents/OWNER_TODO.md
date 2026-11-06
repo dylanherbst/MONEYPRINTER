@@ -9,6 +9,13 @@ Never paste a secret into a chat: put values in the server environment (`.env.lo
 - [ ] `ventra-handoff status`, then `ventra-handoff recover` if the Nov 3 lock (pid 49645) is stale.
 - [ ] Apply the front-office migrations to the LOCAL Supabase stack only: `supabase migration up` (files `202611060001` to `202611060004`). Production migrations need a release review.
 
+## Blocked for now
+
+- [x] Twilio (2026-11-06): account set up by the owner in their own Chrome (the built-in browser fails Twilio's human check). Still to confirm: AU mobile number bought, and its values put in `.env.local`.
+- [ ] Public URL: VENTRA is not deployed, so Twilio, Postmark and the job runner cannot reach the webhooks yet. Options: a tunnel from the Mac for testing (e.g. Cloudflare Tunnel), or a deploy (needs a release review and owner approval).
+
+- [ ] Google app publishing (2026-11-06): Google needs a home page, privacy policy and a verified domain before the calendar login can be published (otherwise it expires every 7 days). aiventrai.com is a "Coming soon" page. Draft pages are in `/Users/dylan/Developer/aiventrai-site/` (business name and ABN left out for now; add them once registered; have the privacy policy checked). Upload them to the domain's hosting, verify the domain in Google Search Console, then Claude finishes Branding and publishes.
+
 ## Logins and keys (server env)
 
 | Needed for | Values | Where to get them |
@@ -16,7 +23,7 @@ Never paste a secret into a chat: put values in the server environment (`.env.lo
 | Inbound SMS webhook (0.5, gate 0.7) | `TWILIO_AUTH_TOKEN` | Twilio console, Account info |
 | Sending SMS (1.3 to 1.5) | `TWILIO_ACCOUNT_SID`, `TWILIO_FROM_NUMBER` (E.164, the number leads text) | Twilio console; buy an AU mobile number |
 | Webhook URL signing behind a proxy or tunnel | `FRONT_OFFICE_PUBLIC_ORIGIN` (e.g. `https://ventra.example.com`) | Your public URL |
-| Google Calendar (1.2, 1.3) | `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, `GOOGLE_CALENDAR_REFRESH_TOKEN`, `GOOGLE_CALENDAR_ID` | Google Cloud console: enable Calendar API, OAuth client (web), consent screen; get a refresh token for the bookings calendar with scopes `calendar.events` + `calendar.freebusy` |
+| Google Calendar (1.2, 1.3). Done: project `ventra-front-office`, Calendar API on, OAuth app + web client "Ventra calendar booking" (redirect: OAuth Playground). Left: publish the app, get the refresh token | `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, `GOOGLE_CALENDAR_REFRESH_TOKEN`, `GOOGLE_CALENDAR_ID` | Google Cloud console: enable Calendar API, OAuth client (web), consent screen; get a refresh token for the bookings calendar with scopes `calendar.events` + `calendar.freebusy` |
 | Setter AI (1.1) | `ANTHROPIC_API_KEY`, `FRONT_OFFICE_MODEL` (exact Claude model id to use) | console.anthropic.com; pick the model id from the models page |
 | Follow-up and reminder runner (1.4, 1.5) | `FRONT_OFFICE_CRON_SECRET` (32+ random characters), `FRONT_OFFICE_CHANNEL_ID`, `FRONT_OFFICE_CHANNEL_KEY` | Generate the secret yourself; channel id and key come from `fo_create_channel` |
 | Website chat (1.8) | `FRONT_OFFICE_CHAT_CHANNEL_ID`, `FRONT_OFFICE_CHAT_CHANNEL_KEY`; `FRONT_OFFICE_CHAT_ORIGINS` if the widget sits on another site; `FRONT_OFFICE_CHAT_LIVE=1` to let the AI answer | Create a `web-chat` channel with `fo_create_channel` (address = your site, e.g. `ventra.com.au`) |
@@ -30,6 +37,14 @@ Never paste a secret into a chat: put values in the server environment (`.env.lo
 - [ ] Postmark inbound webhook URL: `https://ventra:<FRONT_OFFICE_EMAIL_WEBHOOK_SECRET>@<public origin>/api/front-office/email/inbound?channel=<email channel id>&key=<channel key>`. Forward Ventra's enquiry address to the Postmark inbound address.
 - [ ] After any change to the Setter's prompt or questions, run the live replay: `ANTHROPIC_API_KEY=... FRONT_OFFICE_MODEL=... node --experimental-strip-types apps/web/test/live/setter-live.ts` (from the repo, env vars in the shell, not in a file). Costs a few cents.
 - [ ] Share the bookings Google Calendar with the account that made the refresh token (if they differ).
+
+## Website (branch `feature/ventra-website`, pages at /site, /site/privacy, /site/terms)
+
+- [ ] Set real prices in `apps/web/lib/site/content.ts` (`plans[].priceMonthlyAud`). Until then the site says "Founding price, confirmed on your call" and offers no checkout.
+- [ ] Online checkout (Stripe Express Checkout: Apple Pay, Google Pay, Link) is not built yet: needs real prices, Stripe test keys, then your approval (`NEXT_PUBLIC_SITE_CHECKOUT=1`). Live payments need a separate approval.
+- [ ] Hosting: deploy the app (e.g. Vercel) and point aiventra.com.au + www at it in GoDaddy DNS. The app already serves the site at the root of those two hosts.
+- [ ] After hosting: Google Cloud > Branding: home `https://www.aiventra.com.au`, privacy `/privacy`, terms `/terms`, authorised domain `aiventra.com.au`, then Publish.
+- [ ] Have the privacy policy checked. A draft Google Sites site "Ventra website" was started and is unpublished; delete it in sites.google.com if not needed.
 
 ## Decisions and approvals
 
