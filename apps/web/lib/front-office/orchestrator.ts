@@ -19,7 +19,10 @@ export type InboundResult = {
 export const OPT_IN_CONFIRMATION = 'You are subscribed again. Reply STOP at any time to opt out.';
 export const OPT_IN_PROMPT_VERSION = 'system/opt-in-confirmation@1';
 
-export async function handleInboundSms(rpc: Rpc, auth: ChannelAuth, sms: InboundSms): Promise<InboundResult> {
+/** Agents that can take a turn after the dispatch. Each is called at most once per new inbound message. */
+export type AgentHooks = { setter?: (contact: string) => void };
+
+export async function handleInboundSms(rpc: Rpc, auth: ChannelAuth, sms: InboundSms, agents: AgentHooks = {}): Promise<InboundResult> {
   const optOut = isOptOut(sms.body), optIn = !optOut && isOptIn(sms.body);
   const raw = await rpc('fo_ingest_sms', {
     channel: auth.channel, channel_key: auth.key, from_number: sms.from, to_number: sms.to,
@@ -38,5 +41,7 @@ export async function handleInboundSms(rpc: Rpc, auth: ChannelAuth, sms: Inbound
     // Logged before it is sent (tracker 0.6).
     await rpc('fo_log_outbound', { channel: auth.channel, channel_key: auth.key, contact: base.contact, message: reply, agent_name: 'system', prompt: reply === OPT_OUT_CONFIRMATION ? OPT_OUT_PROMPT_VERSION : OPT_IN_PROMPT_VERSION });
   }
+  // System replies (opt-out, opt-in) end the turn; otherwise the owning agent replies on its own (after the webhook answers).
+  if (!reply && route.agent === 'setter' && agents.setter) agents.setter(base.contact);
   return { ...base, route, reply };
 }

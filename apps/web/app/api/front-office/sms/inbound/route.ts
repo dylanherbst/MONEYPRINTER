@@ -1,12 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { after, NextRequest, NextResponse } from 'next/server';
 import { createSupabaseClient } from '../../../../../lib/supabase/client';
 import { readBoundedRequestBody, RequestBodyTooLarge } from '../../../../../lib/request-body';
 import { routeLimits } from '../../../../../lib/rate-limit';
 import { supabaseConfigured } from '../../../../../lib/workspace-route';
 import { formParams, inboundSms, twiml, verifyTwilioSignature } from '../../../../../lib/front-office/twilio';
 import { handleInboundSms } from '../../../../../lib/front-office/orchestrator';
-import type { Rpc } from '../../../../../lib/front-office/orchestrator';
+import type { AgentHooks, Rpc } from '../../../../../lib/front-office/orchestrator';
+import { anthropicConfigFromEnv, anthropicLlm } from '../../../../../lib/front-office/llm';
+import { googleCalendar, googleConfigFromEnv } from '../../../../../lib/front-office/calendar/google';
+import { senderFromEnv } from '../../../../../lib/front-office/sms-send';
+import { runSetterTurn } from '../../../../../lib/front-office/setter/agent';
+import { ventraSetterConfig } from '../../../../../lib/front-office/setter/config';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+/** Run work after the response; outside a request scope (tests) run it directly. */
+function defer(work: () => Promise<void>) {
+  try { after(work); } catch { void work(); }
+}
 
 // Twilio inbound SMS webhook (tracker 0.5). Configure the number's "A message comes in" webhook as
 //   POST https://<public origin>/api/front-office/sms/inbound?channel=<channel id>&key=<channel key>
@@ -36,7 +47,21 @@ export async function POST(req: NextRequest) {
   const db = createSupabaseClient();
   const rpc: Rpc = async (fn, args) => { const r = await db.rpc(fn, args); if (r.error) throw new Error(r.error.message); return r.data; };
   try {
-    const result = await handleInboundSms(rpc, { channel, key }, sms);
+    // The Setter replies after Twilio gets its answer (Twilio waits at most 15 s). Its reply goes out through the sender,
+    // which only really sends when FRONT_OFFICE_SEND_LIVE=1; otherwise it is logged only.
+    const ai = anthropicConfigFromEnv(), gcal = googleConfigFromEnv();
+    const agents: AgentHooks = ai ? {
+      setter: (contact) => defer(async () => {
+        try {
+          const send = senderFromEnv();
+          const turn = await runSetterTurn(contact, { llm: anthropicLlm(ai), rpc, auth: { channel, key }, calendar: gcal ? googleCalendar(gcal) : null, send, config: ventraSetterConfig, now: Date.now() });
+          if (turn.reply) await send(sms.from, turn.reply);
+        } catch (e) {
+          console.error('front-office setter turn failed:', e instanceof Error ? e.message : 'unknown');
+        }
+      }),
+    } : {};
+    const result = await handleInboundSms(rpc, { channel, key }, sms, agents);
     return new NextResponse(twiml(result.reply ?? undefined), { status: 200, headers: xmlHeaders });
   } catch (e) {
     if (e instanceof Error && /Channel not recognised/.test(e.message)) return plain(403, 'Channel not recognised.');

@@ -64,6 +64,12 @@ test('orchestrator: records, routes and logs; opt-out sends one logged confirmat
   assert.equal(r.route.agent, null); assert.match(r.reply ?? '', /unsubscribed/);
   assert.deepEqual(calls.map(c => c.fn), ['fo_ingest_sms', 'fo_log_outbound']);
   assert.equal(calls[0].args.opt_out, true); assert.equal(calls[1].args.prompt, 'system/opt-out-confirmation@1');
+  const hooked: string[] = [];
+  await handleInboundSms(rpc({ contact: 'c7', state: 'qualifying', created: false, duplicate: false, optedOut: false }), { channel: CH, key: KEY }, msg, { setter: c => hooked.push(c) });
+  await handleInboundSms(rpc({ contact: 'c8', state: 'booked', created: false, duplicate: false, optedOut: false }), { channel: CH, key: KEY }, msg, { setter: c => hooked.push(c) });
+  await handleInboundSms(rpc({ contact: 'c9', state: 'new', created: false, duplicate: true, optedOut: false }), { channel: CH, key: KEY }, msg, { setter: c => hooked.push(c) });
+  await handleInboundSms(rpc({ contact: 'c10', state: 'new', created: false, duplicate: false, optedOut: true }), { channel: CH, key: KEY }, { ...msg, body: 'STOP' }, { setter: c => hooked.push(c) });
+  assert.deepEqual(hooked, ['c7'], 'the Setter takes a turn only for its own, new, not-opted-out messages');
   calls.length = 0;
   r = await handleInboundSms(rpc({ contact: 'c1', state: 'new', created: false, duplicate: true, optedOut: false }), { channel: CH, key: KEY }, msg);
   assert.equal(r.reply, null);

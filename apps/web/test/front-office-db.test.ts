@@ -15,7 +15,7 @@ async function setup() {
     create function auth.uid() returns uuid language sql stable as $$ select (auth.jwt()->>'sub')::uuid $$;
     grant usage on schema public,auth to authenticated,anon;
     grant execute on function auth.uid(),auth.jwt() to authenticated,anon;`);
-  for (const f of ['202610160001_s01.sql', '202611060001_front_office.sql', '202611060002_front_office_appointments.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
+  for (const f of ['202610160001_s01.sql', '202611060001_front_office.sql', '202611060002_front_office_appointments.sql', '202611060003_front_office_setter.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
   const owner = '11111111-1111-4111-8111-111111111111', staff = '22222222-2222-4222-8222-222222222222';
   const so = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', ss = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
   await db.query('insert into auth.users values ($1),($2)', [owner, staff]);
@@ -117,5 +117,32 @@ test('fo_book: books once, moves the contact to booked, refuses unqualified and 
     await as(owner, so);
     assert.equal(await one('select count(*)::int as r from public.fo_appointments'), 1);
     await assert.rejects(db.query("update public.fo_appointments set status='cancelled'"), /permission denied/);
+  } finally { await db.close(); }
+});
+test('setter store: context, answers, jobs cancelled by a reply or opt-out, claimed once', async () => {
+  const { db, as, one, channel } = await setup();
+  try {
+    await as(null);
+    const c = (await one<Record<string, string>>(ingest, [channel, KEY, LEAD, NUMBER, 'Hi', 'SM0000000040', false, false])).contact;
+    assert.deepEqual(await one('select public.fo_save_answers($1,$2,$3,$4,$5,$6) as r', [channel, KEY, c, { business: 'Gym' }, 'Sam', 'SAM@Example.com']), { business: 'Gym' });
+    const ctx = await one<{ contact: Record<string, unknown>; messages: unknown[]; appointment: unknown }>('select public.fo_contact_context($1,$2,$3) as r', [channel, KEY, c]);
+    assert.equal(ctx.contact.name, 'Sam'); assert.equal(ctx.contact.email, 'sam@example.com'); assert.equal(ctx.messages.length, 1); assert.equal(ctx.appointment, null);
+    const job = 'select public.fo_schedule_job($1,$2,$3,$4,$5,$6,$7) as r';
+    await one(job, [channel, KEY, c, 'follow-up', 1, '2000-01-01T00:00:00Z', null]);
+    await one(job, [channel, KEY, c, 'follow-up', 2, '2000-01-01T00:00:00Z', null]);
+    await as(null);
+    const claimed = await one<unknown[]>('select public.fo_claim_jobs($1,$2,$3) as r', [channel, KEY, 10]);
+    assert.equal(claimed.length, 1, 'one pending ladder per contact; the newer replaced the older');
+    assert.deepEqual(await one('select public.fo_claim_jobs($1,$2,$3) as r', [channel, KEY, 10]), [], 'claimed jobs are not handed out twice');
+    await one('select public.fo_finish_job($1,$2,$3,$4,$5) as r', [channel, KEY, (claimed[0] as { id: string }).id, 'done', 'Sent']);
+    await one(job, [channel, KEY, c, 'follow-up', 3, '2999-01-01T00:00:00Z', null]);
+    await one(ingest, [channel, KEY, LEAD, NUMBER, 'Sorry, busy day', 'SM0000000041', false, false]);
+    await one(job, [channel, KEY, c, 'no-show-rescue', 1, '2999-01-01T00:00:00Z', null]);
+    await one(ingest, [channel, KEY, LEAD, NUMBER, 'STOP', 'SM0000000042', true, false]);
+    await assert.rejects(db.query(job, [channel, KEY, c, 'follow-up', 1, '2999-01-01T00:00:00Z', null]), /opted out/);
+    await assert.rejects(db.query(job, [channel, KEY, c, 'reminder-2h', 1, '2999-01-01T00:00:00Z', null]), /opted out|check constraint/);
+    await db.exec('reset role');
+    const rows = (await db.query<{ step: number; status: string; detail: string }>('select step, status, detail from public.fo_jobs order by created_at, step')).rows;
+    assert.deepEqual(rows.map(r => [r.step, r.status, r.detail]), [[1, 'cancelled', 'Replaced'], [2, 'done', 'Sent'], [3, 'cancelled', 'Contact replied'], [1, 'cancelled', 'Contact replied']]);
   } finally { await db.close(); }
 });

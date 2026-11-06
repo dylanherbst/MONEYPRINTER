@@ -91,11 +91,28 @@ fe8a1ad Keep restored course textarea accessible names stable
 - `app/tools/front-office-booking/page.tsx`: DEMO slot-offer test page. Tests: `test/front-office-calendar.test.ts`, more in `front-office-db.test.ts`.
 - Not yet wired to an agent: the Setter (1.1 qualification prompt) will call offerTimes/bookSlot.
 
+### Phase 1 continued (Setter agent, follow-ups, reminders, handoffs: tracker 1.1, 1.4 to 1.7, 1.10, 1.13)
+
+- `lib/front-office/setter/config.ts`: per-client Setter config (questions as config). Ventra defaults drafted by Claude: OWNER to check.
+- `lib/front-office/setter/prompt.ts` (`setter/qualify@1`), `setter/agent.ts` (one turn: context, tool loop, guardrails),
+  `lib/front-office/llm.ts` (Anthropic Messages API; ANTHROPIC_API_KEY + FRONT_OFFICE_MODEL, no default model).
+- Tools: save_answers, set_stage (qualified only with required answers), offer_times, book_time (only offered times),
+  handoff_receptionist (1.7), escalate_human. Booking records the Sales handoff (1.6) and schedules 24 h and 2 h reminders (1.5).
+- `lib/front-office/jobs.ts`: follow-up ladder 5 min, 1 h, 1 d, 3 d, 7 d, then monthly (1.4); reminders; no-show rescue
+  (`markNoShow`). `POST /api/front-office/jobs/run` (Bearer FRONT_OFFICE_CRON_SECRET) runs due jobs.
+- SMS webhook: when the AI is configured, the Setter replies after the webhook answers (`after()`), through the sender
+  (logged only unless FRONT_OFFICE_SEND_LIVE=1).
+- Migration `202611060003_front_office_setter.sql`: contact answers, fo_contact_context, fo_save_answers, fo_jobs,
+  fo_schedule_job, fo_claim_jobs, fo_finish_job; fo_ingest_sms now cancels follow-ups and rescues on any reply.
+- Tests: `test/front-office-setter.test.ts` = the scripted Setter set (happy path, angry, wrong number, existing customer,
+  discount ask, guardrails, jobs). The model is scripted; a live replay against the real model is still to build.
+- Owner actions are listed in `docs/agents/OWNER_TODO.md`.
+
 ## Tests run and results
 
 Run in the Cowork Linux VM with Node 22.23 (the project pins 24.21; run `ventra-verify` on the Mac to confirm):
 - `tsc --noEmit`: pass. `eslint . --max-warnings 0`: pass.
-- `node --experimental-strip-types --test test/*.test.ts`: 539 pass, 0 fail (514 before the pivot, 529 after Phase 0). Gate 0.7 covered by
+- `node --experimental-strip-types --test test/*.test.ts`: 550 pass, 0 fail (514 before the pivot). Gate 0.7 covered by
   `front-office-db.test.ts` on PGlite with the real migration (fixture Auth, NOT Supabase integration).
 - One flaky timing test seen once (`local-service-client-portal-draft`, "source drift"); passes on rerun, untouched code.
 - NOT run: `next build` (node_modules hold macOS binaries) and `npm run test:local-integration`.
@@ -111,9 +128,9 @@ Run in the Cowork Linux VM with Node 22.23 (the project pins 24.21; run `ventra-
 
 ## Next steps
 
-1. Owner runs `ventra-verify` on the Mac (next build + local Supabase integration were not run in the VM).
-2. Owner: create a Google Cloud OAuth client and a refresh token for the bookings calendar; put the 4 GOOGLE_CALENDAR_* values in the server env.
-3. Phase 1 next: 1.1 qualification prompt as config (the Setter agent that calls offerTimes/bookSlot), 1.4 follow-up ladder, 1.5 reminders.
+1. Owner: work through `docs/agents/OWNER_TODO.md` (verify on the Mac, keys, channel, approvals).
+2. Build next: 1.8 web chat channel, 1.9 email channel, live replay of the Setter test set against the real model,
+   1.11 reactivation (needs consent confirmed), 1.12 Google Business replies (needs Google Business Profile access).
 
 ## Do not touch
 
