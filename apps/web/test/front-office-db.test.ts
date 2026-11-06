@@ -15,7 +15,7 @@ async function setup() {
     create function auth.uid() returns uuid language sql stable as $$ select (auth.jwt()->>'sub')::uuid $$;
     grant usage on schema public,auth to authenticated,anon;
     grant execute on function auth.uid(),auth.jwt() to authenticated,anon;`);
-  for (const f of ['202610160001_s01.sql', '202611060001_front_office.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
+  for (const f of ['202610160001_s01.sql', '202611060001_front_office.sql', '202611060002_front_office_appointments.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
   const owner = '11111111-1111-4111-8111-111111111111', staff = '22222222-2222-4222-8222-222222222222';
   const so = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', ss = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
   await db.query('insert into auth.users values ($1),($2)', [owner, staff]);
@@ -91,5 +91,31 @@ test('handoff rows need a changed owner and the full object', async () => {
     assert.ok(await one('select public.fo_record_handoff($1,$2,$3,$4) as r', [channel, KEY, c, h]));
     await assert.rejects(db.query('select public.fo_record_handoff($1,$2,$3,$4)', [channel, KEY, c, { ...h, owner: 'setter' }]), /check constraint/);
     await assert.rejects(db.query('select public.fo_record_handoff($1,$2,$3,$4)', [channel, KEY, c, { ...h, summary: undefined }]), /null value|check constraint/);
+  } finally { await db.close(); }
+});
+test('fo_book: books once, moves the contact to booked, refuses unqualified and opted-out contacts', async () => {
+  const { db, as, one, channel, owner, so } = await setup();
+  try {
+    await as(null);
+    const c = (await one<Record<string, string>>(ingest, [channel, KEY, LEAD, NUMBER, 'Hi', 'SM0000000030', false, false])).contact;
+    const book = 'select public.fo_book($1,$2,$3,$4,$5,$6,$7) as r';
+    const args = (id: string) => [channel, KEY, c, '2026-11-10T10:00:00Z', '2026-11-10T10:30:00Z', 'google', id];
+    await assert.rejects(db.query(book, args('vbaaaaaaaa')), /cannot move from new to booked/, 'qualify before booking');
+    await one('select public.fo_set_state($1,$2,$3,$4,$5,$6) as r', [channel, KEY, c, 'qualifying', 'setter', 'q']);
+    await one('select public.fo_set_state($1,$2,$3,$4,$5,$6) as r', [channel, KEY, c, 'qualified', 'setter', 'q']);
+    assert.equal(await one('select public.fo_booking_for_event($1,$2,$3,$4) as r', [channel, KEY, 'google', 'vbaaaaaaaa']), null);
+    const first = await one<Record<string, unknown>>(book, args('vbaaaaaaaa'));
+    assert.equal(first.state, 'booked'); assert.equal(first.duplicate, false);
+    const retry = await one<Record<string, unknown>>(book, args('vbaaaaaaaa'));
+    assert.equal(retry.duplicate, true); assert.equal(retry.appointment, first.appointment);
+    assert.equal(await one('select public.fo_booking_for_event($1,$2,$3,$4) as r', [channel, KEY, 'google', 'vbaaaaaaaa']), first.appointment);
+    await assert.rejects(db.query(book, [channel, KEY, c, '2026-11-10T10:00:00Z', '2026-11-10T09:00:00Z', 'google', 'vbbbbbbbbb']), /cannot move from booked|check constraint/);
+    await assert.rejects(db.query(book, [channel, KEY, c, '2026-11-10T10:00:00Z', '2026-11-10T10:30:00Z', 'google', 'BAD-ID']), /cannot move|check constraint/);
+    await one('select public.fo_set_state($1,$2,$3,$4,$5,$6) as r', [channel, KEY, c, 'no-show', 'setter', 'missed']);
+    await one(ingest, [channel, KEY, LEAD, NUMBER, 'STOP', 'SM0000000031', true, false]);
+    await assert.rejects(db.query(book, args('vbcccccccc')), /opted out/);
+    await as(owner, so);
+    assert.equal(await one('select count(*)::int as r from public.fo_appointments'), 1);
+    await assert.rejects(db.query("update public.fo_appointments set status='cancelled'"), /permission denied/);
   } finally { await db.close(); }
 });
