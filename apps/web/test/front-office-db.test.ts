@@ -15,7 +15,7 @@ async function setup() {
     create function auth.uid() returns uuid language sql stable as $$ select (auth.jwt()->>'sub')::uuid $$;
     grant usage on schema public,auth to authenticated,anon;
     grant execute on function auth.uid(),auth.jwt() to authenticated,anon;`);
-  for (const f of ['202610160001_s01.sql', '202611060001_front_office.sql', '202611060002_front_office_appointments.sql', '202611060003_front_office_setter.sql', '202611060004_front_office_chat_email.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
+  for (const f of ['202610160001_s01.sql', '202611060001_front_office.sql', '202611060002_front_office_appointments.sql', '202611060003_front_office_setter.sql', '202611060004_front_office_chat_email.sql', '202611060005_front_office_meta.sql']) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
   const owner = '11111111-1111-4111-8111-111111111111', staff = '22222222-2222-4222-8222-222222222222';
   const so = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', ss = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
   await db.query('insert into auth.users values ($1),($2)', [owner, staff]);
@@ -170,5 +170,32 @@ test('chat and email: visitor contacts, email contacts, details saved without si
     const hist = await one<{ direction: string; body: string }[]>('select public.fo_chat_history($1,$2,$3) as r', [chat, KEY, visitor]);
     assert.deepEqual(hist.map(h => h.body), ['Hi, do you work with gyms?']);
     assert.deepEqual(await one('select public.fo_chat_history($1,$2,$3) as r', [chat, KEY, 'v_nobody_here_12345']), []);
+  } finally { await db.close(); }
+});
+test('instagram: DM contacts, 24-hour window data, approval queue: approve logs once, opt-out cancels', async () => {
+  const { db, as, one, w, owner, so, staff, ss } = await setup();
+  try {
+    const ig = await one<string>("select public.fo_create_channel($1,'instagram','17841400000000001',$2) as r", [w, KEY]);
+    await as(null);
+    const ing = 'select public.fo_ingest($1,$2,$3,$4,$5,$6,$7) as r';
+    const c = (await one<Record<string, string>>(ing, [ig, KEY, '1234567890123', 'Intro classes?', 'aWdfZAG1faX1', false, false])).contact;
+    const win = await one<{ recipient: string; lastInbound: string; optedOut: boolean }>('select public.fo_social_window($1,$2,$3) as r', [ig, KEY, c]);
+    assert.equal(win.recipient, '1234567890123'); assert.ok(win.lastInbound); assert.equal(win.optedOut, false);
+    await assert.rejects(db.query(ing, [ig, KEY, 'not-numeric', 'x', 'aWdfZAG1faX2', false, false]), /Sender id/);
+    const q1 = await one<string>('select public.fo_queue_outbound($1,$2,$3,$4,$5) as r', [ig, KEY, c, 'Intro week is $29. Mornings or evenings?', 'setter/qualify@1']);
+    const q2 = await one<string>('select public.fo_queue_outbound($1,$2,$3,$4,$5) as r', [ig, KEY, c, 'Second draft', 'setter/qualify@1']);
+    await assert.rejects(db.query("select public.fo_decide_outbox($1,$2,'approved',null)", [w, q1]), /permission denied/, 'anon cannot approve');
+    await as(staff, ss);
+    await assert.rejects(db.query("select public.fo_decide_outbox($1,$2,'approved',null)", [w, q1]), /Workspace access/, 'non-member cannot approve');
+    await as(owner, so);
+    const d = await one<Record<string, string>>("select public.fo_decide_outbox($1,$2,'approved',$3) as r", [w, q1, 'Intro week is $29! Mornings or evenings?']);
+    assert.equal(d.status, 'approved'); assert.equal(d.kind, 'instagram'); assert.equal(d.recipient, '1234567890123'); assert.equal(d.body, 'Intro week is $29! Mornings or evenings?');
+    await one('select public.fo_outbox_sent($1,$2,true,$3) as r', [w, q1, 'Sent']);
+    await assert.rejects(db.query("select public.fo_decide_outbox($1,$2,'approved',null)", [w, q1]), /Nothing to decide/, 'decided once');
+    assert.equal(await one("select count(*)::int as r from public.fo_messages where contact_id=$1 and direction='outbound' and prompt_version='setter/qualify@1+approved'", [c]), 1);
+    await as(null);
+    await one(ing, [ig, KEY, '1234567890123', 'stop', 'aWdfZAG1faX3', true, false]);
+    await as(owner, so);
+    assert.equal(await one('select status as r from public.fo_outbox where id=$1', [q2]), 'cancelled', 'opt-out cancels queued replies');
   } finally { await db.close(); }
 });

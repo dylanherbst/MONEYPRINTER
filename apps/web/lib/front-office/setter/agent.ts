@@ -24,8 +24,9 @@ type Context = {
   handoffs: { from: string; owner: string; intent: string; summary: string }[];
 };
 export type SetterTurn = { reply: string | null; state: ContactState; booked: boolean; handedTo: Agent | null; tools: string[] };
-export type SetterDeps = { llm: Llm; rpc: Rpc; auth: ChannelAuth; calendar: CalendarProvider | null; send: SmsSender; config: SetterConfig; now: number; channel?: Channel };
-const replyLimit: Record<Channel, number> = { sms: 320, 'web-chat': 600, email: 1500, voice: 400, form: 600 };
+/** logReply false: the caller queues the reply for approval and logs it only once it is sent (social DMs). */
+export type SetterDeps = { llm: Llm; rpc: Rpc; auth: ChannelAuth; calendar: CalendarProvider | null; send: SmsSender; config: SetterConfig; now: number; channel?: Channel; logReply?: boolean };
+const replyLimit: Record<Channel, number> = { sms: 320, 'web-chat': 600, email: 1500, voice: 400, form: 600, instagram: 450, messenger: 450 };
 
 export const setterTools: ToolSpec[] = [
   { name: 'save_answers', description: 'Save qualification answers by question id, and the contact name, email or mobile if given.', input_schema: { type: 'object', properties: { answers: { type: 'object', additionalProperties: { type: 'string' } }, name: { type: 'string' }, email: { type: 'string' }, phone: { type: 'string', description: 'Mobile in E.164, e.g. +61412345678' } }, required: ['answers'] } },
@@ -169,7 +170,7 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
   }
   // After a booking the logged confirmation is the reply; otherwise the model's text (capped to two SMS).
   let text = booked ? bookedReply : ((channel === 'email' ? reply.trim() : reply.replace(/\s+/g, ' ').trim()).slice(0, replyLimit[channel]) || null);
-  if (text && !booked) await d.rpc('fo_log_outbound', { ...a, contact: contactId, message: text, agent_name: 'setter', prompt: SETTER_PROMPT_VERSION });
+  if (text && !booked && d.logReply !== false) await d.rpc('fo_log_outbound', { ...a, contact: contactId, message: text, agent_name: 'setter', prompt: SETTER_PROMPT_VERSION });
   if (text && !booked && !handedTo && (ctx.contact.phone || ctx.contact.email) && !['booked', 'disqualified', 'customer'].includes(state)) await startFollowUps(d.rpc, d.auth, contactId, d.now);
   if (!text) text = null;
   return { reply: text, state, booked, handedTo, tools: used };

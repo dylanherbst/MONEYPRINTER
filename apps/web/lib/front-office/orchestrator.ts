@@ -28,7 +28,7 @@ export async function handleInboundSms(rpc: Rpc, auth: ChannelAuth, sms: Inbound
 
 /** One inbound message on any channel: SMS (fo_ingest_sms), web chat or email (fo_ingest). */
 /** checkText: the words checked for STOP/START when the stored body has extra framing (an email's subject line). */
-export type InboundMessage = { via: 'sms' | 'web-chat' | 'email'; sender: string; to?: string; body: string; messageId: string; checkText?: string };
+export type InboundMessage = { via: 'sms' | 'web-chat' | 'email' | 'instagram' | 'messenger'; sender: string; to?: string; body: string; messageId: string; checkText?: string };
 export async function handleInbound(rpc: Rpc, auth: ChannelAuth, m: InboundMessage, agents: AgentHooks = {}): Promise<InboundResult> {
   const words = m.checkText ?? m.body;
   const optOut = isOptOut(words), optIn = !optOut && isOptIn(words);

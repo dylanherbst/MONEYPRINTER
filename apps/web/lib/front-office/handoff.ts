@@ -5,7 +5,7 @@ import type { ContactState } from './state';
 
 export const agents = ['setter', 'sales', 'receptionist', 'onboarding', 'human'] as const;
 export type Agent = typeof agents[number];
-export const channels = ['sms', 'web-chat', 'email', 'voice', 'form'] as const;
+export const channels = ['sms', 'web-chat', 'email', 'voice', 'form', 'instagram', 'messenger'] as const;
 export type Channel = typeof channels[number];
 
 export type Handoff = {
@@ -60,6 +60,6 @@ export function checkedHandoff(input: unknown): Handoff {
     from, owner,
   };
   // A web chat visitor may not have shared either yet; the next owner answers in the same chat.
-  if (!handoff.contact.phone && !handoff.contact.email && handoff.channel !== 'web-chat') throw new Error('Handoff contact needs a phone or an email.');
+  if (!handoff.contact.phone && !handoff.contact.email && !['web-chat', 'instagram', 'messenger'].includes(handoff.channel)) throw new Error('Handoff contact needs a phone or an email.');
   return handoff;
 }

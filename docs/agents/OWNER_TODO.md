@@ -38,6 +38,18 @@ Never paste a secret into a chat: put values in the server environment (`.env.lo
 - [ ] After any change to the Setter's prompt or questions, run the live replay: `ANTHROPIC_API_KEY=... FRONT_OFFICE_MODEL=... node --experimental-strip-types apps/web/test/live/setter-live.ts` (from the repo, env vars in the shell, not in a file). Costs a few cents.
 - [ ] Share the bookings Google Calendar with the account that made the refresh token (if they differ).
 
+## Instagram and Messenger (tracker 2.1; code on `feature/ventra-website`)
+
+Code is built: webhook, signature check, 24-hour reply window, approval queue at `/tools/front-office-outbox`. To switch it on:
+
+- [ ] Instagram: make the business account a Professional (Business) account and link it to a Facebook Page.
+- [ ] developers.facebook.com: create a Business app with the "Manage messaging and content on Instagram" use case (add Messenger if you want Facebook DMs too). Add yourself as a tester.
+- [ ] Put in `.env.local`: `META_APP_SECRET` (App settings > Basic), `META_VERIFY_TOKEN` (make up 20+ random characters), `META_GRAPH_VERSION` (current version shown in Meta's docs, e.g. v23.0), `INSTAGRAM_ACCESS_TOKEN` (generated in the Instagram use case), `MESSENGER_PAGE_TOKEN` (only for Messenger).
+- [ ] Create the channels with `fo_create_channel(<workspace>, 'instagram', '<IG account id>', '<40-char key>')` (and 'messenger' with the Page id).
+- [ ] Once VENTRA is hosted: webhook URL `https://<public origin>/api/front-office/meta/webhook?channel=<id>&key=<key>`, verify token = META_VERIFY_TOKEN, subscribe to `messages`.
+- [ ] Meta App Review for the messaging permission and Business Verification (needs registered business details, likely the ABN) before anyone outside your testers can use it.
+- [ ] Optional, later: `FRONT_OFFICE_META_AUTOSEND=1` lets the AI reply without approval. Leave it off for at least the first two weeks (master plan).
+
 ## Website (branch `feature/ventra-website`, pages at /site, /site/privacy, /site/terms)
 
 - [ ] Set real prices in `apps/web/lib/site/content.ts` (`plans[].priceMonthlyAud`). Until then the site says "Founding price, confirmed on your call" and offers no checkout.

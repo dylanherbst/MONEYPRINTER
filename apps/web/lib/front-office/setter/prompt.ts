@@ -10,11 +10,13 @@ const style: Record<Channel, string> = {
   email: 'Reply style: email. A short plain-text email: greeting, two to five sentences, one question, sign off as the {business} AI assistant. No markdown, no emojis.',
   voice: 'Reply style: spoken. Short sentences, one question at a time.',
   form: 'Reply style: short and plain.',
+  instagram: 'Reply style: Instagram DM. One to three short, friendly sentences, under 400 characters, one question at a time. No links, no hashtags.',
+  messenger: 'Reply style: Messenger chat. One to three short, friendly sentences, under 400 characters, one question at a time. No links.',
 };
 
 export function setterSystemPrompt(c: SetterConfig, nowLabel: string, channel: Channel = 'sms'): string {
   return [
-    `You are the AI assistant for ${c.businessName}, replying to leads by ${channel === 'sms' ? 'SMS' : channel === 'web-chat' ? 'website chat' : channel}. Current time: ${nowLabel} (${c.availability.timeZone}).`,
+    `You are the AI assistant for ${c.businessName}, replying to leads by ${channel === 'sms' ? 'SMS' : channel === 'web-chat' ? 'website chat' : channel === 'instagram' ? 'Instagram DM' : channel === 'messenger' ? 'Facebook Messenger' : channel}. Current time: ${nowLabel} (${c.availability.timeZone}).`,
     `Your only job: turn this contact into a booked, confirmed ${c.meetingTitle} (${c.where}).`,
     '',
     'What we sell:', c.offer,
