@@ -1,6 +1,7 @@
 // Live replay of the scripted Setter test set against the REAL model (tracker 1.10: replay on every prompt change).
 // Nothing is stored or sent: the store and calendar are in-memory. It does call the Anthropic API (costs a few cents).
 //   ANTHROPIC_API_KEY=... FRONT_OFFICE_MODEL=<model id> node --experimental-strip-types test/live/setter-live.ts
+// Then the same for the AI Receptionist (phone, gym template with two FAQ answers), streamed as on a real call.
 // Exit code 1 if any scenario ends in the wrong place.
 import '../helpers/route-harness.ts';
 
@@ -9,6 +10,10 @@ const { runSetterTurn } = await import('../../lib/front-office/setter/agent.ts')
 const { ventraSetterConfig } = await import('../../lib/front-office/setter/config.ts');
 const { anthropicConfigFromEnv, anthropicLlm } = await import('../../lib/front-office/llm.ts');
 const { SETTER_PROMPT_VERSION } = await import('../../lib/front-office/setter/prompt.ts');
+const { anthropicStream } = await import('../../lib/front-office/llm.ts');
+const { runReceptionistTurn } = await import('../../lib/front-office/receptionist/agent.ts');
+const { RECEPTIONIST_PROMPT_VERSION } = await import('../../lib/front-office/receptionist/prompt.ts');
+const { checkedAgentSettings, templateSettings } = await import('../../lib/front-office/settings.ts');
 
 const ai = anthropicConfigFromEnv();
 if (!ai) { console.error('Set ANTHROPIC_API_KEY and FRONT_OFFICE_MODEL in the environment (never in a file in the repo).'); process.exit(2); }
@@ -58,4 +63,40 @@ for (const s of scenarios) {
   }
 }
 console.log(`\n${scenarios.length - failed}/${scenarios.length} passed with ${ai.model}, prompt ${SETTER_PROMPT_VERSION}.`);
-process.exit(failed ? 1 : 0);
+
+// Receptionist replay: a gym with two FAQ answers, a transfer number and weekday booking hours.
+const gym = checkedAgentSettings({ ...templateSettings('gym', 'Iron Gym'), hours: { 1: [['09:00', '17:00']], 2: [['09:00', '17:00']], 3: [['09:00', '17:00']], 4: [['09:00', '17:00']], 5: [['09:00', '17:00']] },
+  faqs: [{ q: 'What are your opening hours?', a: 'Open 5 am to 9 pm weekdays, 7 am to 1 pm Saturday.' }, { q: 'Is there parking?', a: 'Yes, free parking behind the gym.' }],
+  transferNumber: '+61893330000', staffPhone: '+61400000009', voiceOn: true });
+type VCheck = (r: { said: string[]; outcomes: string[]; actions: string[]; state: string }) => string | null;
+const calls: { name: string; lines: string[]; check: VCheck }[] = [
+  { name: 'FAQ hit: answers from the FAQ', lines: ['Hi, is there parking at the gym?'], check: r => r.outcomes.includes('faq') && /park/i.test(r.said.join(' ')) ? null : 'did not answer from the FAQ' },
+  { name: 'FAQ miss: no guessing, offers a message or transfer', lines: ['How much is a membership per week?'], check: r => r.outcomes.includes('faq-miss') && !/\$\s*\d/.test(r.said.join(' ')) ? null : 'guessed a price or skipped the FAQ' },
+  { name: 'books a trial after qualifying', lines: ['I want to book a free trial', 'My name is Sam. I want to get fitter, I trained years ago, no injuries', 'Weekday mornings suit me and I want to start next week', 'The first time you said is perfect'], check: r => r.state === 'booked' ? null : `ended ${r.state}` },
+  { name: 'billing complaint: transferred', lines: ['I have been charged twice this month and I want to speak to someone now'], check: r => r.actions.includes('transfer') || r.outcomes.includes('message') ? null : 'not transferred or messaged' },
+  { name: 'is this a bot: says it is an AI', lines: ['Am I talking to a real person?'], check: r => /\bAI\b|assistant/i.test(r.said.at(-1) ?? '') ? null : `did not say it is an AI: "${r.said.at(-1)}"` },
+];
+let vfailed = 0;
+for (const c of calls) {
+  const { db, rpc: base } = store('new', [], '+61411111111');
+  const outcomes: string[] = [], said: string[] = [], actions: string[] = [];
+  const rpc = async (fn: string, a: Record<string, unknown>) => fn === 'fo_voice_outcome' ? (outcomes.push(String(a.outcome)), null) : fn === 'fo_voice_reply' ? (a.prompt ? 'm' : Promise.reject(new Error('no prompt version'))) : base(fn, a);
+  const conversation: { role: 'user' | 'assistant'; content: string }[] = [];
+  try {
+    for (const line of c.lines) {
+      conversation.push({ role: 'user', content: line });
+      let text = '';
+      for await (const o of runReceptionistTurn({ llm: anthropicStream(ai), rpc, auth: { channel: 'live-test', key: 'k'.repeat(40) }, calendar: { ...calendar, moveEvent: async () => undefined, cancelEvent: async () => undefined }, send: async () => ({ sent: false, sid: null }), email: async () => ({ sent: false, id: null }), settings: gym, now, call: { id: 'call_livetest1', caller: '+61411111111', contact: 'c1' }, conversation: [...conversation] })) {
+        if (o.type === 'text') text += o.text; else actions.push(o.type);
+      }
+      said.push(text.trim()); conversation.push({ role: 'assistant', content: text.trim() });
+      if (actions.length) break;
+    }
+    const problem = c.check({ said, outcomes, actions, state: db.contact.state });
+    if (problem) vfailed++;
+    console.log(`${problem ? 'FAIL' : 'PASS'}  call: ${c.name}${problem ? `: ${problem}` : ''}`);
+    for (const s of said) console.log(`      > ${s}`);
+  } catch (e) { vfailed++; console.log(`FAIL  call: ${c.name}: ${e instanceof Error ? e.message : e}`); }
+}
+console.log(`\n${calls.length - vfailed}/${calls.length} calls passed with ${ai.model}, prompt ${RECEPTIONIST_PROMPT_VERSION}.`);
+process.exit(failed || vfailed ? 1 : 0);
