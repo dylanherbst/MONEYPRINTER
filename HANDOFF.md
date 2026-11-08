@@ -50,6 +50,14 @@ books/moves/cancels, qualifies new callers, transfers or takes messages. On `fea
   (`call.id`, `call.customer.number`) and the transferCall/endCall function-call shape follow Vapi's docs and support
   threads; confirm on the first test call.
 
+## App UI: Liquid Glass (2026-11-08, owner approved)
+
+- Spec to follow when building any app screen: `docs/design/LIQUID_GLASS_SPEC.md`. Approved render: `docs/design/reference/kit-approved.png` (left half). Home in light/dark: `docs/design/reference/home-approved.png`.
+- Library files: `docs/design/ventra-ui/` (tokens.css, glass.css, components.js on `window.VentraGlass`, components.d.ts, tokens.json). Port to TSX keeping `vg-*` class names; wire via `apps/web/app/design-system/liquid-glass/` (not done yet).
+- Live design system: https://claude.ai/artifact/1BSxDcrQ9HNoTR2XdUsskY · UI guide canvas: https://claude.ai/artifact/2sik8p22KKEJfZ9W8jK6J4 · PDF/ZIP: `docs/design/VENTRA-App-UI-Guide.*`.
+- Applies to the app only; `apps/web/app/site/**` (marketing website) is unchanged.
+- Not started: porting the app shell and Home to this look (owner said go after approving the kit).
+
 ## Acceptance criteria
 
 Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state machine, 0.4 handoff schema,

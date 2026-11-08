@@ -8,7 +8,7 @@ Shared by Claude Code and Codex.
 - Do not spawn other coding agents.
 - `VENTRA-CLEAN` (`main`) is protected: never edit, commit, merge or reset it. Other `VENTRA-*` folders are read-only references.
 - Preserve every existing VENTRA feature and integration.
-- Apply the approved V5 subtle teal glass UI.
+- App UI: apply the approved **VENTRA Liquid Glass** look. Read `docs/design/LIQUID_GLASS_SPEC.md` and keep `docs/design/reference/kit-approved.png` open before touching any app screen. The marketing site (`apps/web/app/site/**`) keeps its own look. (Supersedes the V5 teal glass UI.)
 - `apps/web` uses a Next.js with breaking changes: read `apps/web/node_modules/next/dist/docs/` before coding.
 - Every feature needs an isolated test page (`apps/web/app/tools/<feature>/`) using real production logic.
 - Run lint, typecheck, tests and build before reporting success. Report evidence (command + result), not descriptions.

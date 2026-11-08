@@ -2,7 +2,7 @@
 
 VENTRA is an AI platform that helps people launch, build and grow businesses. It is the only active project. Do not resume SETORA. Read `AGENTS.md` first; it applies to every coding assistant.
 
-Main navigation: Home, Create, Customers, Grow, Money. Three guided journeys: Education/Mentoring, Start an Independent Business, Grow and Automate an Existing Business. Keep the UI exceptionally simple and beginner-friendly. (The product blueprint `NEW SIMPLE VENTRA BUILD.pdf` has not been found on this Mac; do not assume its contents.)
+Main navigation: Home, Create, Customers, Grow, Money. Three guided journeys: Education/Mentoring, Start an Independent Business, Grow and Automate an Existing Business. Keep the UI exceptionally simple and beginner-friendly. App look: `docs/design/LIQUID_GLASS_SPEC.md` (approved 2026-11-08; reference image `docs/design/reference/kit-approved.png`). (The product blueprint `NEW SIMPLE VENTRA BUILD.pdf` has not been found on this Mac; do not assume its contents.)
 
 ## Your role
 
