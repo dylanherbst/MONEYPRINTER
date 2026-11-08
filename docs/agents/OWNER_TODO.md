@@ -24,6 +24,32 @@ Never paste a secret into a chat: put values in the server environment (`.env.lo
 - [ ] Test the website chat on the live site yourself, then approve `FRONT_OFFICE_CHAT_LIVE=1` (AI answers) and later `FRONT_OFFICE_SEND_LIVE=1` (real SMS/email).
 - [ ] Choose the Vercel Pro plan before commercial use (trial).
 
+## Your AI team settings (gyms and Ventra)
+
+- [ ] Apply the new migration `supabase/migrations/202611080001_front_office_receptionist.sql` in the Supabase SQL editor (Ventra AI project), then redeploy. Without it the settings page and phone calls cannot save anything.
+- [ ] Fill in https://www.aiventra.com.au/tools/front-office-settings for Ventra (template "Ventra"), then Save. For a gym client: their own workspace, template "Gym", then:
+  - business name and what is booked (default: free trial session or tour, edit it),
+  - booking hours per day (empty = the AI takes a message instead of booking), length, time zone,
+  - their qualifying questions (3 to 5; the gym template has goal, experience/injuries, preferred times, start date, membership interest),
+  - FAQ answers in their own words: prices, opening hours, classes, location, parking. The AI states only these; everything else becomes a message,
+  - staff mobile and email for messages, a transfer number for urgent calls, the phone greeting, and a call recording notice if calls are recorded,
+  - switches: Setter, Receptionist, Answer phone calls.
+- [ ] A gym's channels: run `create_channels.sql` with their workspace name (edit `workspace_name` and the addresses), one voice channel per gym.
+
+## AI Receptionist (Vapi)
+
+- [ ] Create a Vapi account at vapi.ai (pay as you go). Do not paste keys in chat.
+- [ ] Voice channel: `create_channels.sql` now also creates a `voice` channel (address `vapi-ventra`). Add `FRONT_OFFICE_VOICE_CHANNEL_ID` and `FRONT_OFFICE_VOICE_CHANNEL_KEY` in Vercel (Secret).
+- [ ] In Vapi > Integrations > Custom LLM (or the assistant's credentials): add a Bearer token credential whose value is the voice channel key.
+- [ ] Create an assistant: Model provider **Custom LLM**, URL `https://www.aiventra.com.au/api/front-office/voice/vapi/chat/completions` (the full URL, as in Vapi's custom LLM example), with that credential. First message mode: **assistant speaks first with model-generated message** (our server says the greeting with the AI disclosure).
+- [ ] Assistant Server URL: `https://www.aiventra.com.au/api/front-office/voice/vapi/webhook`, same Bearer credential. Turn on the end-of-call report.
+- [ ] Add Vapi's built-in **transferCall** tool with your transfer number as a destination (same number as in the settings page) and **endCall**.
+- [ ] Phone number: import the Twilio AU number into Vapi once it is bought (Phone Numbers > Import > Twilio), and attach the assistant. For a first test you can use a Vapi test number.
+- [ ] For a gym: one assistant per gym, URLs `https://www.aiventra.com.au/api/front-office/voice/vapi/<their voice channel id>/chat/completions` and `.../<id>/webhook`, credential = their voice channel key.
+- [ ] Test call with `FRONT_OFFICE_VOICE_LIVE` unset: you should hear "isn't switched on yet" and the call ends; your number shows up as a call-back message. Then approve `FRONT_OFFICE_VOICE_LIVE=1` (Vercel), switch on "Answer phone calls" in settings, redeploy, and call again.
+- [ ] Decide whether calls are recorded in Vapi. If yes, write the notice in settings (it is read at the start of every call) and check the privacy policy covers it.
+- [ ] Live replay after any prompt change: `ANTHROPIC_API_KEY=... FRONT_OFFICE_MODEL=... node --experimental-strip-types apps/web/test/live/setter-live.ts` (now also five Receptionist calls).
+
 ## Run on the Mac
 
 - [ ] `ventra-verify` on `feature/front-office-pivot` (runs `next build` and the local Supabase integration, which the Cowork VM cannot).
@@ -45,6 +71,7 @@ Never paste a secret into a chat: put values in the server environment (`.env.lo
 | Sending SMS (1.3 to 1.5) | `TWILIO_ACCOUNT_SID`, `TWILIO_FROM_NUMBER` (E.164, the number leads text) | Twilio console; buy an AU mobile number |
 | Webhook URL signing behind a proxy or tunnel | `FRONT_OFFICE_PUBLIC_ORIGIN` (e.g. `https://ventra.example.com`) | Your public URL |
 | Google Calendar (1.2, 1.3). Done: project `ventra-front-office`, Calendar API on, OAuth app + web client "Ventra calendar booking" (redirect: OAuth Playground). Left: publish the app, get the refresh token | `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, `GOOGLE_CALENDAR_REFRESH_TOKEN`, `GOOGLE_CALENDAR_ID` | Google Cloud console: enable Calendar API, OAuth client (web), consent screen; get a refresh token for the bookings calendar with scopes `calendar.events` + `calendar.freebusy` |
+| AI Receptionist (Vapi) | `FRONT_OFFICE_VOICE_CHANNEL_ID`, `FRONT_OFFICE_VOICE_CHANNEL_KEY` (also the Bearer token in Vapi), `FRONT_OFFICE_VOICE_LIVE=1` (your approval) | `create_channels.sql`; Vapi dashboard |
 | Setter AI (1.1) | `ANTHROPIC_API_KEY`, `FRONT_OFFICE_MODEL` (exact Claude model id to use) | console.anthropic.com; pick the model id from the models page |
 | Follow-up and reminder runner (1.4, 1.5) | `FRONT_OFFICE_CRON_SECRET` and `CRON_SECRET` (same 32+ character value); it works through every configured channel pair: `FRONT_OFFICE_CHANNEL_*` (SMS), `FRONT_OFFICE_CHAT_CHANNEL_*`, `FRONT_OFFICE_EMAIL_CHANNEL_*` | Generate the secret yourself; channel ids and keys come from `docs/agents/sql/create_channels.sql` |
 | Website chat (1.8) | `FRONT_OFFICE_CHAT_CHANNEL_ID`, `FRONT_OFFICE_CHAT_CHANNEL_KEY`; `FRONT_OFFICE_CHAT_ORIGINS` if the widget sits on another site; `FRONT_OFFICE_CHAT_LIVE=1` to let the AI answer | Create a `web-chat` channel with `fo_create_channel` (address = your site, e.g. `ventra.com.au`) |

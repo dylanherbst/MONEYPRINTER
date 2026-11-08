@@ -2,7 +2,7 @@
 
 Shared state between Claude Code and Codex. The assistant that stops updates this file; the one that starts reads it. Template and rules: `docs/agents/CODEX_HANDOFF.md`.
 
-- **Updated:** 2026-11-07
+- **Updated:** 2026-11-08
 - **Last editor:** claude
 - **Repo:** /Users/dylan/Developer/VENTRA-FEATURES
 
@@ -25,6 +25,30 @@ Committed from the Cowork VM with plain git at the owner's request (ventra-git o
   GET + `CRON_SECRET`), the runner now covers every configured channel (SMS, chat, email), `docs/agents/sql/create_channels.sql`
   for the owner to create channels, a "person can step in" line on the site chat, and the Sales agent foundation
   (`lib/front-office/sales/`, not wired live).
+
+## AI front office for gyms + AI Receptionist (2026-11-08, owner decisions)
+
+Owner decided: the Setter and Receptionist are a product for gym clients, tested on Ventra first; voice through Vapi (its
+Custom LLM is an HTTP endpoint that works on Vercel; Retell's needs a WebSocket server); the Receptionist answers FAQs,
+books/moves/cancels, qualifies new callers, transfers or takes messages. On `feature/ventra-website`, not deployed:
+
+- Migration `202611080001_front_office_receptionist.sql`: `fo_agent_settings` (owner-only `fo_get/save_agent_settings`
+  with a revision check, `fo_channel_settings` for webhooks), `fo_calls` + `fo_voice_turn/contact/reply/outcome/end`,
+  `fo_reschedule`, `fo_cancel_booking`, event kinds call/booking/message. Not yet applied to production.
+- `lib/front-office/settings.ts` + `templates/gym.ts` (gym FAQs and hours deliberately empty) + `templates/ventra.ts`.
+  Chat, SMS, email, Meta and the job runner load each channel's business settings (fallback: Ventra's own config).
+- `/tools/front-office-settings` + `GET/POST /api/front-office/settings` (owners).
+- `lib/front-office/receptionist/` (prompt `receptionist/voice@1`, tools, streamed turns), `lib/front-office/vapi.ts`
+  (request/event parsing, chunk format, doc URLs), `lib/front-office/vapi-route.ts`, routes under
+  `/api/front-office/voice/vapi/` (env channel) and `/api/front-office/voice/vapi/<channel id>/` (one per business).
+  Auth: the voice channel key as Vapi's Bearer token. Answers only with `FRONT_OFFICE_VOICE_LIVE=1` + saved settings with
+  Receptionist and phone switched on; otherwise an honest "not switched on" line, a call-back message, hang up.
+- Streaming Anthropic client (`anthropicStream`); calendar move/cancel; `rescheduleSlot`, `cancelBooking`.
+- Tests: `front-office-receptionist-db` (PGlite), `front-office-receptionist` (scripted model, Vapi fixtures),
+  `front-office-ventra-e2e`; `test/live/setter-live.ts` now also replays five Receptionist calls.
+- Not verified against a live Vapi call (needs the owner's Vapi account). The exact Vapi request body fields used
+  (`call.id`, `call.customer.number`) and the transferCall/endCall function-call shape follow Vapi's docs and support
+  threads; confirm on the first test call.
 
 ## Acceptance criteria
 
@@ -133,6 +157,7 @@ fe8a1ad Keep restored course textarea accessible names stable
 
 ## Tests run and results
 
+2026-11-08: Node 24.21 in the Cowork VM: 601 pass, 0 fail; tsc and eslint pass.
 2026-11-07: Node 24.21 in the Cowork VM: 582 pass, 0 fail; tsc and eslint pass. Earlier run (Node 22.23):
 - `tsc --noEmit`: pass. `eslint . --max-warnings 0`: pass.
 - `node --experimental-strip-types --test test/*.test.ts`: 557 pass, 0 fail (514 before the pivot). Gate 0.7 covered by
@@ -153,7 +178,9 @@ fe8a1ad Keep restored course textarea accessible names stable
 
 1. Owner: `docs/agents/OWNER_TODO.md` > "Next, in order (production)": Secret re-save, Claude funds, workspace, run
    create_channels.sql, CRON_SECRET, Google refresh token, redeploy, test chat, approvals.
-2. Build next: Sales payment step once a provider is chosen (2.9), wire `AgentHooks.sales` on approval, 1.11 reactivation
+2. Owner: Vapi steps in `docs/agents/OWNER_TODO.md` > "AI Receptionist (Vapi)"; apply migration 202611080001 in the
+   Supabase SQL editor; fill in /tools/front-office-settings.
+3. Build next: Sales payment step once a provider is chosen (2.9), wire `AgentHooks.sales` on approval, 1.11 reactivation
    (needs consent confirmed), 1.12 Google Business replies (needs profile access).
 
 ## Do not touch
