@@ -2,8 +2,8 @@
 
 Shared state between Claude Code and Codex. The assistant that stops updates this file; the one that starts reads it. Template and rules: `docs/agents/CODEX_HANDOFF.md`.
 
-- **Updated:** 2026-11-08
-- **Last editor:** claude
+- **Updated:** 2026-11-09
+- **Last editor:** claude (Cowork, overnight, owner asleep)
 - **Repo:** /Users/dylan/Developer/VENTRA-FEATURES
 
 ## Current task (approved scope only)
@@ -25,6 +25,23 @@ Committed from the Cowork VM with plain git at the owner's request (ventra-git o
   GET + `CRON_SECRET`), the runner now covers every configured channel (SMS, chat, email), `docs/agents/sql/create_channels.sql`
   for the owner to create channels, a "person can step in" line on the site chat, and the Sales agent foundation
   (`lib/front-office/sales/`, not wired live).
+
+## Mobile app in Liquid Glass (2026-11-09, branch `feature/mobile-app`, off `feature/ventra-website` e011f27)
+
+Owner asked (09 Nov, from the Build Plan + Blueprint + Liquid Glass rules PDFs): start building, mobile first. Not deployed.
+The uncommitted pre-Liquid-Glass edits to `design-system/theme.css` + `tokens.css` were parked in `git stash` ("pre-liquid-glass restyle ... parked 2026-11-09"), not deleted.
+
+- App shell rebuilt to the approved look (`app/ui/ventra-shell.tsx`): lit wall → one glass sheet → top bar (wordmark with the new ribbon V, search, notifications, account menu) → content → fixed bottom nav with safe-area inset. From 1024px the nav becomes a glass sidebar with Create and theme. Pearl/Night via `data-theme` on `<html>`.
+- Navigation is now the blueprint's five areas: Home `/app` (also `/`), Create, Customers, Grow, Money (`lib/ventra-navigation.ts`). More moved into the account menu. `/app` exists because on aiventra.com.au "/" is the marketing site.
+- Library: `app/design-system/liquid-glass/` = tokens.css (scoped to `.vg-app`, type classes prefixed `vg-t-`), glass.css (copy of the approved file), app.css (shell, page patterns, globals.css neutralisers, and the **legacy bridge**), components.tsx (TSX port of components.js + ListRow, SectionHead, PageHead).
+- Legacy bridge: screens not rebuilt yet render inside `<Legacy>` (`.ventra-app.vg-legacy`); their `--v-*` tokens point at Liquid Glass tokens so everything sits on the same glass. Tools, workspace, settings, onboarding, services, sales, business, inbox, insights, more use it.
+- Native Liquid Glass screens: Home (`app/ui/ventra-home.tsx`), Create/Customers/Grow/Money tops (`app/ui/ventra-areas.tsx`), Growth Audit wizard `/grow/audit`.
+- Live numbers: `GET /api/front-office/summary?workspace=&tz=` (members only, RLS, counts only, no contact details; `lib/front-office/summary.ts`), used by `app/ui/live-summary.ts`. Not signed in / not configured = "—" and one honest notice.
+- Growth Audit calculator (blueprint §18 formula): `lib/growth-opportunity.ts` + `app/ui/growth-opportunity.tsx`. One question at a time, Back/Skip, resumes from this browser, ranked findings with evidence, confidence and adjustable assumptions, "estimate, not a promise". Test page `/tools/growth-opportunity`.
+- AI team settings now has a customer route `/customers/ai-team` (same component as `/tools/front-office-settings`, moved to `app/ui/ai-team-settings.tsx`).
+- Installable app: `app/manifest.ts` (start `/app`), `app/icon.png`, `app/apple-icon.png`, `public/brand/*` from the owner's ribbon-V logo; viewport-fit cover + theme colours in `(ventra)/layout.tsx`.
+- Tests: new `front-office-summary.test.ts`, `growth-opportunity.test.ts`; `ventra-home.test.ts` updated for the five areas. Cloud container Node 22.23: 610 pass, 0 fail; tsc, eslint and `next build` pass. Playwright at 390px and 1440px, Pearl and Night: no horizontal scroll, no page errors; nav, account menu, search, Create dialog and the full audit flow checked.
+- Not done yet: native rebuilds of onboarding, Business/offers, inbox, settings (still on the bridge); live numbers need sign-in + migrations on production; notifications feed is a placeholder card.
 
 ## AI front office for gyms + AI Receptionist (2026-11-08, owner decisions)
 

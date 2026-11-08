@@ -1,2 +1,2 @@
-import { CreateHub } from '../../ui/ventra-hubs';
-export default function Page(){return <CreateHub/>;}
+import { CreateScreen } from '../../ui/ventra-areas';
+export default function Page(){return <CreateScreen/>;}

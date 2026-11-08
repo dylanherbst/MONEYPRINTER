@@ -1,0 +1,268 @@
+/* VENTRA app shell and page patterns in the Liquid Glass look. Mobile first (390px), sidebar from 1024px.
+   Values come from tokens.css. Spec: docs/design/LIQUID_GLASS_SPEC.md. Not used by the marketing site. */
+
+html:has(.vg-app) { background: var(--vg-html-bg, #c3b4bb); }
+html[data-theme="dark"]:has(.vg-app) { --vg-html-bg: #15121c; }
+body:has(.vg-app) { background: transparent; }
+body:has(.vg-app)::before { display: none; }
+.vg-app { position: relative; min-height: 100dvh; font-size: 15px; line-height: 22px; color-scheme: light; }
+[data-theme="dark"] .vg-app { color-scheme: dark; }
+.vg-app *, .vg-app *::before, .vg-app *::after { box-sizing: border-box; }
+.vg-app :is(h1, h2, h3, h4) { color: var(--ink); font-family: var(--font-sans); letter-spacing: normal; margin: 0; text-wrap: balance; }
+.vg-app p { margin: 0; }
+.vg-app a { color: inherit; }
+.vg-app :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.vg-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+
+/* Neutralise globals.css (dark marketing defaults) for the glass components. */
+.vg-app p { max-width: none; color: inherit; }
+.vg-app label { margin: 0; color: inherit; font-size: inherit; }
+.vg-app label.vg-field { display: flex; }
+.vg-app .vg-field-label { display: block; margin: 0 0 8px 6px; color: var(--ink); font: 600 14px/18px var(--font-sans); }
+.vg-app :is(.vg-field input, .vg-select select) { margin: 0; min-height: 0; width: auto; display: block; border: 0; border-radius: 0; background: transparent; }
+.vg-app .vg-field input { width: 100%; flex: 1; }
+.vg-app .vg-select select { border-radius: var(--radius-pill); }
+.vg-app :is(.vg-iconbtn, .vg-toggle, .vg-check) { padding: 0; min-height: 0; max-width: none; }
+.vg-app .vg-btn { max-width: 100%; overflow-wrap: normal; }
+.vg-app button.vg-bead:is(:hover, :active):not(:disabled) { background: linear-gradient(175deg, var(--glass-strong) 0%, var(--glass-strong-2) 100%); box-shadow: var(--shadow-raised); border-color: transparent; }
+.vg-app button:is(.vg-btn-primary, .vg-iconbtn-violet):is(:hover, :active):not(:disabled) { background: linear-gradient(180deg, var(--violet-fill) 0%, var(--violet-fill-2) 100%); box-shadow: var(--shadow-violet); }
+.vg-app button.vg-btn-secondary:is(:hover, :active):not(:disabled) { background: linear-gradient(180deg, var(--teal-fill) 0%, var(--teal-fill-2) 100%); box-shadow: var(--shadow-teal); }
+.vg-app button.vg-btn-ghost:is(:hover, :active):not(:disabled) { background: transparent; box-shadow: inset 0 0 0 1px var(--hairline); }
+.vg-app button.vg-tab:is(:hover, :active):not([aria-selected="true"]) { background: transparent; box-shadow: none; color: var(--ink); }
+.vg-app button.vg-tab[aria-selected="true"]:is(:hover, :active) { background: linear-gradient(175deg, var(--glass-strong), var(--glass-strong-2)); box-shadow: var(--shadow-raised); }
+.vg-app button.vg-toggle:is(:hover, :active):not([aria-checked="true"]) { background: linear-gradient(180deg, var(--glass-2), var(--glass)); box-shadow: inset 0 0 0 1.5px var(--line-strong), inset 0 2px 6px rgba(60,50,110,.15); }
+.vg-app button.vg-toggle[aria-checked="true"]:is(:hover, :active) { background: linear-gradient(180deg, var(--violet-fill), var(--violet-fill-2)); box-shadow: var(--shadow-violet); }
+.vg-app button.vg-check:is(:hover, :active):not([aria-checked="true"]) { background: var(--glass-strong); box-shadow: inset 0 0 0 1.5px var(--line-strong), var(--shadow-raised); }
+.vg-app button.vg-check[aria-checked="true"]:is(:hover, :active) { background: linear-gradient(180deg, var(--violet-fill), var(--violet-fill-2)); box-shadow: var(--shadow-violet); }
+.vg-app button.vg-row { min-height: 64px; border: 0; justify-content: flex-start; font-size: inherit; line-height: inherit; }
+.vg-app button.vg-row:is(:hover, :active) { background: color-mix(in srgb, var(--glass-strong) 45%, transparent); box-shadow: none; }
+
+/* The lit wall fills the viewport and stays put while the sheet scrolls. */
+.vg-app > .vg-stage { position: fixed; inset: 0; padding: 0; z-index: 0; display: block; }
+.vg-shell { position: relative; z-index: 1; min-height: 100dvh; padding: max(12px, env(safe-area-inset-top)) 12px calc(104px + env(safe-area-inset-bottom)); }
+.vg-shell > .vg-frame { max-width: 560px; margin: 0 auto; min-height: calc(100dvh - 140px); padding: 16px 12px 24px; gap: 14px; }
+
+.vg-skip { position: absolute; left: 12px; top: -60px; z-index: 50; }
+.vg-skip:focus { top: 12px; }
+
+/* Top bar */
+.vg-app .vg-topbar { padding: 2px 4px 4px; }
+.vg-wordmark { font: 700 21px/24px var(--font-sans); letter-spacing: .18em; }
+.vg-wordmark .vg-mark { width: 44px; height: auto; flex: none; filter: drop-shadow(0 4px 10px color-mix(in srgb, var(--violet-fill) 40%, transparent)); }
+.vg-app .vg-topbar .vg-iconbtn { width: 48px; height: 48px; }
+.vg-topbar-actions { display: flex; gap: 10px; }
+
+/* Bottom nav: fixed to the bottom with the safe-area inset. */
+.vg-dock { position: fixed; z-index: 20; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); max-width: 536px; margin: 0 auto; }
+.vg-dock .vg-nav { padding: 7px; }
+.vg-dock .vg-nav a { padding: 9px 2px; font-size: 12.5px; }
+.vg-dock .vg-nav a svg { width: 24px; height: 24px; }
+
+/* Sidebar (desktop) */
+.vg-side { display: none; }
+@media (min-width: 1024px) {
+  .vg-shell { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 20px; padding: 20px 24px 40px; max-width: 1360px; margin: 0 auto; }
+  .vg-shell > .vg-frame { max-width: none; margin: 0; min-height: calc(100dvh - 60px); padding: 24px 24px 32px; }
+  .vg-side { display: flex; flex-direction: column; gap: 18px; position: sticky; top: 20px; align-self: start; height: calc(100dvh - 40px); padding: 22px 14px; border-radius: var(--radius-xl); }
+  .vg-side .vg-wordmark { padding: 0 8px; }
+  .vg-side nav { display: grid; gap: 6px; }
+  .vg-side nav a { display: flex; align-items: center; gap: 12px; min-height: 50px; padding: 0 16px; border-radius: var(--radius-pill); color: var(--ink-muted); font: 600 15px/20px var(--font-sans); text-decoration: none; position: relative; isolation: isolate; }
+  .vg-side nav a:hover { color: var(--ink); background: var(--glass-card); }
+  .vg-side nav a svg { width: 22px; height: 22px; }
+  .vg-side nav a[aria-current="page"] { color: var(--on-violet); background: linear-gradient(180deg, var(--violet-fill), var(--violet-fill-2)); box-shadow: var(--shadow-violet); text-shadow: 0 1px 2px rgba(40,20,90,.35); }
+  .vg-side nav a[aria-current="page"]::after { content: ""; position: absolute; z-index: -1; left: 6%; right: 6%; top: 3px; height: 48%; border-radius: var(--radius-pill); background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.04)); }
+  .vg-side-foot { margin-top: auto; display: grid; gap: 8px; }
+  .vg-dock { display: none; }
+  .vg-topbar .vg-wordmark { visibility: hidden; }
+  .vg-app .vg-card { padding: 24px; }
+}
+
+/* Menus and sheets opened from the top bar */
+.vg-popover { position: absolute; z-index: 30; right: 12px; top: 72px; width: min(340px, calc(100vw - 24px)); display: grid; gap: 4px; padding: 10px; }
+.vg-popover a, .vg-popover button.vg-row { min-height: 48px; }
+.vg-popover h2 { font: 600 16px/22px var(--font-sans); padding: 6px 10px 2px; }
+.vg-popover p { padding: 0 10px 6px; color: var(--ink-muted); font-size: 14px; }
+
+/* Page title + structure */
+.vg-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 8px 6px 2px; flex-wrap: wrap; }
+.vg-page-head h1 { font-size: 28px; line-height: 34px; }
+.vg-page-sub { color: var(--ink-muted); font-size: 15px; line-height: 22px; margin-top: 4px; max-width: 60ch; }
+.vg-eyebrow { color: var(--violet); text-transform: uppercase; margin-bottom: 4px !important; }
+.vg-section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 6px 0; }
+.vg-section-head h2 { font: 700 19px/26px var(--font-sans); }
+.vg-stack { display: grid; gap: 14px; min-width: 0; }
+.vg-grid { display: grid; gap: 14px; }
+@media (min-width: 720px) { .vg-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1180px) { .vg-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .vg-grid-2.vg-wide-first > :first-child { grid-column: 1 / -1; } }
+@media (min-width: 720px) and (max-width: 1179px) { .vg-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Card internals */
+.vg-card-head { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+.vg-card-head > div { display: grid; min-width: 0; }
+.vg-card-title { font: 600 19px/25px var(--font-sans); margin: 0; }
+.vg-card-text { color: var(--ink-muted); font-size: 15px; line-height: 22px; margin-top: 6px; }
+.vg-card-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.vg-promo-title { font: 600 22px/28px var(--font-sans); margin: 0 0 6px; }
+.vg-promo-text { font: 500 15px/22px var(--font-sans); color: var(--ink-muted); margin: 0 0 18px !important; }
+.vg-stat-caption { font: 500 13px/18px var(--font-sans); color: var(--ink-muted); margin-top: 2px; }
+.vg-stat .vg-stat-value { font-size: 44px; line-height: 50px; }
+.vg-stat-link { cursor: pointer; }
+.vg-stretch { text-decoration: none; color: inherit; }
+.vg-stretch::after { content: ""; position: absolute; inset: 0; border-radius: var(--radius-lg); z-index: 3; }
+.vg-stat-link:hover { filter: brightness(1.02); }
+.vg-stat .vg-badge { align-self: center; }
+.vg-chart-empty { display: grid; justify-items: start; gap: 6px; margin: 12px 0 6px; padding: 18px; border-radius: var(--radius-sm); background: var(--glass-2); box-shadow: inset 0 0 0 1px var(--hairline); }
+.vg-chart-empty strong { font: 600 16px/22px var(--font-sans); }
+.vg-chart-empty p { color: var(--ink-muted); font-size: 14px; line-height: 20px; }
+
+/* Rows inside cards */
+.vg-rows { display: grid; gap: 2px; margin: 6px -6px 0; padding: 0; list-style: none; }
+.vg-row { appearance: none; border: 0; background: transparent; width: 100%; text-align: left; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 8px 8px; border-radius: 20px; color: var(--ink); text-decoration: none; font: inherit; cursor: default; }
+a.vg-row, button.vg-row { cursor: pointer; }
+a.vg-row:hover, button.vg-row:hover { background: color-mix(in srgb, var(--glass-strong) 45%, transparent); }
+.vg-row + .vg-row, li + li > .vg-row { box-shadow: 0 -1px 0 var(--hairline); }
+.vg-row-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.vg-row-text strong { font: 600 16px/22px var(--font-sans); overflow-wrap: anywhere; }
+.vg-row-text small { font: 500 13px/18px var(--font-sans); color: var(--ink-muted); }
+.vg-row-go { width: 20px; height: 20px; color: var(--ink-muted); flex: none; }
+.vg-row .vg-tile-sm { width: 46px; height: 46px; border-radius: 15px; }
+.vg-row .vg-tile-sm svg { width: 24px; height: 24px; }
+
+/* Journey choice cards (Start · Teach · Grow) */
+.vg-journeys { display: grid; gap: 12px; }
+@media (min-width: 720px) { .vg-journeys { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.vg-journey { display: grid; gap: 10px; text-decoration: none; color: var(--ink); }
+.vg-journey h3 { font: 600 18px/24px var(--font-sans); }
+.vg-journey p { color: var(--ink-muted); font-size: 14px; line-height: 20px; }
+.vg-journey .vg-badge { justify-self: start; }
+
+/* Steps / progress */
+.vg-steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; counter-reset: s; }
+.vg-step-num { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font: 700 14px/1 var(--font-sans); flex: none; }
+.vg-step-done { color: var(--on-violet); background: linear-gradient(180deg, var(--violet-fill), var(--violet-fill-2)); box-shadow: var(--shadow-violet); }
+.vg-step-done svg { width: 16px; height: 16px; }
+.vg-progress { height: 10px; border-radius: 999px; background: var(--glass-2); box-shadow: inset 0 0 0 1px var(--hairline); overflow: hidden; margin-top: 12px; }
+.vg-progress > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--violet-fill-2), var(--icon-violet-a)); box-shadow: 0 0 10px color-mix(in srgb, var(--violet-fill) 50%, transparent); }
+
+/* Notices */
+.vg-notice { display: flex; gap: 10px; align-items: flex-start; font: 500 14px/20px var(--font-sans); color: var(--ink-muted); }
+.vg-notice svg { width: 20px; height: 20px; flex: none; margin-top: 1px; }
+.vg-footnote { text-align: center; color: var(--ink-muted); font: 500 12px/16px var(--font-sans); padding: 6px 12px 0; }
+.vg-kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 10px 0 0; font-size: 14px; }
+.vg-kv dt { color: var(--ink-muted); }
+.vg-kv dd { margin: 0; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.vg-num { font-variant-numeric: tabular-nums; }
+.vg-field-multi { border-radius: 22px; align-items: stretch; }
+.vg-app textarea.vg-input, .vg-app .vg-textarea { width: 100%; min-height: 96px; border: 0; border-radius: 22px; padding: 14px 18px; font: 500 16px/22px var(--font-sans); color: var(--ink); background: linear-gradient(175deg, var(--glass-strong), var(--glass-strong-2)); box-shadow: var(--shadow-raised); resize: vertical; }
+
+/* Create dialog (native <dialog>) */
+.vg-dialog { border: 0; padding: 20px; border-radius: var(--radius-xl); width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); color: var(--ink); background: linear-gradient(160deg, color-mix(in srgb, var(--glass-strong) 92%, transparent), var(--glass-strong-2)); }
+.vg-dialog::backdrop { background: color-mix(in srgb, var(--ground-glow-cool) 35%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.vg-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.vg-dialog-head h2 { font: 700 21px/28px var(--font-sans); }
+
+/* Search results under the top bar */
+.vg-search-results h2 { font: 600 17px/22px var(--font-sans); margin: 4px 0 2px; }
+
+/* ---------------------------------------------------------------------------------------------
+   Legacy bridge. Screens not yet rebuilt in Liquid Glass still use the older v-* classes. Inside
+   the new shell they render in .vg-legacy (which also carries .ventra-app so their rules apply);
+   here the old tokens are pointed at the Liquid Glass ones and the main surfaces get the new
+   recipes, so every screen sits on the same glass. Ported screens do not use these classes.
+   --------------------------------------------------------------------------------------------- */
+.vg-app .ventra-app.vg-legacy {
+  display: block; min-height: 0; background: none; isolation: auto; grid-template-columns: none; color: var(--ink); font: 400 15px/22px var(--font-sans);
+  --v-text: var(--ink); --v-text-muted: var(--ink-muted); --v-text-faint: var(--ink-muted); --v-accent: var(--violet); --v-blue: var(--violet); --v-link: var(--violet);
+  --v-glass: var(--glass-card); --v-glass-strong: var(--glass-strong); --v-glass-stroke: var(--glass-stroke); --v-glass-stroke-subtle: var(--hairline);
+  --v-field: var(--glass-strong); --v-success: var(--success); --v-warning: var(--warning); --v-danger: var(--danger); --v-focus: var(--focus);
+  --v-blue-soft: var(--violet-soft); --v-blue-card: linear-gradient(180deg, var(--violet-fill), var(--violet-fill-2)); --v-on-blue-card: var(--on-violet);
+  --v-primary-grad: linear-gradient(180deg, var(--violet-fill), var(--violet-fill-2)); --v-shadow: var(--shadow-float); --v-font-display: var(--font-sans);
+  --v-nav-on: var(--violet-soft); --v-nav-on-ink: var(--violet); --v-track: var(--glass-2); --v-bar: var(--violet-fill);
+  --v-series-1: var(--violet-fill); --v-series-2: var(--teal-fill); --v-series-3: var(--magenta); --v-series-4: var(--indigo);
+  --v-gold-card: linear-gradient(135deg, var(--aurora-peach), var(--aurora-lilac) 55%, var(--aurora-blue)); --v-radius-panel: var(--radius-lg); --v-radius-stat: var(--radius-lg);
+}
+.vg-app .vg-legacy :is(h1, h2, h3, h4) { color: var(--ink); font-family: var(--font-sans); }
+.vg-app .vg-legacy h1 { font: 700 28px/34px var(--font-sans); letter-spacing: -.01em; }
+.vg-app .vg-legacy p { color: var(--ink-muted); }
+.vg-app .vg-legacy .v-glass {
+  position: relative; border: 0; border-radius: var(--radius-lg); padding: 20px; color: var(--ink);
+  background: linear-gradient(150deg, var(--glass-card) 0%, var(--glass-card-2) 40%, var(--glass-card-2) 70%, var(--glass-card) 100%);
+  -webkit-backdrop-filter: blur(var(--blur-card)) saturate(140%) brightness(1.05); backdrop-filter: blur(var(--blur-card)) saturate(140%) brightness(1.05);
+  box-shadow: var(--shadow-float);
+}
+.vg-app .vg-legacy .v-glass .v-glass { box-shadow: inset 0 0 0 1px var(--hairline); background: var(--glass-2); backdrop-filter: none; -webkit-backdrop-filter: none; }
+.vg-app .vg-legacy :is(.v-button, .primary-button, button:not([role="switch"]):not([role="checkbox"]):not([role="tab"]):not(.vg-btn):not(.vg-iconbtn):not(.vg-row):not(.vg-chip)) {
+  border: 0; border-radius: var(--radius-pill); min-height: 46px; padding: 10px 20px; color: var(--ink); font: 600 15px/20px var(--font-sans);
+  background: linear-gradient(175deg, var(--glass-strong) 0%, var(--glass-strong-2) 100%); box-shadow: var(--shadow-raised);
+  -webkit-backdrop-filter: blur(var(--blur-raised)) saturate(150%); backdrop-filter: blur(var(--blur-raised)) saturate(150%);
+}
+.vg-app .vg-legacy :is(.v-button-primary, .primary-button, button[type="submit"]):not(:disabled) { color: var(--on-violet); background: linear-gradient(180deg, var(--violet-fill), var(--violet-fill-2)); box-shadow: var(--shadow-violet); text-shadow: 0 1px 2px rgba(40,20,90,.3); }
+.vg-app .vg-legacy :is(button, .v-button):disabled { opacity: .55; cursor: not-allowed; }
+.vg-app .vg-legacy button[aria-current], .vg-app .vg-legacy button[aria-pressed="true"], .vg-app .vg-legacy button[aria-selected="true"] { color: var(--violet); background: linear-gradient(180deg, color-mix(in srgb, var(--violet-soft) 70%, #ffffff), var(--violet-soft)); }
+.vg-app .vg-legacy :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea, .v-input) {
+  border: 0; border-radius: 18px; min-height: 48px; padding: 10px 16px; color: var(--ink); font: 500 16px/22px var(--font-sans);
+  background: linear-gradient(175deg, var(--glass-strong), var(--glass-strong-2)); box-shadow: var(--shadow-raised), inset 0 0 0 1px var(--hairline);
+}
+.vg-app .vg-legacy textarea { border-radius: 20px; }
+.vg-app .vg-legacy :is(input, select, textarea)::placeholder { color: var(--ink-muted); }
+.vg-app .vg-legacy :is(input, select, textarea):focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.vg-app .vg-legacy label { color: var(--ink); }
+.vg-app .vg-legacy :is(.status-badge, .v-status, .v-chip) { color: var(--ink-muted); background: var(--glass-strong); border: 0; box-shadow: inset 1px 1px 1px rgba(255,255,255,.8), 0 4px 10px -4px rgba(60,50,110,.25); border-radius: var(--radius-pill); padding: 3px 10px; font-size: 12px; }
+.vg-app .vg-legacy :is(.v-icon-tile) { background: linear-gradient(175deg, var(--glass-strong), var(--glass-strong-2)); box-shadow: var(--shadow-raised); color: var(--violet); border: 0; }
+.vg-app .vg-legacy a:not(.v-button):not(.vg-btn):not(.vg-row) { color: var(--violet); }
+.vg-app .vg-legacy :is(.v-text-link) { color: var(--violet); font-weight: 600; }
+.vg-app .vg-legacy :is(.panel-note, .subtle-label) { color: var(--ink-muted); }
+.vg-app .vg-legacy :is(.error) { color: var(--danger); }
+.vg-app .vg-legacy :is(table) { color: var(--ink); }
+.vg-app .vg-legacy :is(th, td) { border-color: var(--hairline); }
+.vg-app .vg-legacy .v-dash { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1180px) { .vg-app .vg-legacy .v-dash { grid-template-columns: minmax(0, 1fr) minmax(0, 300px); } }
+.vg-app .vg-legacy .v-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 900px) { .vg-app .vg-legacy .v-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.vg-app .vg-legacy .v-pair { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .vg-app .vg-legacy .v-pair { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); } }
+.vg-app .vg-legacy :is(img, video, svg) { max-width: 100%; }
+.vg-app .vg-legacy { overflow-wrap: anywhere; }
+
+/* Workspace chip (sidebar and account menu) */
+.vg-ws-avatar { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; flex: none; color: var(--on-violet); font: 700 18px/1 var(--font-sans); background: linear-gradient(135deg, var(--aurora-peach), var(--violet-fill) 55%, var(--violet-fill-2)); box-shadow: var(--shadow-violet); }
+.vg-main:focus { outline: none; }
+.vg-popover .vg-row { min-height: 56px; }
+.vg-popover { max-height: calc(100dvh - 180px); overflow: auto; }
+
+/* Chip rows scroll sideways on phones */
+.vg-chips { display: flex; gap: 10px; overflow-x: auto; padding: 4px 6px 14px; margin: -4px -6px -8px; scrollbar-width: none; }
+.vg-chips::-webkit-scrollbar { display: none; }
+.vg-app .vg-chip { min-height: 42px; padding: 8px 18px; font-size: 15px; flex: none; }
+.vg-app .vg-chip.is-on { color: var(--violet); box-shadow: var(--shadow-raised), inset 0 0 0 1.5px color-mix(in srgb, var(--violet-fill) 55%, transparent); }
+.vg-legacy-nohead .v-page-heading, .vg-legacy-nohead > .v-hub-page > .v-page-heading { display: none; }
+
+.vg-chart-empty > svg { width: 28px; height: 28px; color: var(--indigo); }
+.vg-count { min-width: 40px; text-align: right; font: 700 20px/24px var(--font-sans); }
+.vg-notice + .vg-notice { margin-top: 8px; }
+.vg-card-head .vg-sample { white-space: normal; }
+@media (min-width: 1180px) { .vg-stats-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.vg-card-head .vg-badge { justify-self: start; margin-top: 4px; }
+
+/* Growth Audit wizard */
+.vg-q { font: 700 22px/28px var(--font-sans); margin: 14px 0 0 !important; }
+.vg-q-form { margin-top: 14px; display: grid; gap: 6px; }
+.vg-choices { display: grid; gap: 10px; }
+.vg-app button.vg-choice { appearance: none; border: 0; display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 10px 20px; border-radius: var(--radius-pill); color: var(--ink); font: 600 16px/22px var(--font-sans); text-align: left; justify-content: flex-start; cursor: pointer; }
+.vg-choice-dot { width: 22px; height: 22px; border-radius: 50%; flex: none; box-shadow: inset 0 0 0 1.5px var(--line-strong); background: var(--glass-strong); }
+.vg-choice[aria-checked="true"] { box-shadow: var(--shadow-raised), inset 0 0 0 2px color-mix(in srgb, var(--violet-fill) 70%, transparent); }
+.vg-choice[aria-checked="true"] .vg-choice-dot { background: radial-gradient(circle, #fff 0 28%, transparent 32%), linear-gradient(180deg, var(--violet-fill), var(--violet-fill-2)); box-shadow: var(--shadow-violet); }
+.vg-detail { margin-top: 12px !important; font-size: 15px; line-height: 22px; color: var(--ink); }
+.vg-detail strong { display: block; font: 600 13px/18px var(--font-sans); color: var(--ink-muted); }
+.vg-basis { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 6px; color: var(--ink-muted); font-size: 14px; line-height: 20px; }
+.vg-assumptions { display: grid; gap: 10px; margin-top: 14px; }
+.vg-assume { border: 0; margin: 0; padding: 12px 14px; border-radius: 20px; background: var(--glass-2); box-shadow: inset 0 0 0 1px var(--hairline); display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.vg-assume legend { float: left; width: 100%; font: 600 14px/20px var(--font-sans); padding: 0; margin-bottom: 4px; }
+.vg-app .vg-assume label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-muted); }
+.vg-app .vg-assume input { width: 72px; min-height: 40px; margin: 0; display: inline-block; border: 0; border-radius: 14px; padding: 6px 10px; font: 600 15px/20px var(--font-sans); color: var(--ink); background: linear-gradient(175deg, var(--glass-strong), var(--glass-strong-2)); box-shadow: var(--shadow-raised); }
+.vg-footnote a { color: var(--violet); font-weight: 600; }
+.vg-app .vg-field input:focus-visible { outline: none; }
+.vg-app .vg-field:focus-within { outline: 2px solid var(--focus); outline-offset: 3px; }
+.vg-app .vg-assume legend { color: var(--ink); }
+.vg-app .vg-assume input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
