@@ -64,3 +64,38 @@ export async function bookSlot(i: BookInput): Promise<BookResult> {
   if (i.contact.phone) sent = (await i.send(i.contact.phone, confirmation)).sent;
   return { appointment: String(booked.appointment), duplicate: false, eventId, confirmation, sent };
 }
+
+export const RESCHEDULE_PROMPT = 'receptionist/booking-moved@1', CANCEL_PROMPT = 'receptionist/booking-cancelled@1';
+export type MoveInput = {
+  calendar: CalendarProvider; rpc: Rpc; auth: ChannelAuth; send: SmsSender; availability: Availability;
+  contact: BookingContact; appointment: { id: string; starts: string }; start: number; now: number; businessName: string; where: string;
+};
+/** Move a booking to another open time. The record moves first (fo_reschedule returns the stored calendar event id
+ * and cancels the old reminder jobs), then the calendar event (same id); if the calendar refuses, the record is moved
+ * back. The caller schedules new reminders. */
+export async function rescheduleSlot(i: MoveInput): Promise<{ eventId: string; confirmation: string; sent: boolean }> {
+  if (!i.calendar.moveEvent) throw new Error('This calendar cannot move bookings.');
+  const dur = i.availability.slotMinutes * 60_000, oldStart = Date.parse(i.appointment.starts);
+  const busy = await i.calendar.busy(i.start - DAY, i.start + DAY);
+  if (!openSlots(i.availability, busy, i.now).some(s => s.start === i.start)) throw new SlotTaken();
+  const auth = { channel: i.auth.channel, channel_key: i.auth.key };
+  const at = (t: number) => ({ ...auth, contact: i.contact.id, appointment: i.appointment.id, starts: new Date(t).toISOString(), ends: new Date(t + dur).toISOString() });
+  const moved = await i.rpc('fo_reschedule', at(i.start)) as { eventId: string };
+  try { await i.calendar.moveEvent(moved.eventId, i.start, i.start + dur, i.availability.timeZone); }
+  catch (e) { await i.rpc('fo_reschedule', at(oldStart)).catch(() => undefined); throw e; }
+  const confirmation = `Done: your booking with ${i.businessName} is now ${formatSlot(i.start, i.availability.timeZone)} (${i.where}). Reply here to change it, or STOP to opt out.`;
+  await i.rpc('fo_log_outbound', { ...auth, contact: i.contact.id, message: confirmation, agent_name: 'receptionist', prompt: RESCHEDULE_PROMPT });
+  const sent = i.contact.phone ? (await i.send(i.contact.phone, confirmation)).sent : false;
+  return { eventId: moved.eventId, confirmation, sent };
+}
+/** Cancel a booking: record first (reminders stop), then remove the calendar event. */
+export async function cancelBooking(i: { calendar: CalendarProvider | null; rpc: Rpc; auth: ChannelAuth; send: SmsSender; contact: BookingContact; appointment: { id: string; starts: string }; reason: string; businessName: string; timeZone: string }): Promise<{ confirmation: string; sent: boolean; calendarUpdated: boolean }> {
+  const auth = { channel: i.auth.channel, channel_key: i.auth.key };
+  const r = await i.rpc('fo_cancel_booking', { ...auth, contact: i.contact.id, appointment: i.appointment.id, reason: i.reason.slice(0, 400) }) as { eventId?: string };
+  let calendarUpdated = false;
+  if (i.calendar?.cancelEvent && r.eventId) { await i.calendar.cancelEvent(r.eventId); calendarUpdated = true; }
+  const confirmation = `Your booking with ${i.businessName} on ${formatSlot(Date.parse(i.appointment.starts), i.timeZone)} is cancelled. Reply any time to book again, or STOP to opt out.`;
+  await i.rpc('fo_log_outbound', { ...auth, contact: i.contact.id, message: confirmation, agent_name: 'receptionist', prompt: CANCEL_PROMPT });
+  const sent = i.contact.phone ? (await i.send(i.contact.phone, confirmation)).sent : false;
+  return { confirmation, sent, calendarUpdated };
+}

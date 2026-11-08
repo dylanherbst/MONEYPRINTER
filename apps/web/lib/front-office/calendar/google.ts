@@ -18,6 +18,10 @@ export interface CalendarProvider {
   createEvent(input: CalendarEventInput): Promise<CalendarEvent>;
   /** True when a live (not cancelled) event with this id exists. */
   hasEvent(id: string): Promise<boolean>;
+  /** Move an event (same id) to a new time; the attendee is emailed the change. */
+  moveEvent?(id: string, start: number, end: number, timeZone: string): Promise<void>;
+  /** Cancel an event; the attendee is emailed. An event already gone counts as cancelled. */
+  cancelEvent?(id: string): Promise<void>;
 }
 export class CalendarError extends Error {
   readonly status: number | null;
@@ -83,6 +87,16 @@ export function googleCalendar(config: GoogleCalendarConfig, fetchImpl: typeof f
       if (g.status === 404 || g.status === 410) return false;
       if (g.status !== 200) throw new CalendarError('Could not read the calendar event.', g.status);
       return g.body.status !== 'cancelled';
+    },
+    async moveEvent(id, start, end, timeZone) {
+      if (!/^[0-9a-v]{5,1024}$/.test(id)) throw new CalendarError('Invalid event id.');
+      const r = await call(`/calendars/${cal}/events/${id}?sendUpdates=all`, { method: 'PATCH', body: { start: { dateTime: iso(start), timeZone }, end: { dateTime: iso(end), timeZone } } });
+      if (r.status !== 200) throw new CalendarError('Could not move the calendar event.', r.status);
+    },
+    async cancelEvent(id) {
+      if (!/^[0-9a-v]{5,1024}$/.test(id)) throw new CalendarError('Invalid event id.');
+      const r = await call(`/calendars/${cal}/events/${id}?sendUpdates=all`, { method: 'DELETE' });
+      if (r.status !== 204 && r.status !== 200 && r.status !== 404 && r.status !== 410) throw new CalendarError('Could not cancel the calendar event.', r.status);
     },
   };
 }
