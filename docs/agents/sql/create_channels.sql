@@ -13,16 +13,19 @@
 --   email    -> FRONT_OFFICE_EMAIL_CHANNEL_ID / FRONT_OFFICE_EMAIL_CHANNEL_KEY (job runner) and the ?channel=&key= of the
 --               Postmark inbound webhook URL (/api/front-office/email/inbound)
 --   sms      -> FRONT_OFFICE_CHANNEL_ID / FRONT_OFFICE_CHANNEL_KEY             (Twilio webhook + job runner)
+--   voice    -> FRONT_OFFICE_VOICE_CHANNEL_ID / FRONT_OFFICE_VOICE_CHANNEL_KEY (AI Receptionist via Vapi + job runner).
+--               The key is also the credential you give Vapi (Bearer token) for the Custom LLM and the Server URL.
 -- The job runner (/api/front-office/jobs/run) works through every one of these pairs that is set, because follow-ups and
 -- reminders are scheduled on the channel the lead came in on.
 --
--- 1. Edit the three values below. Leave a PASTE_ placeholder as it is to skip that channel for now.
+-- 1. Edit the values below. Leave a PASTE_ placeholder as it is to skip that channel for now.
 drop table if exists pg_temp.fo_setup_cfg;
 create temp table fo_setup_cfg as select
   'Ventra'::text                               as workspace_name,  -- the workspace you created at /workspace
   'www.aiventra.com.au'::text                  as chat_address,    -- the site the chat widget is on
   'PASTE_POSTMARK_INBOUND_ADDRESS_HERE'::text  as email_address,   -- your Postmark inbound address (Servers > Inbound)
-  'PASTE_TWILIO_NUMBER_E164_HERE'::text        as sms_number;      -- e.g. +61400000000, once you have bought it
+  'PASTE_TWILIO_NUMBER_E164_HERE'::text        as sms_number,      -- e.g. +61400000000, once you have bought it
+  'vapi-ventra'::text                          as voice_address;   -- a label for the Vapi phone line (any text, unique)
 
 -- 2. Checks. Stops with a clear message if the workspace is missing or the name matches more than one.
 do $$
@@ -42,7 +45,8 @@ select v.kind, v.address, v.id_var, v.key_var,
 from fo_setup_cfg c,
      lateral (values ('web-chat', c.chat_address,  'FRONT_OFFICE_CHAT_CHANNEL_ID',  'FRONT_OFFICE_CHAT_CHANNEL_KEY'),
                      ('email',    c.email_address, 'FRONT_OFFICE_EMAIL_CHANNEL_ID', 'FRONT_OFFICE_EMAIL_CHANNEL_KEY'),
-                     ('sms',      c.sms_number,    'FRONT_OFFICE_CHANNEL_ID',       'FRONT_OFFICE_CHANNEL_KEY')) v(kind, address, id_var, key_var)
+                     ('sms',      c.sms_number,    'FRONT_OFFICE_CHANNEL_ID',       'FRONT_OFFICE_CHANNEL_KEY'),
+                     ('voice',    c.voice_address, 'FRONT_OFFICE_VOICE_CHANNEL_ID', 'FRONT_OFFICE_VOICE_CHANNEL_KEY')) v(kind, address, id_var, key_var)
 where v.address not like 'PASTE\_%';
 
 -- 4. Create the channels and show what to copy into Vercel.
@@ -63,6 +67,6 @@ left join ins i on i.kind = n.kind and i.address = n.address
 left join public.fo_channels e on e.kind = n.kind and e.address = n.address
 union all
 select v.kind, null, 'skipped: edit the placeholder at the top to add it', null
-from fo_setup_cfg c, lateral (values ('email', c.email_address), ('sms', c.sms_number)) v(kind, address)
+from fo_setup_cfg c, lateral (values ('email', c.email_address), ('sms', c.sms_number), ('voice', c.voice_address)) v(kind, address)
 where v.address like 'PASTE\_%'
 order by 1;

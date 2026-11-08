@@ -39,9 +39,12 @@ type Ctx = { contact: { name: string | null; phone: string | null; email: string
 export type JobOutcome = { id: string; kind: Job['kind']; outcome: 'done' | 'cancelled' | 'failed'; note: string; sent: boolean };
 
 /** Texts go by SMS when the contact has a mobile, otherwise by email when an email sender is given. */
-export async function runDueJobs(i: { rpc: Rpc; auth: ChannelAuth; send: SmsSender; email?: EmailSender; config: SetterConfig; now: number; max?: number }): Promise<JobOutcome[]> {
-  const a = { channel: i.auth.channel, channel_key: i.auth.key };
-  const jobs = await i.rpc('fo_claim_jobs', { ...a, max_jobs: i.max ?? 25 }) as Job[];
+/** config: the business's Setter texts, or a loader that is only called when there are jobs to run. */
+export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: SmsSender; email?: EmailSender; config: SetterConfig | (() => Promise<SetterConfig>); now: number; max?: number }): Promise<JobOutcome[]> {
+  const a = { channel: input.auth.channel, channel_key: input.auth.key };
+  const jobs = await input.rpc('fo_claim_jobs', { ...a, max_jobs: input.max ?? 25 }) as Job[];
+  if (!jobs.length) return [];
+  const i = { ...input, config: typeof input.config === 'function' ? await input.config() : input.config };
   const out: JobOutcome[] = [];
   for (const job of jobs) {
     let outcome: JobOutcome['outcome'] = 'done', note = 'Sent', sent = false;
@@ -94,9 +97,9 @@ export function bearerMatches(header: string | null, secret: string): boolean {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 /** Every channel the runner should work through. Jobs belong to the channel the lead came in on, so each configured
- * channel (SMS, website chat, email) is claimed separately. Invalid or missing pairs are skipped; duplicates removed. */
+ * channel (SMS, website chat, email, voice) is claimed separately. Invalid or missing pairs are skipped; duplicates removed. */
 export function runnerChannels(env: Record<string, string | undefined>): { name: string; auth: ChannelAuth }[] {
-  const pairs: [string, string, string][] = [['sms', 'FRONT_OFFICE_CHANNEL_ID', 'FRONT_OFFICE_CHANNEL_KEY'], ['web-chat', 'FRONT_OFFICE_CHAT_CHANNEL_ID', 'FRONT_OFFICE_CHAT_CHANNEL_KEY'], ['email', 'FRONT_OFFICE_EMAIL_CHANNEL_ID', 'FRONT_OFFICE_EMAIL_CHANNEL_KEY']];
+  const pairs: [string, string, string][] = [['sms', 'FRONT_OFFICE_CHANNEL_ID', 'FRONT_OFFICE_CHANNEL_KEY'], ['web-chat', 'FRONT_OFFICE_CHAT_CHANNEL_ID', 'FRONT_OFFICE_CHAT_CHANNEL_KEY'], ['email', 'FRONT_OFFICE_EMAIL_CHANNEL_ID', 'FRONT_OFFICE_EMAIL_CHANNEL_KEY'], ['voice', 'FRONT_OFFICE_VOICE_CHANNEL_ID', 'FRONT_OFFICE_VOICE_CHANNEL_KEY']];
   const out: { name: string; auth: ChannelAuth }[] = [];
   for (const [name, idKey, keyKey] of pairs) {
     const channel = (env[idKey] ?? '').trim(), key = (env[keyKey] ?? '').trim();

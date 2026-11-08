@@ -23,11 +23,11 @@ async function setup(names: string[] = ['Ventra']) {
 const run = async (db: PGlite, sql = SCRIPT) => { const res = await db.exec(sql); return res[res.length - 1].rows as Row[]; };
 const edited = SCRIPT.replace('PASTE_POSTMARK_INBOUND_ADDRESS_HERE', 'abc123@inbound.postmarkapp.com');
 
-test('channel setup SQL: creates chat and email channels whose keys pass fo_channel_workspace', async () => {
+test('channel setup SQL: creates chat, email and voice channels whose keys pass fo_channel_workspace', async () => {
   const { db, ids } = await setup();
   try {
     const rows = await run(db, edited);
-    assert.deepEqual(rows.map(r => r.channel), ['email', 'sms', 'web-chat']);
+    assert.deepEqual(rows.map(r => r.channel), ['email', 'sms', 'voice', 'web-chat']);
     const sms = rows.find(r => r.channel === 'sms')!;
     assert.equal(sms.channel_id, null); assert.match(sms.channel_key, /^skipped/);
     for (const r of rows.filter(x => x.channel !== 'sms')) {
@@ -39,12 +39,12 @@ test('channel setup SQL: creates chat and email channels whose keys pass fo_chan
     assert.notEqual(rows[0].channel_key, rows[2].channel_key, 'each channel gets its own key');
     assert.equal(rows.find(r => r.channel === 'web-chat')!.vercel_env_names, 'FRONT_OFFICE_CHAT_CHANNEL_ID  /  FRONT_OFFICE_CHAT_CHANNEL_KEY');
     const stored = (await db.query<{ kind: string; address: string }>('select kind, address from public.fo_channels order by kind')).rows;
-    assert.deepEqual(stored, [{ kind: 'email', address: 'abc123@inbound.postmarkapp.com' }, { kind: 'web-chat', address: 'www.aiventra.com.au' }]);
+    assert.deepEqual(stored, [{ kind: 'email', address: 'abc123@inbound.postmarkapp.com' }, { kind: 'voice', address: 'vapi-ventra' }, { kind: 'web-chat', address: 'www.aiventra.com.au' }]);
 
     const again = await run(db, edited);
     assert.ok(again.filter(r => r.channel !== 'sms').every(r => /^already set up/.test(r.channel_key)), 'rerun shows no new keys');
     assert.equal(again.find(r => r.channel === 'web-chat')!.channel_id, rows.find(r => r.channel === 'web-chat')!.channel_id);
-    assert.equal((await db.query<{ n: number }>('select count(*)::int as n from public.fo_channels')).rows[0].n, 2);
+    assert.equal((await db.query<{ n: number }>('select count(*)::int as n from public.fo_channels')).rows[0].n, 3);
   } finally { await db.close(); }
 });
 
@@ -52,7 +52,7 @@ test('channel setup SQL: placeholders skip, missing or duplicate workspace stops
   let { db } = await setup();
   try {
     const rows = await run(db);
-    assert.deepEqual(rows.filter(r => /^[0-9a-f]{48}$/.test(r.channel_key)).map(r => r.channel), ['web-chat']);
+    assert.deepEqual(rows.filter(r => /^[0-9a-f]{48}$/.test(r.channel_key)).map(r => r.channel), ['voice', 'web-chat']);
   } finally { await db.close(); }
   ({ db } = await setup([]));
   try { await assert.rejects(run(db), /No workspace called "Ventra"/); } finally { await db.close(); }

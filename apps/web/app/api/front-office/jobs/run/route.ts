@@ -5,7 +5,7 @@ import { runDueJobs, runnerAuthorized, runnerChannels, runnerSecrets } from '../
 import type { Rpc } from '../../../../../lib/front-office/orchestrator';
 import { senderFromEnv } from '../../../../../lib/front-office/sms-send';
 import { emailSenderFromEnv } from '../../../../../lib/front-office/email';
-import { ventraSetterConfig } from '../../../../../lib/front-office/setter/config';
+import { loadSetter } from '../../../../../lib/front-office/settings';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
@@ -29,7 +29,7 @@ async function run(req: NextRequest) {
   let failed = 0;
   for (const c of channels) {
     try {
-      for (const r of await runDueJobs({ rpc, auth: c.auth, send, email, config: ventraSetterConfig, now })) results.push({ channel: c.name, kind: r.kind, outcome: r.outcome, note: r.note, sent: r.sent });
+      for (const r of await runDueJobs({ rpc, auth: c.auth, send, email, config: async () => (await loadSetter(rpc, c.auth)).config, now })) results.push({ channel: c.name, kind: r.kind, outcome: r.outcome, note: r.note, sent: r.sent });
     } catch { failed++; }
   }
   if (failed === channels.length) return reply({ error: 'Front office storage is unavailable.' }, 503);

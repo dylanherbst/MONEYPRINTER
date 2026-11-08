@@ -30,6 +30,7 @@ export default function FrontOfficeTest() {
   return <main>
     <h1>Front office orchestrator test</h1>
     <p><span className="v-status" data-testid="page-mode">DEMO · In-memory, nothing stored or sent</span> Live texts arrive through the Twilio webhook once a channel is connected.</p>
+    <p><a href="/tools/front-office-settings">Your AI team settings</a> (business details, questions, FAQ answers, hours, phone greeting).</p>
     <label htmlFor="fo-state">Contact state before the text</label>
     <select id="fo-state" value={state} onChange={e => setState(e.target.value as ContactState | 'unknown')}>
       <option value="unknown">Unknown number</option>

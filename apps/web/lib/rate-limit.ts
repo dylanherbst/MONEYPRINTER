@@ -18,13 +18,14 @@ export function createRateLimiter(limit: number, windowMs: number, now: () => nu
 
 type Check = ReturnType<typeof createRateLimiter>;
 /** Per-user limiters for the workspace routes. Generous for normal use (a person clicking around, autosave); they only stop loops and abuse. Per server instance, reset on restart. */
-export const workspaceLimits: Record<'team' | 'export' | 'search' | 'activity' | 'launcher' | 'outbox', Check> = {
+export const workspaceLimits: Record<'team' | 'export' | 'search' | 'activity' | 'launcher' | 'outbox' | 'settings', Check> = {
   team: createRateLimiter(60, 60_000),
   export: createRateLimiter(10, 10 * 60_000),
   search: createRateLimiter(60, 60_000),
   activity: createRateLimiter(60, 60_000),
   launcher: createRateLimiter(240, 60_000),
   outbox: createRateLimiter(120, 60_000),
+  settings: createRateLimiter(60, 60_000),
 };
 /** Key for callers we cannot identify (signed-out routes such as checkout). The forwarded address is only a hint; pair it with a global ceiling. */
 export function clientKey(forwardedFor: string | null | undefined): string {
@@ -40,5 +41,6 @@ export const routeLimits = {
   signInByEmail: createRateLimiter(10, 10 * 60_000),  // per email, so one account can not be hammered from many addresses
   webhookGlobal: createRateLimiter(600, 60_000),
   smsWebhookGlobal: createRateLimiter(600, 60_000),
-  metaWebhookGlobal: createRateLimiter(1200, 60_000),  // all callers of the Meta webhook, before the signature check   // all callers of the front-office SMS webhook, before the signature check      // all callers, before the HMAC check; Stripe retries are well below this
+  metaWebhookGlobal: createRateLimiter(1200, 60_000),
+  voiceGlobal: createRateLimiter(3000, 60_000),        // all Vapi calls (custom LLM turns + server events), before the key check
 };

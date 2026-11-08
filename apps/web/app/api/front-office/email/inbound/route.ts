@@ -10,7 +10,7 @@ import { anthropicConfigFromEnv, anthropicLlm } from '../../../../../lib/front-o
 import { googleCalendar, googleConfigFromEnv } from '../../../../../lib/front-office/calendar/google';
 import { senderFromEnv } from '../../../../../lib/front-office/sms-send';
 import { runSetterTurn } from '../../../../../lib/front-office/setter/agent';
-import { ventraSetterConfig } from '../../../../../lib/front-office/setter/config';
+import { loadSetter } from '../../../../../lib/front-office/settings';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
@@ -42,7 +42,9 @@ export async function POST(req: NextRequest) {
     setter: (contact) => defer(async () => {
       try {
         if (mail.name) await rpc('fo_save_details', { channel, channel_key: key, contact, new_answers: {}, contact_name: mail.name, contact_email: null, contact_phone: null });
-        const turn = await runSetterTurn(contact, { llm: anthropicLlm(ai, fetch, 30_000), rpc, auth, calendar: gcal ? googleCalendar(gcal) : null, send: senderFromEnv(), config: ventraSetterConfig, now: Date.now(), channel: 'email' });
+        const setter = await loadSetter(rpc, auth);
+        if (!setter.on) return;
+        const turn = await runSetterTurn(contact, { llm: anthropicLlm(ai, fetch, 30_000), rpc, auth, calendar: gcal ? googleCalendar(gcal) : null, send: senderFromEnv(), config: setter.config, now: Date.now(), channel: 'email' });
         if (turn.reply) await emailSenderFromEnv()(mail.from, replySubject(mail.subject), turn.reply, mail.messageId);
       } catch (e) { console.error('front-office email turn failed:', e instanceof Error ? e.message : 'unknown'); }
     }),
