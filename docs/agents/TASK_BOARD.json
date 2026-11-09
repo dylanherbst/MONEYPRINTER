@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-09T21:22:00.000Z",
+  "updatedAt": "2026-11-09T21:31:46.283Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-1d830624",
-    "startedAt": "2026-11-09T20:44:14Z",
-    "endedAt": "2026-11-09T21:23:00.000Z",
-    "summary": "Reconciled c-b47869b9 (no wrap-up). Committed M-1 (0313466e), M-4 (434c2a9d), A-2 modes + approval queue (c145944b), A-3 Setter Test Lab (b63570e0). Repo ventra-verify PASSED (741 unit, build, workspace-integration; course/launcher FROZEN). A-3 review blocker (paid model reachable anonymously) fixed before commit. Owner: A-14 transfer rule, A-2 local migration apply, M-1/M-4 review."
+    "id": "c-255a1537",
+    "startedAt": "2026-11-09T21:15:08Z",
+    "endedAt": "2026-11-09T21:31:46.283Z",
+    "summary": "5 dispatched (A-8, A-0, A-5, M-2, A-19); 5 committed: A-0 8d232d37, A-5 f0e8c484, M-2 1dd4d91e (owner review), A-19 3468cefa, A-8 fd650aee; 768 unit tests pass; A-15..A-21 planned from the audit"
   },
   "tasks": [
     {
@@ -842,7 +842,7 @@
       "phase": 1,
       "module": "platform",
       "owner": "ventra-research",
-      "state": "queued",
+      "state": "done",
       "priority": 1,
       "dependsOn": [],
       "scope": [],
@@ -854,14 +854,30 @@
       "plan": "Build Plan p.3 (Setter, Receptionist), p.6 technical stack, p.8 step 01; Blueprint pages 12-15",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
-      "lastRunId": null,
-      "runIds": [],
-      "commits": [],
-      "evidence": [],
+      "startedAt": "2026-11-09T21:15:31.579Z",
+      "finishedAt": "2026-11-09T21:18:48.280Z",
+      "lastRunId": "c-255a1537",
+      "runIds": [
+        "c-255a1537"
+      ],
+      "commits": [
+        "8d232d37"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-09T21:18:48.280Z",
+          "kind": "note",
+          "detail": "ventra-research read-only report (no tests run) turned into docs/agents/FRONT_OFFICE_AUDIT.md by the coordinator; key finding: decide()/gate() are wired only into setter-lab and front-office-outbox, no live route reads setter_mode/receptionist_mode; created A-15..A-21 for uncovered gaps"
+        },
+        {
+          "at": "2026-11-09T21:21:06.862Z",
+          "kind": "commit",
+          "detail": "8d232d37"
+        }
+      ],
       "blocker": null,
-      "notes": "Workstream A (owner directive 2026-11-09): AI Setter + AI Receptionist. Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site (owner's frontend)."
+      "notes": "Workstream A (owner directive 2026-11-09): AI Setter + AI Receptionist. Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site (owner's frontend).",
+      "updatedAt": "2026-11-09T21:18:48.280Z"
     },
     {
       "id": "A-1",
@@ -954,14 +970,40 @@
         "c-b47869b9",
         "c-1d830624"
       ],
-      "commits": ["c145944b"],
+      "commits": [
+        "c145944b"
+      ],
       "evidence": [
-        { "at": "2026-11-09T20:45:00.000Z", "kind": "note", "detail": "Reconciled by c-1d830624: cycle c-b47869b9 ended without wrap-up; none of the scope files exist (git status clean for supabase/, lib/front-office, test/). Re-dispatched." },
-        { "at": "2026-11-09T20:56:00.000Z", "kind": "diff", "detail": "Five new files only, all in scope: migration 202611100001_front_office_modes.sql, permissions.ts, pending-actions.ts, front-office-modes.test.ts, front-office-modes-db.test.ts. No other files touched." },
-        { "at": "2026-11-09T20:56:00.000Z", "kind": "test", "detail": "Coordinator: typecheck exit 0, lint exit 0, unit 727/727 (before: 668)." },
-        { "at": "2026-11-09T20:57:00.000Z", "kind": "review", "detail": "ventra-review PASS WITH NOTES: no blocker/major. SECURITY DEFINER + search_path='', owner-only approve/save, workspace from channel key, row-locked exactly-once. Minor findings 2 (stuck 'approved' on bad payload), 4 (gate mode race), 8 (contact delete cascade) sent back once; 1 (transfer rule) -> A-14 owner decision; 3 (summary vs payload shown at approval), 5, 6 (re-validate at execution), 7, 9 (PGlite single connection does not prove the DB lock), 10 left as notes for A-7/A-8." },
-        { "at": "2026-11-09T21:00:00.000Z", "kind": "test", "detail": "After fix round: repo scripts/agents/ventra-verify: lint, typecheck, unit-tests, build, workspace-integration PASSED; course/launcher FROZEN. Unit 731/731. (Installed ventra-verify reports course/launcher FAILED instead of FROZEN: P0-7 not installed yet.)" },
-        { "at": "2026-11-09T21:01:00.000Z", "kind": "commit", "detail": "c145944b" }
+        {
+          "at": "2026-11-09T20:45:00.000Z",
+          "kind": "note",
+          "detail": "Reconciled by c-1d830624: cycle c-b47869b9 ended without wrap-up; none of the scope files exist (git status clean for supabase/, lib/front-office, test/). Re-dispatched."
+        },
+        {
+          "at": "2026-11-09T20:56:00.000Z",
+          "kind": "diff",
+          "detail": "Five new files only, all in scope: migration 202611100001_front_office_modes.sql, permissions.ts, pending-actions.ts, front-office-modes.test.ts, front-office-modes-db.test.ts. No other files touched."
+        },
+        {
+          "at": "2026-11-09T20:56:00.000Z",
+          "kind": "test",
+          "detail": "Coordinator: typecheck exit 0, lint exit 0, unit 727/727 (before: 668)."
+        },
+        {
+          "at": "2026-11-09T20:57:00.000Z",
+          "kind": "review",
+          "detail": "ventra-review PASS WITH NOTES: no blocker/major. SECURITY DEFINER + search_path='', owner-only approve/save, workspace from channel key, row-locked exactly-once. Minor findings 2 (stuck 'approved' on bad payload), 4 (gate mode race), 8 (contact delete cascade) sent back once; 1 (transfer rule) -> A-14 owner decision; 3 (summary vs payload shown at approval), 5, 6 (re-validate at execution), 7, 9 (PGlite single connection does not prove the DB lock), 10 left as notes for A-7/A-8."
+        },
+        {
+          "at": "2026-11-09T21:00:00.000Z",
+          "kind": "test",
+          "detail": "After fix round: repo scripts/agents/ventra-verify: lint, typecheck, unit-tests, build, workspace-integration PASSED; course/launcher FROZEN. Unit 731/731. (Installed ventra-verify reports course/launcher FAILED instead of FROZEN: P0-7 not installed yet.)"
+        },
+        {
+          "at": "2026-11-09T21:01:00.000Z",
+          "kind": "commit",
+          "detail": "c145944b"
+        }
       ],
       "blocker": null,
       "notes": "NOT done from acceptance: migration not applied to LOCAL Supabase (the coordinator's 'supabase migration list --local' needs approval in this session; specialist could not check the port). Next owner/interactive session: apply locally and run npm run test:local-integration. Production apply is a separate owner approval. A-7/A-8 must: show payload (not only summary) at approval, re-validate stale actions at execution, solve executor credentials in the owner session.",
@@ -975,7 +1017,9 @@
       "owner": "ventra-feature",
       "state": "done",
       "priority": 1,
-      "dependsOn": ["A-2"],
+      "dependsOn": [
+        "A-2"
+      ],
       "scope": [
         "apps/web/app/tools/setter-lab/**",
         "apps/web/lib/front-office/setter/lab.ts",
@@ -997,15 +1041,45 @@
         "c-b47869b9",
         "c-1d830624"
       ],
-      "commits": ["b63570e0"],
+      "commits": [
+        "b63570e0"
+      ],
       "evidence": [
-        { "at": "2026-11-09T20:45:00.000Z", "kind": "note", "detail": "Reconciled by c-1d830624: abandoned by c-b47869b9 with no files in scope. Re-queued and now depends on A-2 (the lab must show the real permission decision from permissions.ts)." },
-        { "at": "2026-11-09T21:02:00.000Z", "kind": "note", "detail": "Dispatched to ventra-feature after A-2 committed (c145944b), ~40 min time box." },
-        { "at": "2026-11-09T21:08:00.000Z", "kind": "diff", "detail": "Five new files only, all in scope: app/tools/setter-lab/{actions,page,lab}.tsx/ts, lib/front-office/setter/lab.ts, test/front-office-setter-lab.test.ts." },
-        { "at": "2026-11-09T21:09:00.000Z", "kind": "review", "detail": "ventra-review FAIL: blocker — anonymous server-action POST with model:'real' could run the paid Anthropic model with no auth or rate limit; minors: state size caps, answers key allowlist, lab gate() wrapper could mislead (production setter/agent.ts does not call gate()). Sent back once." },
-        { "at": "2026-11-09T21:18:00.000Z", "kind": "test", "detail": "After fix: coordinator grep shows no model/anthropic runtime import in setter-lab or lab.ts (types only); repo ventra-verify lint, typecheck, unit (741), build, workspace-integration PASSED; course/launcher FROZEN." },
-        { "at": "2026-11-09T21:19:00.000Z", "kind": "review", "detail": "ventra-review re-review PASS WITH NOTES: no path to paid model/network/Supabase/real calendar/send; state capped (400 KB, depth 8, proto keys rejected, array caps); notes: no rate limit (cheap deterministic work), only contacts/calendar shape-checked. next.config has no raised bodySizeLimit (coordinator checked)." },
-        { "at": "2026-11-09T21:20:00.000Z", "kind": "commit", "detail": "b63570e0" }
+        {
+          "at": "2026-11-09T20:45:00.000Z",
+          "kind": "note",
+          "detail": "Reconciled by c-1d830624: abandoned by c-b47869b9 with no files in scope. Re-queued and now depends on A-2 (the lab must show the real permission decision from permissions.ts)."
+        },
+        {
+          "at": "2026-11-09T21:02:00.000Z",
+          "kind": "note",
+          "detail": "Dispatched to ventra-feature after A-2 committed (c145944b), ~40 min time box."
+        },
+        {
+          "at": "2026-11-09T21:08:00.000Z",
+          "kind": "diff",
+          "detail": "Five new files only, all in scope: app/tools/setter-lab/{actions,page,lab}.tsx/ts, lib/front-office/setter/lab.ts, test/front-office-setter-lab.test.ts."
+        },
+        {
+          "at": "2026-11-09T21:09:00.000Z",
+          "kind": "review",
+          "detail": "ventra-review FAIL: blocker — anonymous server-action POST with model:'real' could run the paid Anthropic model with no auth or rate limit; minors: state size caps, answers key allowlist, lab gate() wrapper could mislead (production setter/agent.ts does not call gate()). Sent back once."
+        },
+        {
+          "at": "2026-11-09T21:18:00.000Z",
+          "kind": "test",
+          "detail": "After fix: coordinator grep shows no model/anthropic runtime import in setter-lab or lab.ts (types only); repo ventra-verify lint, typecheck, unit (741), build, workspace-integration PASSED; course/launcher FROZEN."
+        },
+        {
+          "at": "2026-11-09T21:19:00.000Z",
+          "kind": "review",
+          "detail": "ventra-review re-review PASS WITH NOTES: no path to paid model/network/Supabase/real calendar/send; state capped (400 KB, depth 8, proto keys rejected, array caps); notes: no rate limit (cheap deterministic work), only contacts/calendar shape-checked. next.config has no raised bodySizeLimit (coordinator checked)."
+        },
+        {
+          "at": "2026-11-09T21:20:00.000Z",
+          "kind": "commit",
+          "detail": "b63570e0"
+        }
       ],
       "blocker": null,
       "notes": "Not done: browser check at 390/1440 (specialist's local request was denied; no dev server run this cycle); signed-in local Supabase mode not built; real model intentionally removed from the lab. The gate() shown is the intended wiring: production setter/agent.ts books without gate() until A-8.",
@@ -1080,7 +1154,7 @@
       "phase": 1,
       "module": "platform",
       "owner": "ventra-setup",
-      "state": "queued",
+      "state": "done",
       "priority": 2,
       "dependsOn": [],
       "scope": [
@@ -1095,14 +1169,35 @@
       "plan": "Build Plan p.3 channels, p.6 messaging/voice/calendar rows",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
-      "lastRunId": null,
-      "runIds": [],
-      "commits": [],
-      "evidence": [],
+      "startedAt": "2026-11-09T21:15:31.579Z",
+      "finishedAt": "2026-11-09T21:21:06.862Z",
+      "lastRunId": "c-255a1537",
+      "runIds": [
+        "c-255a1537"
+      ],
+      "commits": [
+        "f0e8c484"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-09T21:21:06.862Z",
+          "kind": "diff",
+          "detail": "CONNECTIONS.md new (192 lines), STATUS.md +19/-1; coordinator grep for key patterns: 0 hits; ventra-git secret scan passed"
+        },
+        {
+          "at": "2026-11-09T21:21:06.862Z",
+          "kind": "note",
+          "detail": "Specialist ran 7 front-office fixture test files (46 pass, 0 fail) under Node 26; nothing Verified live; WhatsApp/ACMA policy points from search summaries, need checking"
+        },
+        {
+          "at": "2026-11-09T21:21:06.862Z",
+          "kind": "commit",
+          "detail": "f0e8c484"
+        }
+      ],
       "blocker": null,
-      "notes": "Workstream A (owner directive 2026-11-09): AI Setter + AI Receptionist. Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site (owner's frontend)."
+      "notes": "Workstream A (owner directive 2026-11-09): AI Setter + AI Receptionist. Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site (owner's frontend).",
+      "updatedAt": "2026-11-09T21:21:06.862Z"
     },
     {
       "id": "A-6",
@@ -1171,7 +1266,7 @@
       "phase": 1,
       "module": "setter",
       "owner": "ventra-feature",
-      "state": "queued",
+      "state": "done",
       "priority": 2,
       "dependsOn": [
         "A-2",
@@ -1192,14 +1287,50 @@
       "plan": "Build Plan p.3 Setter loop; owner directive",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
-      "lastRunId": null,
-      "runIds": [],
-      "commits": [],
-      "evidence": [],
+      "startedAt": "2026-11-09T21:15:31.579Z",
+      "finishedAt": "2026-11-09T21:31:46.283Z",
+      "lastRunId": "c-255a1537",
+      "runIds": [
+        "c-255a1537"
+      ],
+      "commits": [
+        "fd650aee"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-09T21:31:46.283Z",
+          "kind": "diff",
+          "detail": "setter/agent.ts (~+135/-28), new setter/actions.ts (247 lines), new test front-office-setter-actions.test.ts (14 tests)"
+        },
+        {
+          "at": "2026-11-09T21:31:46.283Z",
+          "kind": "review",
+          "detail": "ventra-review FAIL (no-permissions path changed live behaviour: handoff silence, follow-up timing/consent, book path; performBook ignored human takeover; no pinning test) -> one fix round -> focused re-review PASS"
+        },
+        {
+          "at": "2026-11-09T21:31:46.283Z",
+          "kind": "test",
+          "detail": "coordinator: npm --prefix apps/web test exit 0, 768 pass 0 fail 0 skipped; 6 setter/chat/e2e files 39/39 before fix round"
+        },
+        {
+          "at": "2026-11-09T21:31:46.283Z",
+          "kind": "lint",
+          "detail": "npm --prefix apps/web run lint exit 0"
+        },
+        {
+          "at": "2026-11-09T21:31:46.283Z",
+          "kind": "typecheck",
+          "detail": "npm --prefix apps/web run typecheck exit 0"
+        },
+        {
+          "at": "2026-11-09T21:31:46.283Z",
+          "kind": "commit",
+          "detail": "fd650aee"
+        }
+      ],
       "blocker": null,
-      "notes": "Workstream A (owner directive 2026-11-09): AI Setter + AI Receptionist. Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site (owner's frontend)."
+      "notes": "Workstream A (owner directive 2026-11-09): AI Setter + AI Receptionist. Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site (owner's frontend). Open: live routes do not pass permissions (A-17: add permissions: channelPermissions(rpc, auth) in chat, sms/inbound, email/inbound, meta/webhook; migration 202611100001 must be applied first or mode falls back to enquiry_only); jobs.ts later follow-up steps skip mode/consent/quiet hours (A-17); consent inferred from an inbound message within the last 40 messages, durable consent field needs backend; setter lab still uses its own booking check; quiet hours not DST-rechecked.",
+      "updatedAt": "2026-11-09T21:31:46.283Z"
     },
     {
       "id": "A-9",
@@ -1447,14 +1578,37 @@
         "c-b47869b9",
         "c-1d830624"
       ],
-      "commits": ["0313466e"],
-      "evidence": [
-        { "at": "2026-11-09T20:45:00.000Z", "kind": "note", "detail": "Reconciled by c-1d830624: c-b47869b9 left only marketing/profile/highlight-cover.html and profile-picture.html (no PROFILE.md). Re-dispatched to continue from those files." },
-        { "at": "2026-11-09T20:52:00.000Z", "kind": "diff", "detail": "New: marketing/profile/PROFILE.md, render-profile.mjs; reused highlight-cover.html, profile-picture.html. Outputs in ~/Developer/VENTRA-MARKETING/profile/." },
-        { "at": "2026-11-09T20:52:00.000Z", "kind": "test", "detail": "Coordinator ran sips: profile-picture.png 1080x1080; highlight-01..05 all 1080x1920 (exit 0). Viewed AI Setter cover. Bio recounted: 136 chars incl. 3 line breaks (<=150)." },
-        { "at": "2026-11-09T20:53:00.000Z", "kind": "commit", "detail": "0313466e" }
+      "commits": [
+        "0313466e"
       ],
-      "blocker": { "reason": "ready for owner review/publishing. Owner decides: keep or change handle; waitlist + website URLs (placeholders); public email/phone; supply a >=1000px or SVG logo (current ventra-mark.png is 176x93, slightly soft when enlarged). brand.md says highlight covers 1080x1080 but M-1 used 1080x1920.", "needsApproval": true, "approvalId": null, "since": "2026-11-09T20:53:00.000Z" },
+      "evidence": [
+        {
+          "at": "2026-11-09T20:45:00.000Z",
+          "kind": "note",
+          "detail": "Reconciled by c-1d830624: c-b47869b9 left only marketing/profile/highlight-cover.html and profile-picture.html (no PROFILE.md). Re-dispatched to continue from those files."
+        },
+        {
+          "at": "2026-11-09T20:52:00.000Z",
+          "kind": "diff",
+          "detail": "New: marketing/profile/PROFILE.md, render-profile.mjs; reused highlight-cover.html, profile-picture.html. Outputs in ~/Developer/VENTRA-MARKETING/profile/."
+        },
+        {
+          "at": "2026-11-09T20:52:00.000Z",
+          "kind": "test",
+          "detail": "Coordinator ran sips: profile-picture.png 1080x1080; highlight-01..05 all 1080x1920 (exit 0). Viewed AI Setter cover. Bio recounted: 136 chars incl. 3 line breaks (<=150)."
+        },
+        {
+          "at": "2026-11-09T20:53:00.000Z",
+          "kind": "commit",
+          "detail": "0313466e"
+        }
+      ],
+      "blocker": {
+        "reason": "ready for owner review/publishing. Owner decides: keep or change handle; waitlist + website URLs (placeholders); public email/phone; supply a >=1000px or SVG logo (current ventra-mark.png is 176x93, slightly soft when enlarged). brand.md says highlight covers 1080x1080 but M-1 used 1080x1920.",
+        "needsApproval": true,
+        "approvalId": null,
+        "since": "2026-11-09T20:53:00.000Z"
+      },
       "notes": "Workstream C (marketing). Independent of A and B; never delays A. Deliverables render to ~/Developer/VENTRA-MARKETING/. Publishing needs owner approval.",
       "updatedAt": "2026-11-09T20:53:00.000Z"
     },
@@ -1464,7 +1618,7 @@
       "phase": 1,
       "module": "marketing",
       "owner": "ventra-marketing",
-      "state": "queued",
+      "state": "blocked",
       "priority": 2,
       "dependsOn": [
         "M-0"
@@ -1480,14 +1634,40 @@
       "plan": "Owner directive 2026-11-09 (Workstream C); marketing/BRIEF.md",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
-      "lastRunId": null,
-      "runIds": [],
-      "commits": [],
-      "evidence": [],
-      "blocker": null,
-      "notes": "Workstream C (marketing). Independent of A and B; never delays A. Deliverables render to ~/Developer/VENTRA-MARKETING/. Publishing needs owner approval."
+      "startedAt": "2026-11-09T21:15:31.579Z",
+      "finishedAt": "2026-11-09T21:25:33.763Z",
+      "lastRunId": "c-255a1537",
+      "runIds": [
+        "c-255a1537"
+      ],
+      "commits": [
+        "1dd4d91e"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-09T21:25:33.763Z",
+          "kind": "diff",
+          "detail": "marketing/posts: 19 files (INDEX.md, 9x post.json + caption.md); 54 slide PNGs present in ~/Developer/VENTRA-MARKETING/posts/01..09 (glob count by coordinator)"
+        },
+        {
+          "at": "2026-11-09T21:25:33.763Z",
+          "kind": "browser",
+          "detail": "Coordinator viewed 05/slide-05: portrait 1080x1350 render, worked example labelled Example only; grep for percentages/customer counts/testimonials in marketing/posts: 0 hits"
+        },
+        {
+          "at": "2026-11-09T21:25:33.763Z",
+          "kind": "commit",
+          "detail": "1dd4d91e"
+        }
+      ],
+      "blocker": {
+        "reason": "ready for owner review/publishing. Decide: waitlist URL for post 9 (link in bio); confirm post 9 promises (form asks business details, no obligation, demo for their business); post 6 reminder step on roadmap or drop slide 6; post 8 line every business starts with the Growth Audit; post 7 slides 2-3 can use real lab screenshots once the labs are browser-checked",
+        "needsApproval": true,
+        "approvalId": null,
+        "since": "2026-11-09T21:25:33.763Z"
+      },
+      "notes": "Workstream C (marketing). Independent of A and B; never delays A. Deliverables render to ~/Developer/VENTRA-MARKETING/. Publishing needs owner approval.",
+      "updatedAt": "2026-11-09T21:25:33.763Z"
     },
     {
       "id": "M-3",
@@ -1545,14 +1725,35 @@
       "startedAt": "2026-11-09T20:54:00.000Z",
       "finishedAt": "2026-11-09T21:00:00.000Z",
       "lastRunId": "c-1d830624",
-      "runIds": ["c-1d830624"],
-      "commits": ["434c2a9d"],
-      "evidence": [
-        { "at": "2026-11-09T21:00:00.000Z", "kind": "diff", "detail": "New: marketing/PIPELINE.md (121 lines), CALENDAR.md (123), SCHEDULING.md (87); nothing outside scope." },
-        { "at": "2026-11-09T21:00:00.000Z", "kind": "test", "detail": "Coordinator counted 38 calendar slot rows = 13 posts + 8 Reels + 17 Stories as reported; SCHEDULING.md states scheduling needs owner approval. Meta help pages only partially readable (JS); 'Reported' items need an in-app check by the owner." },
-        { "at": "2026-11-09T21:00:00.000Z", "kind": "commit", "detail": "434c2a9d" }
+      "runIds": [
+        "c-1d830624"
       ],
-      "blocker": { "reason": "ready for owner review: approve the calendar (sets Day 1); waitlist/website links missing (post 9 and waitlist Story blocked); on camera/voice for the Day 6 Reel?; run the 5-minute in-app scheduling check in SCHEDULING.md. 4 new posts + 5 new Reels need board tasks after approval.", "needsApproval": true, "approvalId": null, "since": "2026-11-09T21:00:00.000Z" },
+      "commits": [
+        "434c2a9d"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-09T21:00:00.000Z",
+          "kind": "diff",
+          "detail": "New: marketing/PIPELINE.md (121 lines), CALENDAR.md (123), SCHEDULING.md (87); nothing outside scope."
+        },
+        {
+          "at": "2026-11-09T21:00:00.000Z",
+          "kind": "test",
+          "detail": "Coordinator counted 38 calendar slot rows = 13 posts + 8 Reels + 17 Stories as reported; SCHEDULING.md states scheduling needs owner approval. Meta help pages only partially readable (JS); 'Reported' items need an in-app check by the owner."
+        },
+        {
+          "at": "2026-11-09T21:00:00.000Z",
+          "kind": "commit",
+          "detail": "434c2a9d"
+        }
+      ],
+      "blocker": {
+        "reason": "ready for owner review: approve the calendar (sets Day 1); waitlist/website links missing (post 9 and waitlist Story blocked); on camera/voice for the Day 6 Reel?; run the 5-minute in-app scheduling check in SCHEDULING.md. 4 new posts + 5 new Reels need board tasks after approval.",
+        "needsApproval": true,
+        "approvalId": null,
+        "since": "2026-11-09T21:00:00.000Z"
+      },
       "notes": "Workstream C (marketing). Independent of A and B; never delays A. Deliverables render to ~/Developer/VENTRA-MARKETING/. Publishing needs owner approval."
     },
     {
@@ -1593,7 +1794,9 @@
       "owner": "ventra-voice",
       "state": "blocked",
       "priority": 1,
-      "dependsOn": ["A-2"],
+      "dependsOn": [
+        "A-2"
+      ],
       "scope": [
         "apps/web/lib/front-office/permissions.ts",
         "apps/web/lib/front-office/contracts.ts",
@@ -1611,14 +1814,301 @@
       "startedAt": null,
       "finishedAt": null,
       "lastRunId": "c-1d830624",
-      "runIds": ["c-1d830624"],
+      "runIds": [
+        "c-1d830624"
+      ],
       "commits": [],
       "evidence": [
-        { "at": "2026-11-09T21:15:00.000Z", "kind": "review", "detail": "ventra-review of A-2 finding 1: decide() returns perform for transfer in every mode; contracts.ts ~559 and API_CONTRACTS.md disagree; the 'transfer' pending kind is unreachable today." }
+        {
+          "at": "2026-11-09T21:15:00.000Z",
+          "kind": "review",
+          "detail": "ventra-review of A-2 finding 1: decide() returns perform for transfer in every mode; contracts.ts ~559 and API_CONTRACTS.md disagree; the 'transfer' pending kind is unreachable today."
+        }
       ],
-      "blocker": { "reason": "Owner decision: when a caller or customer asks for a person, should the AI always transfer (coordinator recommendation: yes, never block a request for a human, in every mode), or follow the A-1 contract (enquiry-only never transfers, owner-approval holds the transfer)?", "needsApproval": true, "approvalId": null, "since": "2026-11-09T21:15:00.000Z" },
+      "blocker": {
+        "reason": "Owner decision: when a caller or customer asks for a person, should the AI always transfer (coordinator recommendation: yes, never block a request for a human, in every mode), or follow the A-1 contract (enquiry-only never transfers, owner-approval holds the transfer)?",
+        "needsApproval": true,
+        "approvalId": null,
+        "since": "2026-11-09T21:15:00.000Z"
+      },
       "notes": "Blocks A-7. Nothing is wired yet, so no live behaviour depends on this today.",
       "updatedAt": "2026-11-09T21:15:00.000Z"
+    },
+    {
+      "id": "A-15",
+      "title": "Per-business channel and connection records: fo_connections (workspace, channel kind, state, non-secret ids); chat/SMS/email/Meta routes resolve the business from the channel in the request instead of global env",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-backend",
+      "state": "queued",
+      "priority": 2,
+      "dependsOn": [
+        "A-1"
+      ],
+      "scope": [
+        "supabase/migrations/**",
+        "apps/web/test/front-office-connections*.test.ts"
+      ],
+      "acceptance": [
+        "Two businesses in one database receive messages separately in a test",
+        "No secrets stored in the table",
+        "Documented in API_CONTRACTS.md (by the coordinator)"
+      ],
+      "plan": "docs/agents/FRONT_OFFICE_AUDIT.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "lastRunId": "c-255a1537",
+      "runIds": [
+        "c-255a1537"
+      ],
+      "commits": [],
+      "evidence": [],
+      "blocker": null,
+      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit.",
+      "updatedAt": "2026-11-09T21:18:48.280Z"
+    },
+    {
+      "id": "A-16",
+      "title": "Business knowledge base: structured services, prices, offers, policies and objection rules in fo_agent_settings; Setter prompt and Receptionist answer_faq read it; templates seed it",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-voice",
+      "state": "queued",
+      "priority": 2,
+      "dependsOn": [
+        "A-1"
+      ],
+      "scope": [
+        "apps/web/lib/front-office/settings.ts",
+        "apps/web/lib/front-office/setter/prompt.ts",
+        "apps/web/lib/front-office/receptionist/**",
+        "apps/web/test/front-office-knowledge*.test.ts"
+      ],
+      "acceptance": [
+        "Setter and Receptionist answer a price question from structured data and refuse when absent",
+        "Objection rules change the reply in a scripted test",
+        "lint, typecheck, unit tests pass"
+      ],
+      "plan": "docs/agents/FRONT_OFFICE_AUDIT.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "lastRunId": "c-255a1537",
+      "runIds": [
+        "c-255a1537"
+      ],
+      "commits": [],
+      "evidence": [],
+      "blocker": null,
+      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit.",
+      "updatedAt": "2026-11-09T21:18:48.280Z"
+    },
+    {
+      "id": "A-17",
+      "title": "Mode check in every live route: API chat, sms/inbound, email/inbound, meta/webhook and jobs run read the saved mode and go through decide()/gate()",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-voice",
+      "state": "queued",
+      "priority": 2,
+      "dependsOn": [
+        "A-8"
+      ],
+      "scope": [
+        "apps/web/app/api/front-office/**",
+        "apps/web/lib/front-office/jobs.ts",
+        "apps/web/test/front-office-routes-modes*.test.ts"
+      ],
+      "acceptance": [
+        "Per route and mode: enquiry-only never books, owner-approval writes a fo_pending_actions row, automatic books once",
+        "lint, typecheck, unit tests pass",
+        "Routes pass permissions: channelPermissions(rpc, auth) to runSetterTurn; jobs.ts later follow-up steps check mode, consent and quiet hours (DST-safe, Sydney test)"
+      ],
+      "plan": "docs/agents/FRONT_OFFICE_AUDIT.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "lastRunId": "c-255a1537",
+      "runIds": [
+        "c-255a1537"
+      ],
+      "commits": [],
+      "evidence": [],
+      "blocker": null,
+      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit. Needs migration 202611100001 on local Supabase first (A-2 owner item).",
+      "updatedAt": "2026-11-09T21:18:48.280Z"
+    },
+    {
+      "id": "A-18",
+      "title": "Merge fo_outbox into fo_pending_actions (one owner approval queue); Meta reply queue and /tools/front-office-outbox use it",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-backend",
+      "state": "queued",
+      "priority": 3,
+      "dependsOn": [
+        "A-2"
+      ],
+      "scope": [
+        "supabase/migrations/**",
+        "apps/web/test/front-office-outbox*.test.ts"
+      ],
+      "acceptance": [
+        "One queue; existing outbox tests migrated; approving sends exactly once"
+      ],
+      "plan": "docs/agents/FRONT_OFFICE_AUDIT.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "lastRunId": "c-255a1537",
+      "runIds": [
+        "c-255a1537"
+      ],
+      "commits": [],
+      "evidence": [],
+      "blocker": null,
+      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit.",
+      "updatedAt": "2026-11-09T21:18:48.280Z"
+    },
+    {
+      "id": "A-19",
+      "title": "Receptionist quote-request capture: outcome quote with structured fields saved to the contact and handoff, staff notified",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-voice",
+      "state": "done",
+      "priority": 3,
+      "dependsOn": [
+        "A-4"
+      ],
+      "scope": [
+        "apps/web/lib/front-office/receptionist/**",
+        "apps/web/test/front-office-receptionist-quote*.test.ts"
+      ],
+      "acceptance": [
+        "Scripted call saves a quote request in all three modes",
+        "No price quoted unless configured"
+      ],
+      "plan": "docs/agents/FRONT_OFFICE_AUDIT.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": "2026-11-09T21:18:54.648Z",
+      "finishedAt": "2026-11-09T21:29:27.147Z",
+      "lastRunId": "c-255a1537",
+      "runIds": [
+        "c-255a1537"
+      ],
+      "commits": [
+        "3468cefa"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-09T21:29:27.147Z",
+          "kind": "diff",
+          "detail": "receptionist/agent.ts (+request_quote tool, STORED_OUTCOME quote->message, QUOTE_ANSWER_KEYS) and new test front-office-receptionist-quote.test.ts (13 tests)"
+        },
+        {
+          "at": "2026-11-09T21:29:27.147Z",
+          "kind": "review",
+          "detail": "ventra-review PASS WITH NOTES: duplicate staff notices on repeat calls, false saved wording with no contact, unsanitised caller text -> one fix round, all three fixed with tests"
+        },
+        {
+          "at": "2026-11-09T21:29:27.147Z",
+          "kind": "test",
+          "detail": "coordinator: npm --prefix apps/web test exit 0, 765 pass 0 fail 0 skipped (741 at cycle start); quote file 13/13"
+        },
+        {
+          "at": "2026-11-09T21:29:27.147Z",
+          "kind": "typecheck",
+          "detail": "npm --prefix apps/web run typecheck exit 0"
+        },
+        {
+          "at": "2026-11-09T21:29:27.147Z",
+          "kind": "lint",
+          "detail": "lint exit 1 only on setter/agent.ts unused startFollowUps (A-8 mid-fix, not this task)"
+        },
+        {
+          "at": "2026-11-09T21:29:27.147Z",
+          "kind": "commit",
+          "detail": "3468cefa"
+        }
+      ],
+      "blocker": null,
+      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit. Follow-ups: prompt.ts quote rule + version bump with receptionist-lab test; add quote to fo_voice_outcome check (migration) and simulate.ts; vapi-route.ts does not pass mode; lab stand-in model does not use request_quote; no-price is a prompt-level control only.",
+      "updatedAt": "2026-11-09T21:29:27.147Z"
+    },
+    {
+      "id": "A-20",
+      "title": "Caller identity check before reschedule/cancel: a second factor (name or booking time) beyond the caller number",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-voice",
+      "state": "queued",
+      "priority": 3,
+      "dependsOn": [
+        "A-4"
+      ],
+      "scope": [
+        "apps/web/lib/front-office/receptionist/**",
+        "apps/web/lib/front-office/booking.ts",
+        "apps/web/test/front-office-receptionist-identity*.test.ts"
+      ],
+      "acceptance": [
+        "A spoofed number with a wrong detail cannot cancel; the AI hands off"
+      ],
+      "plan": "docs/agents/FRONT_OFFICE_AUDIT.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "lastRunId": "c-255a1537",
+      "runIds": [
+        "c-255a1537"
+      ],
+      "commits": [],
+      "evidence": [],
+      "blocker": null,
+      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit.",
+      "updatedAt": "2026-11-09T21:18:48.280Z"
+    },
+    {
+      "id": "A-21",
+      "title": "Modes and approval-queue API routes: GET/PUT /api/front-office/modes, GET pending-actions, approve and reject using the A-2 RPCs",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-voice",
+      "state": "queued",
+      "priority": 3,
+      "dependsOn": [
+        "A-2"
+      ],
+      "scope": [
+        "apps/web/app/api/front-office/modes/**",
+        "apps/web/app/api/front-office/pending-actions/**",
+        "apps/web/test/front-office-modes-api*.test.ts"
+      ],
+      "acceptance": [
+        "Route tests with members-only access; documented; no UI changes"
+      ],
+      "plan": "docs/agents/FRONT_OFFICE_AUDIT.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "lastRunId": "c-255a1537",
+      "runIds": [
+        "c-255a1537"
+      ],
+      "commits": [],
+      "evidence": [],
+      "blocker": null,
+      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit.",
+      "updatedAt": "2026-11-09T21:18:48.280Z"
     }
   ]
 }

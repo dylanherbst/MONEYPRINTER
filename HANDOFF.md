@@ -15,15 +15,17 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
-- Last cycle: c-1d830624 at 2026-11-10 04:44 AWST · 4 dispatched (A-2, A-3, M-1, M-4) · 4 verified and committed · 3 blocked on the owner (A-14, M-1, M-4)
-- Integration branch: agent/develop @ b63570e0 (board commit follows)
-- Commits: M-1 0313466e, M-4 434c2a9d, A-2 c145944b, A-3 b63570e0. Reconciled cycle c-b47869b9, which ended with no wrap-up.
-- Verification: repo `scripts/agents/ventra-verify` lint, typecheck, 741 unit, build, workspace-integration PASSED; course/launcher FROZEN. A-2: ventra-review PASS WITH NOTES + 1 fix round. A-3: review FAIL (paid model reachable without sign-in) -> fixed to scripted only -> re-review PASS WITH NOTES. No browser check of /tools/setter-lab yet.
+- Last cycle: c-255a1537 at 2026-11-10 06:40 AWST · 5 dispatched (A-8, A-0, A-5, M-2, A-19) · 5 verified and committed · 1 new owner review (M-2)
+- Integration branch: agent/develop @ fd650aee (board commit follows)
+- Commits: A-5 f0e8c484, A-0 8d232d37, M-2 1dd4d91e, A-19 3468cefa, A-8 fd650aee.
+- Verification: `npm --prefix apps/web` lint exit 0, typecheck exit 0, test 768/768 (741 at start). A-8: review FAIL (no-permissions path changed live behaviour) -> fix round -> re-review PASS. A-19: review PASS WITH NOTES -> fix round (duplicate notices, honest wording, sanitised text). Full ventra-verify (build, integration) not run this cycle.
+- Key finding (A-0 audit, `docs/agents/FRONT_OFFICE_AUDIT.md`): operating modes are not wired into any live route yet; A-8 made the Setter mode-aware behind a `permissions` option; A-17 wires the routes (needs migration 202611100001 on local Supabase first). New tasks A-15..A-21.
 - Running / implemented (needs reconciling next cycle): none
-- Blocked, needs the owner (new this cycle): A-14: transfer rule — should the AI always hand a customer to a person when asked (recommended), or follow the A-1 contract (enquiry-only never transfers, owner-approval holds it)? Blocks A-7 · A-2: apply migration 202611100001 to LOCAL Supabase and run `npm run test:local-integration` (the Supabase CLI needs approval in coordinator sessions) · M-1: profile package ready for review (handle, waitlist/website links, public email/phone, a larger or SVG logo) · M-4: approve the 30-day calendar (sets Day 1), confirm the "Reported" scheduling limits in the app, decide on camera/voice for the Day 6 Reel
+- Blocked, needs the owner (new this cycle): M-2: nine posts ready for review in ~/Developer/VENTRA-MARKETING/posts (waitlist URL for post 9, confirm post 9 promises, post 6 reminder slide, post 8 Growth Audit line)
+- Blocked, needs the owner (previous cycle): A-14: transfer rule — should the AI always hand a customer to a person when asked (recommended), or follow the A-1 contract (enquiry-only never transfers, owner-approval holds it)? Blocks A-7 · A-2: apply migration 202611100001 to LOCAL Supabase and run `npm run test:local-integration` (the Supabase CLI needs approval in coordinator sessions) · M-1: profile package ready for review (handle, waitlist/website links, public email/phone, a larger or SVG logo) · M-4: approve the 30-day calendar (sets Day 1), confirm the "Reported" scheduling limits in the app, decide on camera/voice for the Day 6 Reel
 - Blocked, needs the owner (earlier): P0-7: verified but uncommitted. Restore the executable bit on `scripts/agents/ventra-verify` (the edit lost it; the coordinator may not change it), then commit it and run the install script from an owner session · M-0 follow-ups: install ffmpeg or approve the `marketing/` npm install (reels have no audio for now), a white/SVG logo, the CTA waitlist link · A-4 finding: the Receptionist never tells callers to ring 000 in an emergency (wording decision) · P1-6: set a provider-side spending cap on the model key
 - Note: pending foreign changes (UI lab, docs retirement, `apps/web/package*.json`, `package.json`, `CLAUDE.md`, `AGENTS.md`, agent/script files, `marketing/BRIEF.md`) were left uncommitted and untouched.
-- Next up: A-8 (wire gate() into production setter/agent.ts + follow-ups, ventra-feature; show payload at approval, re-validate stale actions), A-0 (audit, ventra-research), A-5/P0-9 (connections, ventra-setup), A-6 (QA), browser check of both labs, M-2 (nine posts). A-7 waits on A-14.
+- Next up: A-17 (modes in live routes + jobs.ts, ventra-voice), A-16 (knowledge base, ventra-voice, after A-17 or non-overlapping), A-15/A-18 (backend migrations, one at a time), A-20 (caller identity), A-21 (modes API), A-6 (QA), full ventra-verify + browser check of both labs, M-3 (Reels). A-7 waits on A-14. P0-9 largely covered by A-5.
 
 ## Current task (approved scope only)
 
@@ -107,10 +109,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-10 05:13 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-10 05:32 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `b63570e feat(front-office): Setter Test Lab /tools/setter-lab runs the real Setter pipeline with a scripted model, in-memory store and calendar, mode selector and approval queue through decide()/gate(); nothing sent, no paid model reachable [A-3]`
-- Lock: coordinator (pid 7956, 28 min old)
+- HEAD: `fd650ae feat(front-office): Setter actions (offer times, book, follow-up, handoff) through decide()/gate() when a permission store is passed; owner-approval holds with payload, approved actions re-validated before running, follow-up consent/opt-out/channel/quiet hours, handoff stops the AI; live routes unchanged until A-17 [A-8]`
+- Lock: coordinator (pid 22026, 17 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -170,15 +172,15 @@ _Generated 2026-11-10 05:13 by `ventra-handoff snapshot`. Do not hand-edit this 
  scripts/agents/install.sh                         |   2 +-
  scripts/agents/ventra-backup                      |   3 +
  scripts/agents/ventra-verify                      |  11 +-
- 31 files changed, 79 insertions(+), 1682 deletions(-)
+ 31 files changed, 630 insertions(+), 1740 deletions(-)
 ```
 - Recent commits:
 ```text
-b63570e feat(front-office): Setter Test Lab /tools/setter-lab runs the real Setter pipeline with a scripted model, in-memory store and calendar, mode selector and approval queue through decide()/gate(); nothing sent, no paid model reachable [A-3]
-5d5d38d chore(coordinator): cycle c-1d830624 board and handoff (checkpoint: A-2, M-1, M-4 committed; A-3 running; A-14 added)
-c145944 feat(front-office): operating modes (automatic / owner approval / enquiry only) per business and the owner approval queue (fo_pending_actions + RPCs, RLS), shared decide() permission check and gate() that runs an approved action exactly once [A-2]
-434c2a9 docs(marketing): content pipeline with owner approval gate, 30-day calendar (13 posts, 8 Reels, 17 Stories) and scheduling note with sources [M-4]
-0313466 feat(marketing): Instagram profile package for owner approval (PROFILE.md: name, 136-char bio, category, contact/link plan, setup checklist) and render-profile.mjs for the profile picture and five highlight covers [M-1]
+fd650ae feat(front-office): Setter actions (offer times, book, follow-up, handoff) through decide()/gate() when a permission store is passed; owner-approval holds with payload, approved actions re-validated before running, follow-up consent/opt-out/channel/quiet hours, handoff stops the AI; live routes unchanged until A-17 [A-8]
+3468cef feat(front-office): Receptionist request_quote tool captures need/where/when/budget on the contact, one handoff and one staff notice per request, caller text sanitised, never quotes a price, same in all three modes [A-19]
+1dd4d91 feat(marketing): first nine Instagram feed posts (54 slides rendered to VENTRA-MARKETING, captions with alt text, index); no statistics, product shown only as labelled concept [M-2]
+8d232d3 docs(front-office): Setter and Receptionist audit against the completion standard (KEEP/REPAIR/FINISH/BUILD/BLOCKED per step and channel, duplicates, dependencies) [A-0]
+f0e8c48 docs(front-office): connections inventory per channel (status, env names, routes, owner steps, policy sources) [A-5]
 ```
 <!-- git-state:end -->
 
