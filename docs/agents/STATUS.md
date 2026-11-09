@@ -28,8 +28,26 @@ Checked 2026-11-03 on this Mac. "Verified" means I ran a real check this session
 | Telegram after the Stage 2 fix | Poller process was restarted and seen running; a fresh end-to-end message test is still needed |
 | Mac permissions (Accessibility, Screen Recording) and app/browser interaction | Not verified; needs the owner's macOS permission dialogs |
 | `NEW SIMPLE VENTRA BUILD.pdf` | NOT FOUND on this Mac. Other VENTRA PDFs in Downloads are older and were not used as the blueprint |
-| Supabase, AI provider and other app integrations | Not checked (`.env*` files are deliberately not read). Status: unknown |
+| Supabase | Not checked (`.env*` files are deliberately not read). Status: unknown |
+| AI provider and front-office channels | Checked 2026-11-10: see "Front-office connections" below and `docs/agents/CONNECTIONS.md`. Nothing is Verified yet |
 | Telegram bot token | Owner action: it was pasted into chat; rotate via @BotFather `/revoke` then `ventra-telegram-token` |
+
+## Front-office connections (2026-11-10, Connections agent, task A-5)
+
+Status values: Not started, Code present (not configured), Configured (unverified), Verified. Env variable names, routes, owner steps and policy sources are in `docs/agents/CONNECTIONS.md`. Test runs are fixture or scripted tests; no live provider was called.
+
+| Connection | Required or optional | Status | Evidence | Owner action needed |
+| --- | --- | --- | --- | --- |
+| Model provider (Anthropic) | Required for AI replies | Configured (unverified) | Owner note says key and model are in Vercel (not checked by me). Setter tests 11/11 pass (scripted). Live replay not run. Console balance A$0 | Add funds; make the key a Secret; set a spend limit |
+| Website chat `/api/front-office/chat` | Optional | Code present (not configured) | Chat tests 2/2 pass. Channel not created | Run `create_channels.sql`; set chat channel id and key in Vercel; redeploy; test |
+| Meta Instagram and Messenger `/api/front-office/meta/webhook` | Optional | Code present (not configured) | Meta tests 5/5 pass. No Meta variable in the owner's Vercel list | Meta app, tester role, App Review and Business Verification before outsiders |
+| WhatsApp Business | Optional | Not started | No code or route (name only in `contracts.ts`) | Owner decides whether to build it |
+| Vapi AI Receptionist `/api/front-office/voice/vapi/...` | Optional (needed for calls) | Code present (not configured) | Vapi tests 9/9 pass (fixture, not a live call). Vapi account not created; voice live off | Create Vapi account, voice channel, assistant and tools; test call |
+| Google Calendar OAuth (booking) | Required for booking | Code present (not configured) | Calendar tests 9/9 pass. No consent route in the app; refresh token not yet made | Make refresh token in OAuth Playground; set four Google variables; share bookings calendar |
+| Twilio SMS `/api/front-office/sms/inbound` | Optional | Code present (not configured) | SMS tests 7/7 pass. SID and token in Vercel (owner note); no number or SMS channel | Buy AU mobile number (needs ID); set `TWILIO_FROM_NUMBER`; channel; webhook |
+| Postmark email `/api/front-office/email/inbound` | Optional | Code present (not configured) | Email tests 3/3 pass. Token in Vercel (owner note); sender, webhook secret and channel missing | Verify sender domain; set two variables; inbound webhook; channel |
+
+Last verify record (`~/.ventra-dashboard/last-verify.json`, commit 5d5d38d, 2026-11-09) has no front-office step. Node 26 was used for these tests; the repo targets Node 24.
 
 ## Course Creator baseline (2026-11-03, Node 26, see `QA_COURSE_CREATOR_BASELINE.md`)
 
