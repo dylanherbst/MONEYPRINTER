@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-09T17:14:32.858Z",
+  "updatedAt": "2026-11-09T21:22:00.000Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-e9ebba59",
-    "startedAt": "2026-11-09T16:43:03Z",
-    "endedAt": "2026-11-09T16:59:37.459Z",
-    "summary": "Committed P1-6 (4a19e2a1), A-1 (bd9fd252), A-4 (74e037a9), M-0 (3fb9be69). ventra-verify all PASSED (668 unit, build, workspace-integration; course/launcher FROZEN). P0-7 verified but uncommitted (file mode lost; owner)."
+    "id": "c-1d830624",
+    "startedAt": "2026-11-09T20:44:14Z",
+    "endedAt": "2026-11-09T21:23:00.000Z",
+    "summary": "Reconciled c-b47869b9 (no wrap-up). Committed M-1 (0313466e), M-4 (434c2a9d), A-2 modes + approval queue (c145944b), A-3 Setter Test Lab (b63570e0). Repo ventra-verify PASSED (741 unit, build, workspace-integration; course/launcher FROZEN). A-3 review blocker (paid model reachable anonymously) fixed before commit. Owner: A-14 transfer rule, A-2 local migration apply, M-1/M-4 review."
   },
   "tasks": [
     {
@@ -973,7 +973,7 @@
       "phase": 1,
       "module": "setter",
       "owner": "ventra-feature",
-      "state": "running",
+      "state": "done",
       "priority": 1,
       "dependsOn": ["A-2"],
       "scope": [
@@ -991,20 +991,25 @@
       "branch": "agent/develop",
       "worktree": null,
       "startedAt": "2026-11-09T21:02:00.000Z",
-      "finishedAt": null,
+      "finishedAt": "2026-11-09T21:20:00.000Z",
       "lastRunId": "c-1d830624",
       "runIds": [
         "c-b47869b9",
         "c-1d830624"
       ],
-      "commits": [],
+      "commits": ["b63570e0"],
       "evidence": [
         { "at": "2026-11-09T20:45:00.000Z", "kind": "note", "detail": "Reconciled by c-1d830624: abandoned by c-b47869b9 with no files in scope. Re-queued and now depends on A-2 (the lab must show the real permission decision from permissions.ts)." },
-        { "at": "2026-11-09T21:02:00.000Z", "kind": "note", "detail": "Dispatched to ventra-feature after A-2 committed (c145944b), ~40 min time box." }
+        { "at": "2026-11-09T21:02:00.000Z", "kind": "note", "detail": "Dispatched to ventra-feature after A-2 committed (c145944b), ~40 min time box." },
+        { "at": "2026-11-09T21:08:00.000Z", "kind": "diff", "detail": "Five new files only, all in scope: app/tools/setter-lab/{actions,page,lab}.tsx/ts, lib/front-office/setter/lab.ts, test/front-office-setter-lab.test.ts." },
+        { "at": "2026-11-09T21:09:00.000Z", "kind": "review", "detail": "ventra-review FAIL: blocker — anonymous server-action POST with model:'real' could run the paid Anthropic model with no auth or rate limit; minors: state size caps, answers key allowlist, lab gate() wrapper could mislead (production setter/agent.ts does not call gate()). Sent back once." },
+        { "at": "2026-11-09T21:18:00.000Z", "kind": "test", "detail": "After fix: coordinator grep shows no model/anthropic runtime import in setter-lab or lab.ts (types only); repo ventra-verify lint, typecheck, unit (741), build, workspace-integration PASSED; course/launcher FROZEN." },
+        { "at": "2026-11-09T21:19:00.000Z", "kind": "review", "detail": "ventra-review re-review PASS WITH NOTES: no path to paid model/network/Supabase/real calendar/send; state capped (400 KB, depth 8, proto keys rejected, array caps); notes: no rate limit (cheap deterministic work), only contacts/calendar shape-checked. next.config has no raised bodySizeLimit (coordinator checked)." },
+        { "at": "2026-11-09T21:20:00.000Z", "kind": "commit", "detail": "b63570e0" }
       ],
       "blocker": null,
-      "notes": "Workstream A (owner directive 2026-11-09): AI Setter + AI Receptionist. Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site (owner's frontend).",
-      "updatedAt": "2026-11-09T20:45:00.000Z"
+      "notes": "Not done: browser check at 390/1440 (specialist's local request was denied; no dev server run this cycle); signed-in local Supabase mode not built; real model intentionally removed from the lab. The gate() shown is the intended wiring: production setter/agent.ts books without gate() until A-8.",
+      "updatedAt": "2026-11-09T21:20:00.000Z"
     },
     {
       "id": "A-4",

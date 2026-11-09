@@ -15,15 +15,15 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
-- Last cycle: c-1d830624 at 2026-11-10 04:44 AWST (IN PROGRESS) · dispatched A-2, M-1, M-4, A-3 · committed M-1 0313466e, M-4 434c2a9d, A-2 c145944b
-- Integration branch: agent/develop @ c145944b
-- Reconciled: cycle c-b47869b9 dispatched A-2, A-3, M-1 and ended with no wrap-up (no files for A-2/A-3; two HTML templates for M-1). Fewer parallel agents this cycle to stay inside the spend cap.
-- Verification: repo `scripts/agents/ventra-verify` lint, typecheck, 731 unit, build, workspace-integration PASSED; course/launcher FROZEN. A-2 got ventra-review PASS WITH NOTES plus one fix round.
-- Running / implemented (needs reconciling next cycle if this line still says IN PROGRESS): A-3 (setter lab, ventra-feature; scope apps/web/app/tools/setter-lab/**, lib/front-office/setter/lab.ts, test/front-office-setter-lab.test.ts)
+- Last cycle: c-1d830624 at 2026-11-10 04:44 AWST · 4 dispatched (A-2, A-3, M-1, M-4) · 4 verified and committed · 3 blocked on the owner (A-14, M-1, M-4)
+- Integration branch: agent/develop @ b63570e0 (board commit follows)
+- Commits: M-1 0313466e, M-4 434c2a9d, A-2 c145944b, A-3 b63570e0. Reconciled cycle c-b47869b9, which ended with no wrap-up.
+- Verification: repo `scripts/agents/ventra-verify` lint, typecheck, 741 unit, build, workspace-integration PASSED; course/launcher FROZEN. A-2: ventra-review PASS WITH NOTES + 1 fix round. A-3: review FAIL (paid model reachable without sign-in) -> fixed to scripted only -> re-review PASS WITH NOTES. No browser check of /tools/setter-lab yet.
+- Running / implemented (needs reconciling next cycle): none
 - Blocked, needs the owner (new this cycle): A-14: transfer rule — should the AI always hand a customer to a person when asked (recommended), or follow the A-1 contract (enquiry-only never transfers, owner-approval holds it)? Blocks A-7 · A-2: apply migration 202611100001 to LOCAL Supabase and run `npm run test:local-integration` (the Supabase CLI needs approval in coordinator sessions) · M-1: profile package ready for review (handle, waitlist/website links, public email/phone, a larger or SVG logo) · M-4: approve the 30-day calendar (sets Day 1), confirm the "Reported" scheduling limits in the app, decide on camera/voice for the Day 6 Reel
 - Blocked, needs the owner (earlier): P0-7: verified but uncommitted. Restore the executable bit on `scripts/agents/ventra-verify` (the edit lost it; the coordinator may not change it), then commit it and run the install script from an owner session · M-0 follow-ups: install ffmpeg or approve the `marketing/` npm install (reels have no audio for now), a white/SVG logo, the CTA waitlist link · A-4 finding: the Receptionist never tells callers to ring 000 in an emergency (wording decision) · P1-6: set a provider-side spending cap on the model key
 - Note: pending foreign changes (UI lab, docs retirement, `apps/web/package*.json`, `package.json`, `CLAUDE.md`, `AGENTS.md`, agent/script files, `marketing/BRIEF.md`) were left uncommitted and untouched.
-- Next up: A-2 (modes + approval queue, ventra-backend; answer the A-1 open questions first), A-3 (setter lab, ventra-feature), A-0 (audit, ventra-research), M-1/M-4 (marketing)
+- Next up: A-8 (wire gate() into production setter/agent.ts + follow-ups, ventra-feature; show payload at approval, re-validate stale actions), A-0 (audit, ventra-research), A-5/P0-9 (connections, ventra-setup), A-6 (QA), browser check of both labs, M-2 (nine posts). A-7 waits on A-14.
 
 ## Current task (approved scope only)
 
@@ -107,10 +107,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-10 00:59 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-10 05:13 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `3fb9be6 feat(marketing): brand kit, Instagram templates (carousel, post, story, highlight, reel) and render/reel scripts with size and font checks [M-0]`
-- Lock: coordinator (pid 80159, 16 min old)
+- HEAD: `b63570e feat(front-office): Setter Test Lab /tools/setter-lab runs the real Setter pipeline with a scripted model, in-memory store and calendar, mode selector and approval queue through decide()/gate(); nothing sent, no paid model reachable [A-3]`
+- Lock: coordinator (pid 7956, 28 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -156,29 +156,29 @@ _Generated 2026-11-10 00:59 by `ventra-handoff snapshot`. Do not hand-edit this 
 ```
 - Diff stat vs HEAD:
 ```text
- docs/design/LIQUID_GLASS_SPEC.md                  |  188 ---
- docs/design/reference/dylan-home-dashboard.png    |  Bin 627700 -> 0 bytes
- docs/design/reference/dylan-liquid-glass-kit.png  |  Bin 630505 -> 0 bytes
- docs/design/reference/home-approved.png           |  Bin 2071965 -> 0 bytes
- docs/design/reference/kit-approved.png            |  Bin 1385351 -> 0 bytes
- docs/design/ventra-ui/components.d.ts             |   27 -
- docs/design/ventra-ui/components.js               |  225 ---
- docs/design/ventra-ui/glass.css                   |  249 ----
- docs/design/ventra-ui/tokens.css                  |   15 -
- docs/design/ventra-ui/tokens.json                 |  692 ----------
- package.json                                      |    7 +-
- scripts/agents/install.sh                         |    2 +-
- scripts/agents/ventra-backup                      |    3 +
- scripts/agents/ventra-verify                      |   11 +-
- 31 files changed, 1509 insertions(+), 1750 deletions(-)
+ docs/design/LIQUID_GLASS_SPEC.md                  | 188 ------
+ docs/design/reference/dylan-home-dashboard.png    | Bin 627700 -> 0 bytes
+ docs/design/reference/dylan-liquid-glass-kit.png  | Bin 630505 -> 0 bytes
+ docs/design/reference/home-approved.png           | Bin 2071965 -> 0 bytes
+ docs/design/reference/kit-approved.png            | Bin 1385351 -> 0 bytes
+ docs/design/ventra-ui/components.d.ts             |  27 -
+ docs/design/ventra-ui/components.js               | 225 -------
+ docs/design/ventra-ui/glass.css                   | 249 --------
+ docs/design/ventra-ui/tokens.css                  |  15 -
+ docs/design/ventra-ui/tokens.json                 | 692 ----------------------
+ package.json                                      |   7 +-
+ scripts/agents/install.sh                         |   2 +-
+ scripts/agents/ventra-backup                      |   3 +
+ scripts/agents/ventra-verify                      |  11 +-
+ 31 files changed, 79 insertions(+), 1682 deletions(-)
 ```
 - Recent commits:
 ```text
-3fb9be6 feat(marketing): brand kit, Instagram templates (carousel, post, story, highlight, reel) and render/reel scripts with size and font checks [M-0]
-74e037a feat(front-office): Receptionist Test Lab /tools/receptionist-lab runs simulated calls through the real Receptionist pipeline (scripted model, in-memory store, nothing sent) [A-4]
-bd9fd25 feat(front-office): shared contracts (types + non-throwing validators) and API_CONTRACTS.md for the UI to bind to [A-1]
-4a19e2a fix(front-office): Setter demo chat limited per client address and by a demo-wide ceiling so rotating visitor ids cannot run up model spend [P1-6]
-9509701 test(front-office): audit -> enquiry -> offerTimes -> bookSlot sandbox e2e with a fake calendar [P1-3]
+b63570e feat(front-office): Setter Test Lab /tools/setter-lab runs the real Setter pipeline with a scripted model, in-memory store and calendar, mode selector and approval queue through decide()/gate(); nothing sent, no paid model reachable [A-3]
+5d5d38d chore(coordinator): cycle c-1d830624 board and handoff (checkpoint: A-2, M-1, M-4 committed; A-3 running; A-14 added)
+c145944 feat(front-office): operating modes (automatic / owner approval / enquiry only) per business and the owner approval queue (fo_pending_actions + RPCs, RLS), shared decide() permission check and gate() that runs an approved action exactly once [A-2]
+434c2a9 docs(marketing): content pipeline with owner approval gate, 30-day calendar (13 posts, 8 Reels, 17 Stories) and scheduling note with sources [M-4]
+0313466 feat(marketing): Instagram profile package for owner approval (PROFILE.md: name, 136-char bio, category, contact/link plan, setup checklist) and render-profile.mjs for the profile picture and five highlight covers [M-1]
 ```
 <!-- git-state:end -->
 
