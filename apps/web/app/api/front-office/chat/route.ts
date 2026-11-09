@@ -10,6 +10,7 @@ import { anthropicConfigFromEnv, anthropicLlm } from '../../../../lib/front-offi
 import { googleCalendar, googleConfigFromEnv } from '../../../../lib/front-office/calendar/google';
 import { dryRunSender, senderFromEnv } from '../../../../lib/front-office/sms-send';
 import { runSetterTurn } from '../../../../lib/front-office/setter/agent';
+import { channelPermissions } from '../../../../lib/front-office/setter/actions';
 import { loadSetter } from '../../../../lib/front-office/settings';
 import { AuditDemoInvalid, auditDemoConfig, auditDemoHash, DEMO_NOT_ON, demoRpc, demoSender } from '../../../../lib/front-office/templates/audit';
 import type { SetterConfig } from '../../../../lib/front-office/setter/config';
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
     if (process.env.FRONT_OFFICE_CHAT_LIVE !== '1' || !ai) return reply(req, { reply: null, live: false, note: 'Thanks, your message is with the team. We will reply soon.' });
     const setter = await loadSetter(rpc, auth);
     if (!setter.on) return reply(req, { reply: null, live: false, note: 'Thanks, your message is with the team. We will reply soon.' });
-    const turn = await runSetterTurn(contact, { llm: anthropicLlm(ai, fetch, 20_000), rpc, auth, calendar: gcal ? googleCalendar(gcal) : null, send: senderFromEnv(), config: setter.config, now: Date.now(), channel: 'web-chat' });
+    const turn = await runSetterTurn(contact, { llm: anthropicLlm(ai, fetch, 20_000), rpc, auth, calendar: gcal ? googleCalendar(gcal) : null, send: senderFromEnv(), config: setter.config, now: Date.now(), channel: 'web-chat', permissions: channelPermissions(rpc, auth) });
     return reply(req, { reply: turn.reply, live: true, booked: turn.booked });
   } catch {
     return reply(req, { error: 'Chat is unavailable. Please try again.' }, 503);

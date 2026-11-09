@@ -10,6 +10,7 @@ import { anthropicConfigFromEnv, anthropicLlm } from '../../../../../lib/front-o
 import { googleCalendar, googleConfigFromEnv } from '../../../../../lib/front-office/calendar/google';
 import { senderFromEnv } from '../../../../../lib/front-office/sms-send';
 import { runSetterTurn } from '../../../../../lib/front-office/setter/agent';
+import { channelPermissions } from '../../../../../lib/front-office/setter/actions';
 import { SETTER_PROMPT_VERSION } from '../../../../../lib/front-office/setter/prompt';
 import { BOOKING_CONFIRMATION_PROMPT } from '../../../../../lib/front-office/booking';
 import { loadSetter } from '../../../../../lib/front-office/settings';
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
           try {
             const setter = await loadSetter(rpc, auth);
             if (!setter.on) return;
-            const turn = await runSetterTurn(contact, { llm: anthropicLlm(ai, fetch, 30_000), rpc, auth, calendar: gcal ? googleCalendar(gcal) : null, send: senderFromEnv(), config: setter.config, now: Date.now(), channel: ev.kind, logReply: false });
+            const turn = await runSetterTurn(contact, { llm: anthropicLlm(ai, fetch, 30_000), rpc, auth, calendar: gcal ? googleCalendar(gcal) : null, send: senderFromEnv(), config: setter.config, now: Date.now(), channel: ev.kind, logReply: false, permissions: channelPermissions(rpc, auth) });
             if (!turn.reply) return;
             const prompt = turn.booked ? BOOKING_CONFIRMATION_PROMPT : SETTER_PROMPT_VERSION;
             const w = await rpc('fo_social_window', { channel, channel_key: key, contact }) as { recipient: string | null; optedOut: boolean; lastInbound: string | null };

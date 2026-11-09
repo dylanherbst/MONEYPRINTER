@@ -10,6 +10,7 @@ import { anthropicConfigFromEnv, anthropicLlm } from '../../../../../lib/front-o
 import { googleCalendar, googleConfigFromEnv } from '../../../../../lib/front-office/calendar/google';
 import { senderFromEnv } from '../../../../../lib/front-office/sms-send';
 import { runSetterTurn } from '../../../../../lib/front-office/setter/agent';
+import { channelPermissions } from '../../../../../lib/front-office/setter/actions';
 import { loadSetter } from '../../../../../lib/front-office/settings';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
           const send = senderFromEnv();
           const setter = await loadSetter(rpc, { channel, key });
           if (!setter.on) return;
-          const turn = await runSetterTurn(contact, { llm: anthropicLlm(ai), rpc, auth: { channel, key }, calendar: gcal ? googleCalendar(gcal) : null, send, config: setter.config, now: Date.now() });
+          const turn = await runSetterTurn(contact, { llm: anthropicLlm(ai), rpc, auth: { channel, key }, calendar: gcal ? googleCalendar(gcal) : null, send, config: setter.config, now: Date.now(), channel: 'sms', permissions: channelPermissions(rpc, { channel, key }) });
           if (turn.reply) await send(sms.from, turn.reply);
         } catch (e) {
           console.error('front-office setter turn failed:', e instanceof Error ? e.message : 'unknown');
