@@ -52,11 +52,16 @@ export default function GrowthOpportunity({ embedded = false }: { embedded?: boo
 
   function saveToWorkspace() {
     try {
+      // The manual audit in this tab may have saved the same record since page load. That is only a conflict if the
+      // calculator result inside it changed (another tab saved a different one); otherwise save on top of the fresh copy.
+      const fresh = localStorage.getItem(auditKey);
+      if (fresh !== workspaceRaw && JSON.stringify(restoreOpportunity(fresh)) !== JSON.stringify(saved)) { setSaveState({ kind: 'conflict' }); return; }
       const business = auditBusiness(restoreProfile(localStorage.getItem(storageKey)));
-      const raw = saveOpportunityToWorkspace(localStorage, workspaceRaw, opportunitySnapshot(business, answers, assumptions));
+      const raw = saveOpportunityToWorkspace(localStorage, fresh, opportunitySnapshot(business, answers, assumptions));
       setWorkspaceRaw(raw); setSaved(restoreOpportunity(raw)); setSaveState({ kind: 'saved' });
       window.dispatchEvent(new Event('ventra:updated'));
     } catch (e) {
+      // Fallback: writeCompared still refuses if the record changed between the read above and the write.
       const message = (e as Error).message || 'Could not save.';
       setSaveState(/another tab/i.test(message) ? { kind: 'conflict' } : { kind: 'error', message });
     }
