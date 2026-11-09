@@ -95,7 +95,13 @@ export function pickOffers(slots: readonly Interval[], timeZone: string, count =
   return picked.sort((x, y) => x.start - y.start);
 }
 
-/** "Tue 11 Nov, 6:00 pm" in the client's time zone. */
+/**
+ * "Tue, 11 Nov, 6:00 pm" in the client's time zone. Built from formatToParts so the
+ * punctuation and spacing never depend on the Node/ICU version.
+ */
 export function formatSlot(t: number, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-AU', { timeZone, weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(t)).replace(/\u202f/g, ' ');
+  const parts = new Intl.DateTimeFormat('en-AU', { timeZone, weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).formatToParts(new Date(t));
+  const get = (type: Intl.DateTimeFormatPartTypes): string => parts.find(p => p.type === type)?.value ?? '';
+  const period = get('dayPeriod').toLowerCase().replace(/[^a-z]/g, '');
+  return `${get('weekday')}, ${get('day')} ${get('month')}, ${get('hour')}:${get('minute')} ${period}`;
 }
