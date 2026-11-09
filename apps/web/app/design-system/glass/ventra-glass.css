@@ -5,6 +5,7 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 @import "tw-animate-css";
+@import "shadcn/tailwind.css"; /* shadcn's state variants (data-open, data-checked…) that glasscn components rely on */
 @source "../../../components";
 @source "../../ui";
 @source "../../(ventra)";
@@ -86,6 +87,7 @@
   --color-tone-money-soft: var(--tone-money-soft);
   --color-tone-neutral: var(--tone-neutral);
   --color-tone-neutral-soft: var(--tone-neutral-soft);
+  --color-help-foreground: var(--help-foreground);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
   --font-heading: var(--font-display);
@@ -281,4 +283,10 @@
   0% { background-position: 0% 0%, 100% 100%, 0% 0%; }
   50% { background-position: 30% 20%, 70% 80%, 0% 0%; }
   100% { background-position: 0% 0%, 100% 100%, 0% 0%; }
+}
+
+/* Tailwind's preflight is not loaded app-wide, so give glasscn/shadcn parts (they all carry data-slot) the one preflight rule
+   their glass edges depend on: a solid border style, so classes like `border border-white/45` actually draw. Zero specificity. */
+@layer base {
+  :where([data-slot], [data-slot]::before, [data-slot]::after) { border-width: 0; border-style: solid; }
 }

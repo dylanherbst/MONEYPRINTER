@@ -1,21 +1,22 @@
-// Glass showcase: the glasscn GlassCard (installed with `npx shadcn add @glasscn/glass-card`) in its `liquid` variant,
-// on the VENTRA ambient background so the glass has light and colour to work with. Uses VENTRA Glass tokens (.vg-app).
-import { GlassCard } from '@/components/ui/glasscn/glass-card';
-import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+'use client';
+// Glass showcase (temporary, for comparison): glasscn's own Glass Card docs demo, unmodified, in the `liquid` and
+// `liquid-refract` variants side by side over a colourful backdrop. Rendered with glasscn's own tokens and Tailwind preflight
+// (scoped to .glasscn-original) so it should match https://glasscn-components.vercel.app/components/glass-card.
+import { useState } from 'react';
+import { CardDemo } from './card-demo';
+import './glasscn-original.css';
 
 export default function GlassShowcase() {
+  const [dark, setDark] = useState(false);
   return (
-    <div className="vg-app">
-      <div className="vg-ambient" aria-hidden="true" />
-      <main className="relative z-[1] grid min-h-dvh place-items-center p-6">
-        <GlassCard glassVariant="liquid" className="w-full max-w-sm rounded-3xl">
-          <CardHeader>
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-primary">glasscn · liquid</p>
-            <CardTitle className="font-display text-2xl font-semibold">Glass card</CardTitle>
-            <CardDescription className="text-muted-foreground">The glasscn GlassCard with glassVariant=&quot;liquid&quot;, installed from the shadcn registry.</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">Bookings, conversations and your AI team will sit on cards like this one.</CardContent>
-        </GlassCard>
+    <div className={'glasscn-original' + (dark ? ' dark' : '')}>
+      <main className="gc-stage">
+        <div className="gc-rings" aria-hidden="true" />
+        <div className="gc-grid">
+          <section aria-label="liquid"><p className="gc-label">liquid</p><CardDemo variant="liquid" /></section>
+          <section aria-label="liquid-refract"><p className="gc-label">liquid-refract</p><CardDemo variant="liquid-refract" /></section>
+        </div>
+        <button type="button" onClick={() => setDark(!dark)} className="mt-6 rounded-full bg-white/80 px-4 py-2 text-sm font-medium text-black shadow">{dark ? 'Light theme' : 'Dark theme'}</button>
       </main>
     </div>
   );

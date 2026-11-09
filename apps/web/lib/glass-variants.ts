@@ -1,4 +1,3 @@
-// From glasscn (MIT, kostyniuk/glasscn-components). VENTRA tweaks: plum dark frosted fill, quieter liquid shadow.
 export type FrostGlassVariant = "clear" | "frosted" | "subtle" | "liquid" | "liquid-refract";
 export type FrostGlassVariantProp = { glassVariant?: FrostGlassVariant };
 
@@ -13,7 +12,7 @@ export const glassVariantStyles: Record<FrostGlassVariant, string> = {
   ].join(" "),
   frosted: [
     "backdrop-blur-[16px] backdrop-saturate-[1.6]",
-    "bg-white/[0.55] dark:bg-[rgba(22,16,32,0.55)]",
+    "bg-white/[0.55] dark:bg-black/[0.35]",
     "border border-white/[0.4] dark:border-white/10",
     "shadow-[0_2px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_2px_20px_rgba(0,0,0,0.3)]",
   ].join(" "),
@@ -44,7 +43,7 @@ export const glassVariantStyles: Record<FrostGlassVariant, string> = {
     //    - inset fish-eye glow at the bottom (lensing artifact)
     //    - thin inset side rails
     //    - outer contact shadow + broader halo (panel feels floating)
-    "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.65),inset_0_-12px_24px_-10px_rgba(255,255,255,0.45),inset_1px_0_0_0_rgba(255,255,255,0.22),inset_-1px_0_0_0_rgba(255,255,255,0.18),0_16px_40px_-18px_rgba(40,24,70,0.22),0_6px_16px_-8px_rgba(40,24,70,0.12)]",
+    "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.65),inset_0_-12px_24px_-10px_rgba(255,255,255,0.45),inset_1px_0_0_0_rgba(255,255,255,0.22),inset_-1px_0_0_0_rgba(255,255,255,0.18),0_24px_60px_-18px_rgba(15,23,42,0.30),0_8px_24px_-8px_rgba(15,23,42,0.18)]",
     "dark:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.30),inset_0_-14px_28px_-10px_rgba(180,210,255,0.18),inset_1px_0_0_0_rgba(255,255,255,0.10),inset_-1px_0_0_0_rgba(255,255,255,0.08),0_28px_70px_-18px_rgba(0,0,0,0.55),0_10px_28px_-10px_rgba(0,0,0,0.40)]",
 
     // 5) Hairline border for the chamfer's outer edge.

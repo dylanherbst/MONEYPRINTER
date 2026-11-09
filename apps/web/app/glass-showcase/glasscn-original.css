@@ -1,0 +1,109 @@
+/* glasscn's own design tokens (kostyniuk/glasscn-components app/globals.css, MIT), scoped to .glasscn-original so the
+   showcase renders the library exactly as its docs do, independent of VENTRA's tokens. Temporary: for comparison only. */
+@import "./preflight-scoped.css";
+
+.glasscn-original {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --help-foreground: oklch(0.38 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --app-background: oklch(99.6% 0.02 106.75);
+  --accent-green: #c5f83a;
+  --margin-scroll: 5rem;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Geist", system-ui, sans-serif;
+  color: var(--foreground); font-family: var(--font-sans); line-height: 1.5; -webkit-font-smoothing: antialiased;
+}
+.glasscn-original.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --help-foreground: oklch(0.82 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+  --app-background: oklch(7.61% 0.053 264.05);
+  --accent-green: #c5f83a;
+}
+
+/* A colourful backdrop with hard edges, so the refraction at the glass edge is visible. */
+.gc-stage { position: relative; min-height: 100dvh; display: grid; place-items: center; padding: 32px 16px; isolation: isolate; overflow: hidden;
+  background:
+    repeating-linear-gradient(115deg, rgba(255,255,255,.0) 0 38px, rgba(255,255,255,.55) 38px 44px),
+    radial-gradient(40% 50% at 15% 20%, #ff4fa3 0%, transparent 70%),
+    radial-gradient(45% 55% at 85% 25%, #4f7dff 0%, transparent 70%),
+    radial-gradient(50% 50% at 50% 95%, #19d3c5 0%, transparent 70%),
+    linear-gradient(135deg, #ffb347 0%, #ff5f9e 35%, #8a5cff 65%, #2ec5ff 100%); }
+.gc-stage .gc-rings { position: absolute; inset: 0; z-index: -1; pointer-events: none; background:
+    radial-gradient(circle at 30% 45%, transparent 0 110px, rgba(20,10,60,.55) 111px 118px, transparent 119px),
+    radial-gradient(circle at 72% 60%, transparent 0 150px, rgba(255,255,255,.75) 151px 158px, transparent 159px); }
+.gc-grid { display: grid; gap: 28px; width: min(100%, 860px); grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); justify-items: center; }
+.gc-label { font: 600 12px/1 var(--font-sans); letter-spacing: .1em; text-transform: uppercase; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.4); margin-bottom: 10px; text-align: center; }
+
+/* glasscn's own base layer (its app/globals.css): border colour and focus outline from tokens. */
+@layer base {
+  .glasscn-original *, .glasscn-original { border-color: var(--border); outline-color: color-mix(in oklab, var(--ring) 50%, transparent); }
+}
+
+/* VENTRA's old marketing defaults in globals.css (label, p, headings, button, input colours and sizes) are not part of the
+   Tailwind preflight, so undo them here, inside the showcase only. */
+@layer base {
+  .glasscn-original :is(label, p, h1, h2, h3, h4, h5, small, a) { color: inherit; max-width: none; font-size: inherit; font-weight: inherit; letter-spacing: inherit; line-height: inherit; text-wrap: wrap; overflow-wrap: normal; display: revert; }
+  .glasscn-original label { display: revert; }
+  .glasscn-original button, .glasscn-original button:hover:not(:disabled), .glasscn-original button:active:not(:disabled), .glasscn-original button:disabled, .glasscn-original button[aria-current] { min-height: 0; max-width: none; gap: normal; overflow-wrap: normal; background-color: transparent; border-color: var(--border); box-shadow: none; color: inherit; font-size: inherit; line-height: inherit; transition: none; }
+  .glasscn-original :is(input, textarea, select), .glasscn-original :is(input, textarea, select):hover { display: revert; width: auto; min-height: 0; background-color: transparent; color: inherit; border-color: var(--border); }
+  .glasscn-original :focus-visible { outline: revert; outline-offset: revert; }
+}
