@@ -11,6 +11,8 @@ import type { Agent } from '../handoff';
 import { scheduleReminders } from '../jobs';
 import type { LlmMessage, StreamLlm, ToolResultBlock, ToolSpec, ToolUseBlock } from '../llm';
 import type { ChannelAuth, Rpc } from '../orchestrator';
+import type { OperatingMode } from '../contracts';
+import { decide } from '../permissions';
 import { availabilityFor } from '../settings';
 import type { AgentSettings } from '../settings';
 import { canTransition, isContactState } from '../state';
@@ -25,8 +27,16 @@ export type ReceptionistDeps = {
   settings: AgentSettings; now: number;
   call: { id: string | null; caller: string | null; contact: string | null };
   conversation: CallerTurn[];
+  /** The business's Receptionist operating mode. Optional: tools that only gather information work the same in every
+   * mode (decide() answers 'perform' for take_message whatever the mode). */
+  mode?: OperatingMode;
 };
-export type Outcome = 'faq' | 'faq-miss' | 'qualified' | 'booked' | 'rescheduled' | 'cancelled' | 'message' | 'transfer';
+export type Outcome = 'faq' | 'faq-miss' | 'qualified' | 'booked' | 'rescheduled' | 'cancelled' | 'message' | 'transfer' | 'quote';
+/** fo_voice_outcome's database check accepts only the original outcomes (migration 202611080001); a quote request is
+ * stored there as 'message' until the database list gains 'quote'. The turn summary keeps 'quote'. */
+const STORED_OUTCOME: Partial<Record<Outcome, string>> = { quote: 'message' };
+/** Where a quote request is saved on the contact record (fo_contacts.answers), next to the qualifying answers. */
+export const QUOTE_ANSWER_KEYS = { need: 'quote_need', where: 'quote_where', when: 'quote_when', budget: 'quote_budget' } as const;
 export type TurnSummary = { said: string; tools: string[]; outcomes: Outcome[]; action: 'transfer' | 'end' | null };
 
 type Ctx = {
@@ -43,6 +53,7 @@ export const receptionistTools: ToolSpec[] = [
   { name: 'reschedule', description: 'Move the caller’s existing booking to one of the times from check_availability.', input_schema: { type: 'object', properties: { start: { type: 'string' } }, required: ['start'] } },
   { name: 'cancel', description: 'Cancel the caller’s existing booking, after they confirm.', input_schema: { type: 'object', properties: { reason: { type: 'string' } }, required: ['reason'] } },
   { name: 'take_message', description: 'Take a message for the team, who will call back.', input_schema: { type: 'object', properties: { message: { type: 'string' }, name: { type: 'string' }, phone: phoneProp, urgent: { type: 'boolean' } }, required: ['message'] } },
+  { name: 'request_quote', description: 'When the caller asks what a job or service would cost for them ("how much would it cost to…"), capture a quote request for the team: what they need, where, when or their timeframe, their budget if they offer one, and their name, mobile or email. Never give a price, range or estimate yourself: the team sends the quote.', input_schema: { type: 'object', properties: { need: { type: 'string', description: 'What they want done or quoted, in their words.' }, where: { type: 'string', description: 'Where (suburb, address or site), if relevant.' }, when: { type: 'string', description: 'When, or their timeframe.' }, budget: { type: 'string', description: 'Their budget, only if they offered one.' }, name: { type: 'string' }, phone: phoneProp, email: { type: 'string' } }, required: ['need'] } },
   { name: 'transfer', description: 'Put the caller through to a person at the business (urgent, complaint, billing, or they ask for a person).', input_schema: { type: 'object', properties: { reason: { type: 'string' } }, required: ['reason'] } },
   { name: 'end_call', description: 'Hang up, after saying goodbye.', input_schema: { type: 'object', properties: {} } },
 ];
@@ -72,6 +83,9 @@ export function callTranscript(turns: CallerTurn[]): LlmMessage[] {
 }
 
 const str = (v: unknown, max: number) => typeof v === 'string' ? v.trim().slice(0, max) : '';
+/** Caller text for staff messages and handoffs: whitespace and control characters collapsed to one space. */
+// eslint-disable-next-line no-control-regex
+const plainText = (v: unknown, max: number) => typeof v === 'string' ? v.replace(/[\s\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, max) : '';
 const cleanPhone = (v: unknown) => str(v, 24).replace(/[\s()-]/g, '').replace(/^0(?=[2-478]\d{8}$)/, '+61');
 const E164 = /^\+[1-9][0-9]{6,14}$/;
 
@@ -82,11 +96,14 @@ export async function receptionistSession(d: Omit<ReceptionistDeps, 'llm' | 'con
   const a = { channel: d.auth.channel, channel_key: d.auth.key };
   const used: string[] = [], outcomes: Outcome[] = [];
   let contactId = d.call.contact, ctx: Ctx | null = null, offers: Offer[] = [], action: TurnSummary['action'] = null, transferTo = '';
+  /** The quote request already captured in this session: whether it was handed off and staff told, and the contact
+   * details they were told about. Keeps a second request_quote from duplicating the handoff or the notice. */
+  let quoteState: { handedOff: boolean; notified: boolean; phone: string | null; email: string | null; updateSent: boolean } | null = null;
   const load = async () => { ctx = contactId ? await d.rpc('fo_contact_context', { ...a, contact: contactId }) as Ctx : null; };
   await load();
   const outcome = async (o: Outcome) => {
     if (!outcomes.includes(o)) outcomes.push(o);
-    if (d.call.id) await d.rpc('fo_voice_outcome', { ...a, call_id: d.call.id, outcome: o }).catch(() => undefined);
+    if (d.call.id) await d.rpc('fo_voice_outcome', { ...a, call_id: d.call.id, outcome: STORED_OUTCOME[o] ?? o }).catch(() => undefined);
   };
   /** The caller as a contact: from the call, or from a number they gave. */
   async function ensureContact(phoneArg: unknown, name?: string): Promise<string | null> {
@@ -206,6 +223,74 @@ export async function receptionistSession(d: Omit<ReceptionistDeps, 'llm' | 'con
         if (s.staffEmail) await d.email(s.staffEmail, `${urgent ? 'Urgent: ' : ''}phone message for ${s.businessName}`, note).catch(() => undefined);
         await outcome('message');
         return from === 'number withheld' ? 'Message taken, but there is no number to call back on. Ask for their mobile if they want a call back.' : 'Message taken. Tell them the team will call them back.';
+      }
+      case 'request_quote': {
+        // Capturing a quote request gathers information and commits the business to nothing, so the shared permission
+        // check treats it as take_message: performed in automatic, owner_approval and enquiry_only alike.
+        const permission = decide(d.mode, 'take_message');
+        if (permission.decision !== 'perform') return 'I cannot save that right now. Offer to take a message instead.';
+        // Caller words go into staff texts, emails and the handoff: one line each, no control characters.
+        const need = plainText(input.need, 1000);
+        if (!need) return 'Ask what they would like a quote for, then call request_quote again with it as need.';
+        const where = plainText(input.where, 300), when = plainText(input.when, 300), budget = plainText(input.budget, 200), name = plainText(input.name, 160);
+        const email = str(input.email, 254), okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        await ensureContact(input.phone, name || undefined);
+        const c = ctx as Ctx | null;
+        // A repeat: a second request_quote on this call, or the contact already has this same request on file.
+        const onFile = c?.contact.answers[QUOTE_ANSWER_KEYS.need];
+        if (!quoteState && onFile && onFile.toLowerCase() === need.toLowerCase()) {
+          quoteState = { handedOff: true, notified: !!(s.staffPhone || s.staffEmail), phone: c?.contact.phone ?? null, email: c?.contact.email ?? null, updateSent: false };
+        }
+        const repeat = quoteState !== null;
+        const fields: Record<string, string> = { [QUOTE_ANSWER_KEYS.need]: need };
+        if (where) fields[QUOTE_ANSWER_KEYS.where] = where;
+        if (when) fields[QUOTE_ANSWER_KEYS.when] = when;
+        if (budget) fields[QUOTE_ANSWER_KEYS.budget] = budget;
+        if (c) {
+          const r = await d.rpc('fo_save_details', { ...a, contact: c.contact.id, new_answers: fields, contact_name: name || null, contact_email: okEmail ? email : null, contact_phone: null }) as { answers?: Record<string, string> } | null;
+          c.contact.answers = r?.answers ?? { ...c.contact.answers, ...fields };
+          if (name) c.contact.name = name;
+          if (okEmail && !c.contact.email) c.contact.email = email;
+        }
+        const who = name || c?.contact.name || 'a caller';
+        const phoneNow = c?.contact.phone ?? d.call.caller ?? null, emailNow = okEmail ? email : c?.contact.email ?? null;
+        const from = phoneNow ?? 'number withheld';
+        const details = [`needs ${need}`, where && `where: ${where}`, when && `when: ${when}`, budget && `budget: ${budget}`, emailNow && `email: ${emailNow}`].filter(Boolean).join('; ');
+        const writeHandoff = async () => { if (c) { await handoff('human', 'quote request', `Quote request from ${who} on ${from}: ${details}.`, 'Prepare a quote and send it to the caller'); return true; } return false; };
+        // Same staff notification path as take_message; the senders enforce FRONT_OFFICE_SEND_LIVE.
+        if (!quoteState) {
+          const handedOff = await writeHandoff();
+          const note = `${s.businessName} AI receptionist: quote request from ${who} (${from}): ${details}`.slice(0, 600);
+          if (s.staffPhone) await d.send(s.staffPhone, note.slice(0, 320)).catch(() => undefined);
+          if (s.staffEmail) await d.email(s.staffEmail, `Quote request for ${s.businessName}`, note).catch(() => undefined);
+          quoteState = { handedOff, notified: !!(s.staffPhone || s.staffEmail), phone: phoneNow, email: emailNow, updateSent: false };
+        } else {
+          // Never a second handoff or a second full notice. The first handoff is written now only if there was no
+          // contact to hang it on before; staff get at most one short update when new contact details arrive.
+          const q = quoteState;
+          if (!q.handedOff) q.handedOff = await writeHandoff();
+          const newDetails = (phoneNow && phoneNow !== q.phone) || (emailNow && emailNow !== q.email);
+          if (newDetails && q.notified && !q.updateSent) {
+            const update = `${s.businessName} AI receptionist: update to the quote request from ${who}: contact now ${[phoneNow, emailNow].filter(Boolean).join(', ')}`.slice(0, 320);
+            if (s.staffPhone) await d.send(s.staffPhone, update).catch(() => undefined);
+            else if (s.staffEmail) await d.email(s.staffEmail, `Quote request update for ${s.businessName}`, update).catch(() => undefined);
+            q.updateSent = true;
+          }
+          q.phone = phoneNow; q.email = emailNow;
+        }
+        await outcome('quote');
+        // No price here, ever: the business has no configured quote price, so the team sends the quote.
+        const noPrice = 'Do not give a price, range or estimate, even if asked again: say a team member will look at it and send them a quote.';
+        const askMobile = 'Ask for their mobile and call request_quote again with it as phone.';
+        if (!c) {
+          // Nothing is on file: there is no contact to save it on. Say only what really happened.
+          return quoteState.notified
+            ? `Not saved on file, because there is no mobile number to link it to. The team has been sent the request by message${emailNow ? ', with their email,' : ''} and can follow up${emailNow ? ' by email' : ' only if the caller leaves a number'}. ${askMobile} ${noPrice}`
+            : `Not saved and not passed on: there is no mobile number to link it to and no team contact is set up. ${askMobile} ${noPrice}`;
+        }
+        return repeat
+          ? `Quote request updated on their record. The team already has it. ${noPrice}`
+          : `Quote request saved on their record and the team has been told. ${noPrice}`;
       }
       case 'transfer': {
         if (!s.transferNumber) return 'No one is available to take calls right now. Offer to take a message instead.';
