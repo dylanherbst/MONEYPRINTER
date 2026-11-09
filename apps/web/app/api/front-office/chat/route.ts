@@ -27,6 +27,18 @@ export const maxDuration = 60;
 // any of that on.
 const VISITOR = /^[A-Za-z0-9_-]{16,64}$/, UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const perVisitor = createRateLimiter(20, 60_000), global = createRateLimiter(1200, 60_000);
+// Setter demo only (unauthenticated, can run paid model turns with caller-supplied business text). The visitor id is chosen
+// by the caller, so demo turns are also limited per client address and by a demo-wide ceiling far below the chat one.
+// Per server instance, reset on restart; not a substitute for a provider-side spending cap. Owner can tune these.
+const DEMO_PER_CLIENT_LIMIT = 30, DEMO_PER_CLIENT_WINDOW_MS = 10 * 60_000; // 30 demo turns per client address per 10 minutes
+const DEMO_GLOBAL_LIMIT = 120, DEMO_GLOBAL_WINDOW_MS = 60_000;              // 120 demo turns per minute across all clients
+const demoPerClient = createRateLimiter(DEMO_PER_CLIENT_LIMIT, DEMO_PER_CLIENT_WINDOW_MS), demoGlobal = createRateLimiter(DEMO_GLOBAL_LIMIT, DEMO_GLOBAL_WINDOW_MS);
+/** Client address hint: first x-forwarded-for entry, else x-real-ip (both set by the platform on Vercel). Callers with
+ * neither share one 'unknown' bucket, so a missing header never means unlimited. */
+function demoClientKey(req: NextRequest): string {
+  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || (req.headers.get('x-real-ip') ?? '').trim();
+  return 'ip:' + (ip.slice(0, 64) || 'unknown');
+}
 
 function allowedOrigin(req: NextRequest): string | null {
   const origin = req.headers.get('origin');
@@ -89,6 +101,13 @@ export async function POST(req: NextRequest) {
   }
   const auth = demo ? demoAuth : chatAuth;
   if (!auth) return reply(req, { error: 'The Setter demo is not connected yet.', configured: false, demo: true }, 503);
+  if (demo) {
+    // Before any validation, database or model work. Per client first, so one address cannot use up the demo-wide budget.
+    const client = demoPerClient(demoClientKey(req));
+    if (!client.allowed) return reply(req, { error: 'Too many demo messages. Try again later.', demo: true }, 429, { 'Retry-After': String(client.retryAfterSeconds) });
+    const busy = demoGlobal('demo');
+    if (!busy.allowed) return reply(req, { error: 'The Setter demo is busy. Try again shortly.', demo: true }, 429, { 'Retry-After': String(busy.retryAfterSeconds) });
+  }
   const visitor = typeof input.visitor === 'string' ? input.visitor : '', message = typeof input.message === 'string' ? input.message.trim() : '', id = typeof input.id === 'string' ? input.id : '';
   if (!VISITOR.test(visitor) || !message || message.length > 2000 || !/^[A-Za-z0-9_-]{8,64}$/.test(id)) return reply(req, { error: 'Invalid message.' }, 400);
   let demoRun: { config: SetterConfig; hash: string } | null = null;

@@ -200,3 +200,45 @@ test('chat demo: a lead is qualified into fo_contacts with the audit business de
     assert.equal(after.body.reply, null); assert.equal(w.prompts.length, before, 'an opted-out contact gets no AI reply');
   } finally { w.restore(); restore(); }
 });
+
+// Demo rate limits (P1-6). The limiters live at module level for the whole file, so each test uses its own addresses and
+// the demo-wide test runs last.
+const fromIp = (ip: Record<string, string>, body: Record<string, unknown>) => { const p = post(body); return call(chat.POST, '/api/front-office/chat', { ...p, headers: { ...p.headers, ...ip } }); };
+const visitorN = (n: number) => 'v_rotate_' + String(n).padStart(8, '0');
+
+test('chat demo: rotating visitor ids from one address hit the per-client limit before any database or model call', async () => {
+  const restore = env({ FRONT_OFFICE_DEMO_LIVE: '1', ANTHROPIC_API_KEY: 'test-key', FRONT_OFFICE_MODEL: 'test-model' });
+  const w = fakeWorld([[say('Hi from the demo')]]);
+  try {
+    const ip = { 'x-forwarded-for': '203.0.113.7, 10.0.0.1' };
+    for (let n = 0; n < 30; n++) assert.equal((await fromIp(ip, { visitor: visitorN(n), message: 'hi', id: 'abcdefgh', demo: { audit } })).status, 200, 'turn ' + n);
+    const calls = w.rpcCalls.length, prompts = w.prompts.length;
+    const r = await fromIp({ 'x-forwarded-for': '203.0.113.7, 10.0.0.99' }, { visitor: visitorN(30), message: 'hi', id: 'abcdefgh', demo: { audit } });
+    assert.equal(r.status, 429, 'a fresh visitor id from the same first address is refused'); assert.equal(r.body.demo, true);
+    assert.ok(Number(r.headers.get('retry-after')) > 0);
+    assert.equal(w.rpcCalls.length, calls, 'no database call once limited'); assert.equal(w.prompts.length, prompts, 'no model call once limited');
+    // x-real-ip is used when there is no x-forwarded-for; a different address still gets its own budget.
+    const realIp = { 'x-real-ip': '203.0.113.7' };
+    assert.equal((await fromIp(realIp, { visitor: visitorN(31), message: 'hi', id: 'abcdefgh', demo: { audit } })).status, 429, 'x-real-ip keys the same client');
+    assert.equal((await fromIp({ 'x-forwarded-for': '198.51.100.20' }, { visitor: visitorN(32), message: 'hi', id: 'abcdefgh', demo: { audit } })).status, 200);
+    // Plain (non-demo) chat from the limited address is not affected by the demo limiters.
+    const live = await fromIp(ip, { visitor: visitorN(33), message: 'hi', id: 'abcdefgh' });
+    assert.equal(live.status, 200); assert.equal(live.body.demo, undefined); assert.equal(live.body.live, false);
+  } finally { w.restore(); restore(); }
+});
+
+test('chat demo: the demo-wide limit stops many addresses, and plain chat keeps working (runs last)', async () => {
+  const restore = env();
+  const w = fakeWorld();
+  try {
+    let n = 0, r = { status: 200 } as Awaited<ReturnType<typeof call>>;
+    // Each request uses a new address and a new visitor id, so only the demo-wide limit (120 per minute) can stop it.
+    while (n < 200) { r = await fromIp({ 'x-forwarded-for': '192.0.2.' + n }, { visitor: visitorN(1000 + n), message: 'hi', id: 'abcdefgh', demo: { audit } }); n++; if (r.status === 429) break; }
+    assert.equal(r.status, 429, 'the demo-wide ceiling is reached'); assert.match(r.body.error, /busy/); assert.ok(n <= 121, 'within 120 demo turns per minute, got ' + n);
+    const calls = w.rpcCalls.length;
+    assert.equal((await fromIp({ 'x-forwarded-for': '192.0.2.251' }, { visitor: visitorN(2000), message: 'hi', id: 'abcdefgh', demo: { audit } })).status, 429);
+    assert.equal(w.rpcCalls.length, calls, 'no database call once the demo is busy');
+    const live = await fromIp({ 'x-forwarded-for': '192.0.2.252' }, { visitor: visitorN(2001), message: 'hi', id: 'abcdefgh' });
+    assert.equal(live.status, 200, 'plain chat is not limited by the demo ceiling'); assert.equal(live.body.live, false);
+  } finally { w.restore(); restore(); }
+});
