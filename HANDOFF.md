@@ -15,17 +15,15 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
-- Last cycle: c-9286948e at 2026-11-10 ~06:30 AWST · 2 dispatched (A-15, A-17) · 1 verified and committed (A-15 0ae76c7e) · 0 new blocked
-- Integration branch: agent/develop @ 0ae76c7e (board commit follows)
-- Verification: `npm --prefix apps/web` test 798/798 (771 at start), typecheck exit 0, lint exit 0 (with A-17 in the tree). A-15: review CHANGES NEEDED (owner could self-mark an identifier connected = squatting; error text leaked existence) -> one fix round -> committed. Full ventra-verify not run (cycle budget).
-- Running / implemented (needs reconciling next cycle): A-17 implemented, UNCOMMITTED in apps/web/app/api/front-office/{chat,sms/inbound,email/inbound,meta/webhook,jobs/run}/route.ts, apps/web/lib/front-office/jobs.ts, test/front-office-routes-modes*.test.ts. Review CHANGES NEEDED: gate reminders and no-show rescue too (or exempt explicitly with a test); approval of a mid-ladder step must not restart at step 1, and should expire on mode change; check fo_schedule_job idempotency for the quiet-hours reschedule; fix the overclaiming test title. Send back to ventra-voice once, then re-review and commit.
-- A-17 live effect to know: until migration 202611100001 is applied, live chat/SMS/email/Meta fall back to enquiry-only (no booking, no follow-ups).
-- A-15 follow-ups: contracts.ts `connectionStates`/`Connection` shape + API_CONTRACTS.md entry; a routing task to resolve the business through fo_resolve_connection (service_role client); setter/actions.ts outsideQuietHours is not DST-safe (use afterJobQuietHours).
-- Blocked, needs the owner (new this cycle): M-2: nine posts ready for review in ~/Developer/VENTRA-MARKETING/posts (waitlist URL for post 9, confirm post 9 promises, post 6 reminder slide, post 8 Growth Audit line)
-- Blocked, needs the owner (previous cycle): A-14: transfer rule — should the AI always hand a customer to a person when asked (recommended), or follow the A-1 contract (enquiry-only never transfers, owner-approval holds it)? Blocks A-7 · A-2: apply migration 202611100001 to LOCAL Supabase and run `npm run test:local-integration` (the Supabase CLI needs approval in coordinator sessions) · M-1: profile package ready for review (handle, waitlist/website links, public email/phone, a larger or SVG logo) · M-4: approve the 30-day calendar (sets Day 1), confirm the "Reported" scheduling limits in the app, decide on camera/voice for the Day 6 Reel
-- Blocked, needs the owner (earlier): P0-7: verified but uncommitted. Restore the executable bit on `scripts/agents/ventra-verify` (the edit lost it; the coordinator may not change it), then commit it and run the install script from an owner session · M-0 follow-ups: install ffmpeg or approve the `marketing/` npm install (reels have no audio for now), a white/SVG logo, the CTA waitlist link · A-4 finding: the Receptionist never tells callers to ring 000 in an emergency (wording decision) · P1-6: set a provider-side spending cap on the model key
-- Note: pending foreign changes (UI lab, docs retirement, `apps/web/package*.json`, `package.json`, `CLAUDE.md`, `AGENTS.md`, agent/script files, `marketing/BRIEF.md`) were left uncommitted and untouched.
-- Next up: A-17 fix round + re-review + commit (ventra-voice), A-18 (backend migration), A-16 (knowledge base, ventra-voice, after A-17), A-20 (caller identity), A-21 (modes API), A-6 (QA), full ventra-verify + browser check of both labs, M-3 (Reels). A-7 waits on A-14. P0-9 largely covered by A-5.
+- Last cycle: c-9edb821b at 2026-11-10 ~06:50 AWST · 4 dispatched (A-17 fix, W-0, W-1, A-17 re-review) · 2 finished (A-17 committed e338a072, W-0 done) · 0 new blocked
+- Integration branch: agent/develop @ e338a072 (board commit follows)
+- Verification: npm --prefix apps/web test 813/813, typecheck exit 0, lint exit 0. A-17 re-review APPROVE. Test fixture META_SECRET literal changed to generated value after a ventra-git secret-scan false positive. Full ventra-verify not run (cycle budget).
+- Running / implemented (needs reconciling next cycle): W-1 implemented, UNCOMMITTED in ~/Developer/VENTRA-WEBSITE (site/_ui/meta.ts, shell.tsx, sections.tsx, test/site-shell.test.ts; layout, page, privacy, terms, get-started, icons, chrome, site.css). Website tests 747/747. Needs ventra-review + 390/1440 browser check, then commit in the worktree. Open: SITE_DESIGN.md; chrome.tsx is now a pass-through (deletion needs owner OK); nav links 404 until W-3..W-8; W-3 path course vs courses; next.config domain mapping (W-13).
+- A-17 follow-ups (for A-21 and agent.ts): approval route must wrap createJobsExecutor(createSetterExecutor(x)); setter/agent.ts step-1 key has no conversation marker so an expired step-1 approval cannot be renewed (both fail safe).
+- W-0: docs/agents/WEBSITE_AUDIT.md. Key risks: checkout is frozen (423) in shared scope-freeze.ts; /api/checkout takes the client price (must look up server-side); glass kit not on frontend/website-ui.
+- Blocked, needs the owner: unchanged from c-9286948e (A-14 transfer rule, A-2 local migration, M-1, M-2, M-4, P0-7, M-0 items, A-4 emergency wording, P1-6). New owner needs from W-0: Stripe test keys/products/prices, un-freeze checkout decision, domain + analytics account, legal read of privacy/terms.
+- Note: pending foreign changes left uncommitted and untouched (same list as before).
+- Next up: W-1 review + browser check + commit; A-16 (knowledge base, ventra-voice); A-21 (modes API, include the createJobsExecutor wrap); A-18; A-20; A-6 QA; full ventra-verify; W-2/W-8 after W-1.
 
 ## Current task (approved scope only)
 
@@ -109,31 +107,26 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-10 05:57 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-10 06:28 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `0ae76c7 feat(front-office): fo_connections per-business channel identifiers (no secrets, unique per kind+id), owner writes not_connected/pending/disabled only, server-only connected/error and service-role resolve, generic cross-tenant errors; PGlite tests [A-15]`
-- Lock: coordinator (pid 43426, 11 min old)
+- HEAD: `e338a07 feat(front-office): mode check in every live route; jobs runner gates reminders, no-show rescue and follow-ups through gate(), consent and DST-safe quiet hours; per-step approval keys with expiry; single reschedule [A-17]`
+- Lock: coordinator (pid 61591, 10 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
  M .claude/agents/ventra-feature.md
  M .claude/agents/ventra-frontend.md
+ M .claude/agents/ventra-qa.md
  M .claude/agents/ventra-setup.md
  M AGENTS.md
  M CLAUDE.md
  M HANDOFF.md
- M apps/web/app/api/front-office/chat/route.ts
- M apps/web/app/api/front-office/email/inbound/route.ts
- M apps/web/app/api/front-office/jobs/run/route.ts
- M apps/web/app/api/front-office/meta/webhook/route.ts
- M apps/web/app/api/front-office/sms/inbound/route.ts
  M apps/web/app/design-system/glass/ventra-glass.css
  D apps/web/app/glass-showcase/card-demo.tsx
  D apps/web/app/glass-showcase/liquid-glass-card.tsx
  M apps/web/app/glass-showcase/page.tsx
  D apps/web/app/lab/lab.css
  D apps/web/app/lab/page.tsx
- M apps/web/lib/front-office/jobs.ts
  M apps/web/package-lock.json
  M apps/web/package.json
  M docs/agents/TASKS.md
@@ -154,33 +147,38 @@ _Generated 2026-11-10 05:57 by `ventra-handoff snapshot`. Do not hand-edit this 
  M scripts/agents/ventra-verify
 ?? .claude-sync/
 ?? .claude/agents/ventra-marketing.md
+?? .claude/agents/ventra-store.md
 ?? .claude/agents/ventra-voice.md
+?? .claude/agents/ventra-web-design.md
+?? "Claude outputs/"
+?? apps/web/app/glass-showcase/lgr.css
+?? apps/web/app/glass-showcase/liquid-glass-lab.tsx
 ```
 - Diff stat vs HEAD:
 ```text
- docs/design/LIQUID_GLASS_SPEC.md                   | 188 ------
- docs/design/reference/dylan-home-dashboard.png     | Bin 627700 -> 0 bytes
- docs/design/reference/dylan-liquid-glass-kit.png   | Bin 630505 -> 0 bytes
- docs/design/reference/home-approved.png            | Bin 2071965 -> 0 bytes
- docs/design/reference/kit-approved.png             | Bin 1385351 -> 0 bytes
- docs/design/ventra-ui/components.d.ts              |  27 -
- docs/design/ventra-ui/components.js                | 225 -------
- docs/design/ventra-ui/glass.css                    | 249 --------
- docs/design/ventra-ui/tokens.css                   |  15 -
- docs/design/ventra-ui/tokens.json                  | 692 ---------------------
- package.json                                       |   7 +-
- scripts/agents/install.sh                          |   2 +-
- scripts/agents/ventra-backup                       |   3 +
- scripts/agents/ventra-verify                       |  11 +-
- 37 files changed, 248 insertions(+), 1702 deletions(-)
+ docs/design/LIQUID_GLASS_SPEC.md                  | 188 ------
+ docs/design/reference/dylan-home-dashboard.png    | Bin 627700 -> 0 bytes
+ docs/design/reference/dylan-liquid-glass-kit.png  | Bin 630505 -> 0 bytes
+ docs/design/reference/home-approved.png           | Bin 2071965 -> 0 bytes
+ docs/design/reference/kit-approved.png            | Bin 1385351 -> 0 bytes
+ docs/design/ventra-ui/components.d.ts             |  27 -
+ docs/design/ventra-ui/components.js               | 225 -------
+ docs/design/ventra-ui/glass.css                   | 249 --------
+ docs/design/ventra-ui/tokens.css                  |  15 -
+ docs/design/ventra-ui/tokens.json                 | 692 ----------------------
+ package.json                                      |   7 +-
+ scripts/agents/install.sh                         |   2 +-
+ scripts/agents/ventra-backup                      |   3 +
+ scripts/agents/ventra-verify                      |  11 +-
+ 32 files changed, 115 insertions(+), 1687 deletions(-)
 ```
 - Recent commits:
 ```text
+e338a07 feat(front-office): mode check in every live route; jobs runner gates reminders, no-show rescue and follow-ups through gate(), consent and DST-safe quiet hours; per-step approval keys with expiry; single reschedule [A-17]
+b8b156d chore(coordinator): cycle c-9286948e board and handoff
 0ae76c7 feat(front-office): fo_connections per-business channel identifiers (no secrets, unique per kind+id), owner writes not_connected/pending/disabled only, server-only connected/error and service-role resolve, generic cross-tenant errors; PGlite tests [A-15]
 bf91f1c chore(coordinator): cycle c-255a1537 board and handoff
 fd650ae feat(front-office): Setter actions (offer times, book, follow-up, handoff) through decide()/gate() when a permission store is passed; owner-approval holds with payload, approved actions re-validated before running, follow-up consent/opt-out/channel/quiet hours, handoff stops the AI; live routes unchanged until A-17 [A-8]
-3468cef feat(front-office): Receptionist request_quote tool captures need/where/when/budget on the contact, one handoff and one staff notice per request, caller text sanitised, never quotes a price, same in all three modes [A-19]
-1dd4d91 feat(marketing): first nine Instagram feed posts (54 slides rendered to VENTRA-MARKETING, captions with alt text, index); no statistics, product shown only as labelled concept [M-2]
 ```
 <!-- git-state:end -->
 

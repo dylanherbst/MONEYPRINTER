@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-09T21:57:26.862Z",
+  "updatedAt": "2026-11-09T22:28:14.996Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-9286948e",
-    "startedAt": "2026-11-09T21:46:08Z",
-    "endedAt": "2026-11-09T21:57:26.862Z",
-    "summary": "2 dispatched (A-15, A-17); A-15 reviewed, fixed once, committed 0ae76c7e; A-17 implemented (798 tests, lint/typecheck pass) but review asked for changes, left uncommitted for next cycle"
+    "id": "c-9edb821b",
+    "startedAt": "2026-11-09T22:18:08Z",
+    "endedAt": "2026-11-09T22:28:19.008Z",
+    "summary": "A-17 fixed, reviewed, committed e338a072; W-0 audit done; W-1 shell implemented (uncommitted, needs review + browser check)."
   },
   "tasks": [
     {
@@ -1936,7 +1936,7 @@
       "phase": "A",
       "module": "shared",
       "owner": "ventra-voice",
-      "state": "implemented",
+      "state": "done",
       "priority": 2,
       "dependsOn": [
         "A-8"
@@ -1955,13 +1955,16 @@
       "branch": "agent/develop",
       "worktree": null,
       "startedAt": "2026-11-09T21:46:30.580Z",
-      "finishedAt": null,
-      "lastRunId": "c-9286948e",
+      "finishedAt": "2026-11-09T22:28:14.996Z",
+      "lastRunId": "c-9edb821b",
       "runIds": [
         "c-255a1537",
-        "c-9286948e"
+        "c-9286948e",
+        "c-9edb821b"
       ],
-      "commits": [],
+      "commits": [
+        "e338a072"
+      ],
       "evidence": [
         {
           "at": "2026-11-09T21:57:26.862Z",
@@ -1977,11 +1980,41 @@
           "at": "2026-11-09T21:57:26.862Z",
           "kind": "review",
           "detail": "ventra-review CHANGES NEEDED: (1) MED reminder-24h/2h and no-show-rescue in runDueJobs bypass gate() and quiet hours; (2) LOW-MED approved follow-up item keyed :1 so approval mid-ladder restarts at step 1 and approval never expires; (3) LOW quiet-hours reschedule via fo_schedule_job may duplicate the step (check SQL idempotency); (4) LOW test title overclaims. Not committed: send back to ventra-voice once next cycle (cycle budget exhausted)."
+        },
+        {
+          "at": "2026-11-09T22:28:14.996Z",
+          "kind": "diff",
+          "detail": "round 2 by ventra-voice: lib/front-office/jobs.ts +188 (checkJob gate/consent/quiet hours for reminders+rescue+follow-ups, per-step keys, approvalWindow expiry, createJobsExecutor, close-then-reschedule); tests 27->42"
+        },
+        {
+          "at": "2026-11-09T22:28:14.996Z",
+          "kind": "test",
+          "detail": "coordinator: npm --prefix apps/web test 813/813 pass; typecheck exit 0; lint exit 0"
+        },
+        {
+          "at": "2026-11-09T22:28:14.996Z",
+          "kind": "review",
+          "detail": "ventra-review re-review APPROVE: findings 1-3 FIXED (jobs.ts:186,225,122,103,132,214); two LOW notes (moveJob loses step if fo_schedule_job throws, fail-safe; late() guard needs ctx.appointment)"
+        },
+        {
+          "at": "2026-11-09T22:28:14.996Z",
+          "kind": "note",
+          "detail": "coordinator changed test fixture META_SECRET literal to 'm'.repeat(24) after ventra-git secret scan false positive; 16/16 re-run pass"
+        },
+        {
+          "at": "2026-11-09T22:28:14.996Z",
+          "kind": "commit",
+          "detail": "e338a072"
+        },
+        {
+          "at": "2026-11-09T22:28:14.996Z",
+          "kind": "note",
+          "detail": "FOLLOW-UP for A-21: approval route must wrap createJobsExecutor(createSetterExecutor(x)) or approved reminders/rescue/later steps fail (fail-safe). setter/agent.ts step-1 key has no conversation marker, so an expired step-1 approval can never be renewed in owner_approval (fail-safe; small fix)."
         }
       ],
       "blocker": null,
       "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit. Needs migration 202611100001 on local Supabase first (A-2 owner item). Also from the specialist: setter/actions.ts outsideQuietHours is not DST-safe (should use afterJobQuietHours); jobs.ts copies quiet-hours/consent/failSafe rules (consolidate later). Live effect: until migration 202611100001 is applied, live routes fall back to enquiry_only (no booking, no follow-ups).",
-      "updatedAt": "2026-11-09T21:57:26.862Z"
+      "updatedAt": "2026-11-09T22:28:14.996Z"
     },
     {
       "id": "A-18",
