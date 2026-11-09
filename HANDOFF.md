@@ -33,6 +33,13 @@ Committed from the Cowork VM with plain git at the owner's request (ventra-git o
   for the owner to create channels, a "person can step in" line on the site chat, and the Sales agent foundation
   (`lib/front-office/sales/`, not wired live).
 
+## VENTRA Glass v2 on glasscn (2026-11-09, owner asked to "use glasscn for whatever uses glass")
+
+- App look is now **VENTRA Glass**, built on glasscn (MIT, kostyniuk/glasscn-components). Reference for building screens: design system https://claude.ai/artifact/GcMeCNBwhLtUB1QBNNsogN (README has the element → glasscn component + glassVariant table). Owner-facing screen designs: https://claude.ai/artifact/MKN6B76iaFZmfNdCWWntfb
+- Code: `components/ui/glasscn/*` + `components/ui/*` (shadcn base), `lib/glass-variants.ts`, `lib/utils.ts`, `app/design-system/glass/ventra-glass.css` (Tailwind v4 without preflight + tokens scoped to `.vg-app`), `app/design-system/liquid-glass/components.tsx` (same API as v1, now glasscn), `app.css` (shell + legacy bridge). `globals.css` element rules are now in `@layer base`.
+- After pulling: run `npm install` in apps/web (new deps: Tailwind v4, Base UI, lucide-react, fontsource). Vercel installs them itself.
+- Commit author for Vercel deploys must be founder@aiventrai.com (the Vercel account email), or the deploy is blocked.
+
 ## Mobile app in Liquid Glass (2026-11-09, branch `feature/mobile-app`, off `feature/ventra-website` e011f27)
 
 Owner asked (09 Nov, from the Build Plan + Blueprint + Liquid Glass rules PDFs): start building, mobile first. Not deployed.
