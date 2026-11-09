@@ -1,7 +1,8 @@
 'use client';
-// UI lab · test 2: the "3D liquid glass" slab from the owner's reference image, next to nothing else.
-// Variant A = clear slab with the glossy black "Start project" pill; variant B = iridescent slab. Light/dark background toggle.
+// UI lab · test 3: the container card as a realistic liquid-glass sheet (matched to the owner's "Liquid Glass UI Kit" image),
+// holding the colourful slab from test 2. Light/dark background toggle.
 import { useState } from 'react';
+import { LiquidGlass } from '@/components/ui/glasscn/liquid-glass';
 import './lab.css';
 
 function Slab({ iri, children }: { iri?: boolean; children?: React.ReactNode }) {
@@ -20,12 +21,23 @@ export default function GlassLab() {
   const [dark, setDark] = useState(false);
   return (
     <div className={'vg-app' + (dark ? ' dark' : '')} data-theme={dark ? 'dark' : 'light'}>
-      <main className="lab-stage">
-        <div className="lab-plate">
-          <i className="lab-bolt tl" /><i className="lab-bolt tr" /><i className="lab-bolt bl" /><i className="lab-bolt br" />
-          <Slab iri />
-          <p className="lab-caption">UI lab · test 2: thick clear glass slab with a bright rim, inner bevel, prismatic edge and a coloured light spill, matched to your reference.</p>
-          <button type="button" className="lab-toggle" onClick={() => setDark(!dark)}>{dark ? 'Light background' : 'Dark background'}</button>
+      <main className="lab-stage wall">
+        <div className="sheet-wrap">
+          <div className="sheet-shadow" aria-hidden="true" />
+          <div className="sheet-caustic" aria-hidden="true" />
+          <div className="sheet-caustic side" aria-hidden="true" />
+          {/* glasscn LiquidGlass: real SVG refraction at the edge in Chromium, blur fallback in Safari/Firefox */}
+          <LiquidGlass className="sheet" refraction={34} bezel={0.16} blur={1.5} saturation={1.35}>
+            <div className="sheet-edge" aria-hidden="true" />
+            <div className="sheet-rim" aria-hidden="true" />
+            <div className="sheet-rim inner" aria-hidden="true" />
+            <div className="sheet-gloss" aria-hidden="true" />
+            <div className="sheet-content">
+              <h1 className="sheet-title">Liquid Glass</h1>
+              <Slab iri />
+              <button type="button" className="lab-toggle" onClick={() => setDark(!dark)}>{dark ? 'Light background' : 'Dark background'}</button>
+            </div>
+          </LiquidGlass>
         </div>
       </main>
     </div>

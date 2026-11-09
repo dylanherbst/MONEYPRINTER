@@ -61,3 +61,55 @@
 .lab-toggle { border: 0; border-radius: 999px; padding: 10px 18px; font: 600 14px var(--font-sans); cursor: pointer; color: inherit;
   background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.55)); box-shadow: inset 0 1px 0 #fff, 0 6px 14px -8px rgba(40,44,60,.4); }
 .dark .lab-toggle { background: rgba(255,255,255,.1); box-shadow: inset 0 1px 0 rgba(255,255,255,.2); }
+
+/* ================= Container card: realistic liquid glass sheet (UI lab test 3) =================
+   Research basis: kube.io (convex-squircle bezel + Snell refraction via SVG feDisplacementMap in backdrop-filter, Chromium),
+   aave.com "Building glass for the web" (specular rim, chromatic fringe, depth/glow), dev.to "6 ways" (iOS 26 native material).
+   Layers, back to front: lit wall with a soft diagonal light band (gives the refraction something to bend) → long down-right
+   shadow + coloured caustics → sheet body (glasscn LiquidGlass: real refraction in Chromium, blur fallback elsewhere)
+   → edge thickness band → specular rim (bright top-left, lilac/prismatic bottom-right) → content. */
+.lab-stage.wall { background:
+  linear-gradient(118deg, transparent 0 46%, rgba(70,78,100,.20) 52%, rgba(70,78,100,.32) 60%, transparent 76%),
+  radial-gradient(80% 60% at 8% 4%, #fff6ef 0%, rgba(255,246,239,0) 70%),
+  radial-gradient(70% 70% at 100% 0%, #6d7590 0%, rgba(109,117,144,0) 72%),
+  linear-gradient(165deg, #e6dcdf 0%, #cbbfc5 60%, #b9adb6 100%); }
+.dark .lab-stage.wall { background: linear-gradient(118deg, transparent 0 46%, rgba(0,0,0,.35) 56%, transparent 76%), radial-gradient(80% 60% at 8% 4%, #3b2e3a 0%, transparent 70%), linear-gradient(165deg, #1c1922, #0c0b10); }
+
+.sheet-wrap { --R: 34px; position: relative; width: min(100%, 420px); isolation: isolate; }
+/* long soft shadow cast down-right, darker core near the sheet */
+.sheet-shadow { position: absolute; z-index: -2; inset: 4% 0 0 4%; border-radius: var(--R); pointer-events: none;
+  background: rgba(58,48,72,.26); filter: blur(22px); transform: translate(44px, 54px); }
+.sheet-shadow::after { content: ""; position: absolute; inset: 6% 10% 10% 6%; border-radius: inherit; background: rgba(58,48,72,.16); filter: blur(10px); transform: translate(-14px, -18px); }
+/* coloured caustics: light bent through the thick edge, landing bottom-right */
+.sheet-caustic { position: absolute; z-index: -1; right: -30px; bottom: -44px; width: 70%; height: 46px; pointer-events: none; filter: blur(10px); opacity: .85;
+  background: radial-gradient(20% 60% at 12% 50%, #ff9fd8, transparent 70%), radial-gradient(18% 60% at 40% 50%, #b48cff, transparent 70%), radial-gradient(20% 60% at 66% 50%, #8fd3ff, transparent 70%), radial-gradient(14% 60% at 90% 40%, #ffd6a8, transparent 70%); }
+.sheet-caustic.side { right: -46px; bottom: 14%; width: 40px; height: 48%; background: radial-gradient(60% 18% at 50% 20%, #ff9fd8, transparent 70%), radial-gradient(60% 18% at 50% 55%, #9fb6ff, transparent 70%), radial-gradient(60% 18% at 50% 85%, #8fe8e0, transparent 70%); }
+
+.sheet { position: relative; border-radius: var(--R) !important; padding: 34px 26px 30px;
+  background: linear-gradient(160deg, rgba(255,255,255,.20) 0%, rgba(255,255,255,.06) 45%, rgba(255,255,255,.10) 100%) !important;
+  --liquid-glass-rim-width: 0px; }
+.dark .sheet { background: linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.02) 50%, rgba(255,255,255,.05)) !important; }
+/* edge thickness: a band just inside the edge that is brighter and slightly milkier than the middle */
+.sheet-edge { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; padding: 12px;
+  background: linear-gradient(160deg, rgba(255,255,255,.55), rgba(255,255,255,.14) 40%, rgba(255,255,255,.10) 70%, rgba(220,205,255,.35));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); opacity: .55; }
+/* specular rim: bright where the light (top-left) hits, lilac/prismatic on the far bottom-right edge */
+.sheet-rim { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; padding: 1.5px;
+  background: conic-gradient(from 210deg, rgba(255,255,255,.95) 0deg, rgba(255,255,255,.95) 50deg, rgba(255,255,255,.35) 110deg, rgba(200,180,255,.85) 170deg, rgba(255,170,220,.85) 200deg, rgba(150,210,255,.85) 230deg, rgba(255,255,255,.35) 280deg, rgba(255,255,255,.95) 340deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+/* inner second rim a few px in: the back face of the thick glass, seen through the front */
+.sheet-rim.inner { inset: 6px; border-radius: calc(var(--R) - 6px); padding: 1px; opacity: .3; }
+/* specular streak and a soft top highlight */
+.sheet-gloss { position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: radial-gradient(70% 22% at 22% 0%, rgba(255,255,255,.45), transparent 70%), linear-gradient(122deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 22%); }
+.sheet-content { position: relative; z-index: 2; display: grid; gap: 22px; }
+.sheet-title { font: 700 26px/30px var(--font-display); letter-spacing: -.01em; color: #17141f; }
+.dark .sheet-title { color: #f3f0fa; }
+
+/* iOS 26 Safari: use Apple's own Liquid Glass material where it exists (reported in iOS 26; harmless elsewhere). */
+@supports (-apple-visual-effect: -apple-system-glass-material) {
+  .sheet { -apple-visual-effect: -apple-system-glass-material; }
+}
+
+.sheet-content .lab-toggle { justify-self: start; }
