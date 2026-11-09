@@ -2,30 +2,52 @@
 // qualification question or book, run the tools it calls against the real store and calendar, and return the SMS to send
 // (already logged with the prompt version). Booking hands the contact to Sales with the full handoff object; an existing
 // customer or a support question goes to the Receptionist; anything outside the config goes to a human.
+//
+// Permission check (task A-8): with deps.permissions, booking, the follow-up ladder and handing the lead to a person go
+// through pending-actions.ts gate(), which asks permissions.ts decide() for the business's Setter mode
+// (automatic | owner_approval | enquiry_only), and are performed by setter/actions.ts (the same functions the owner
+// approval queue runs). Held or refused actions get decide()'s own words as the reply, so the AI never promises what did
+// not happen. Without deps.permissions the turn behaves exactly as before A-8 (direct booking, the old follow-up start,
+// no hand-off silence); every new rule applies only with deps.permissions. The live routes in app/api/front-office/*
+// must pass channelPermissions(rpc, auth) (task A-17); that wiring is outside this module.
 import { bookSlot, offerTimes, SlotTaken } from '../booking';
 import type { Offer } from '../booking';
 import type { CalendarProvider } from '../calendar/google';
 import { formatSlot } from '../calendar/slots';
+import type { OperatingMode, PendingActionKind, PendingActionPayload, PermissionDecision } from '../contracts';
 import { checkedHandoff } from '../handoff';
 import type { Agent, Channel, Handoff } from '../handoff';
-import { scheduleReminders, startFollowUps } from '../jobs';
+import { FOLLOW_UP_PROMPT, scheduleReminders, startFollowUps } from '../jobs';
 import type { Llm, LlmMessage, ToolResultBlock, ToolSpec, ToolUseBlock } from '../llm';
 import type { ChannelAuth, Rpc } from '../orchestrator';
+import { gate } from '../pending-actions';
+import type { ExecutionResult } from '../pending-actions';
+import { decide } from '../permissions';
 import { canTransition, isContactState } from '../state';
 import type { ContactState } from '../state';
 import type { SmsSender } from '../sms-send';
+import { checkFollowUp, failSafeStore, performBook, performFollowUp, withPerson } from './actions';
+import type { BookOutcome, SetterActionDeps, SetterActionRecord, SetterContext, SetterPermissions, StatusTransition } from './actions';
+import { fillTemplate } from './config';
 import type { SetterConfig } from './config';
 import { SETTER_PROMPT_VERSION, setterSystemPrompt } from './prompt';
 
-type Context = {
-  contact: { id: string; name: string | null; phone: string | null; email: string | null; state: ContactState; optedOut: boolean; answers: Record<string, string> };
-  messages: { direction: 'inbound' | 'outbound'; body: string; agent: string | null; at: string }[];
-  appointment: { id: string; starts: string; ends: string; status: string } | null;
-  handoffs: { from: string; owner: string; intent: string; summary: string }[];
+type Context = SetterContext;
+/** Matches contracts.ts SetterRunResult, plus what each action did and the lead status changes (timestamped). */
+export type SetterTurn = {
+  reply: string | null; state: ContactState; booked: boolean; handedTo: Agent | null; tools: string[];
+  /** The Setter mode applied. 'automatic' when no permissions were given (behaviour before A-8). */
+  mode: OperatingMode;
+  /** Actions held for the owner this turn (owner_approval only). */
+  pendingActionIds: string[];
+  actions: SetterActionRecord[];
+  transitions: StatusTransition[];
 };
-export type SetterTurn = { reply: string | null; state: ContactState; booked: boolean; handedTo: Agent | null; tools: string[] };
 /** logReply false: the caller queues the reply for approval and logs it only once it is sent (social DMs). */
-export type SetterDeps = { llm: Llm; rpc: Rpc; auth: ChannelAuth; calendar: CalendarProvider | null; send: SmsSender; config: SetterConfig; now: number; channel?: Channel; logReply?: boolean };
+export type SetterDeps = { llm: Llm; rpc: Rpc; auth: ChannelAuth; calendar: CalendarProvider | null; send: SmsSender; config: SetterConfig; now: number; channel?: Channel; logReply?: boolean; permissions?: SetterPermissions };
+
+/** What the AI says when a hand-off to a person is held (decide() has no words for it today). */
+const TRANSFER_HELD_SAY = 'I have asked a person from the team to get back to you.';
 const replyLimit: Record<Channel, number> = { sms: 320, 'web-chat': 600, email: 1500, voice: 400, form: 600, instagram: 450, messenger: 450 };
 
 export const setterTools: ToolSpec[] = [
@@ -58,9 +80,18 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
   const a = { channel: d.auth.channel, channel_key: d.auth.key };
   const channel: Channel = d.channel ?? 'sms';
   const ctx = await d.rpc('fo_contact_context', { ...a, contact: contactId }) as Context;
-  const used: string[] = [];
+  const used: string[] = [], actions: SetterActionRecord[] = [], transitions: StatusTransition[] = [], held: string[] = [];
   let state = ctx.contact.state, booked = false, handedTo: Agent | null = null, offers: Offer[] = [], bookedReply: string | null = null;
-  if (ctx.contact.optedOut || !ACTIVE_STATES.includes(state)) return { reply: null, state, booked, handedTo, tools: used };
+  let forcedReply: string | null = null, bookingHeld = false;
+  const store = d.permissions ? failSafeStore(d.permissions.store) : null;
+  const mode: OperatingMode = store ? await store.mode('setter') : 'automatic';
+  const x: SetterActionDeps = { rpc: d.rpc, auth: d.auth, calendar: d.calendar, config: d.config, now: d.now, send: d.send, channel, quietHours: d.permissions?.quietHours };
+  const result = (reply: string | null): SetterTurn => ({ reply, state, booked, handedTo, tools: used, mode, pendingActionIds: held, actions, transitions });
+  if (ctx.contact.optedOut || !ACTIVE_STATES.includes(state)) return result(null);
+  // A person owns this conversation: the AI does not reply (or start follow-ups) until it is handed back.
+  // Only with the permission check; without it the turn runs as before A-8.
+  if (store && withPerson(ctx.handoffs)) return result(null);
+  const who = ctx.contact.name ?? ctx.contact.phone ?? ctx.contact.email ?? 'this lead';
 
   const contactLine = [
     `Contact stage: ${state}.`,
@@ -77,7 +108,9 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
     // Pass through qualifying when the model jumps straight from a fresh lead to qualified.
     if (!canTransition(state, target) && canTransition(state, 'qualifying') && canTransition('qualifying', target)) await moveTo('qualifying', reason);
     if (!canTransition(state, target)) throw new Error(`Cannot move from ${state} to ${target}.`);
+    const from = state;
     state = await d.rpc('fo_set_state', { ...a, contact: contactId, new_state: target, agent_name: 'setter', reason: reason.slice(0, 500) }) as ContactState;
+    transitions.push({ from, to: state, at: new Date(d.now).toISOString(), reason: reason.slice(0, 500) });
   }
   async function handoff(owner: Agent, intent: string, summary: string, nextAction: string) {
     const h: Handoff = checkedHandoff({
@@ -86,6 +119,55 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
     });
     await d.rpc('fo_record_handoff', { ...a, contact: contactId, handoff: h });
     handedTo = owner;
+  }
+
+  /** One action through the shared permission check. Without a store it is performed directly (automatic). */
+  /** decided: the status of an earlier item with the same key that is no longer waiting (rejected, expired, failed,
+   * performed, cancelled): nothing new was held, so the caller must not say it is held. */
+  async function act(kind: PendingActionKind, payload: PendingActionPayload, summary: string, key: string, perform: () => Promise<ExecutionResult>): Promise<{ decision: PermissionDecision; say: string; ok: boolean | null; decided: string | null }> {
+    const rec: SetterActionRecord = { action: kind as SetterActionRecord['action'], decision: 'perform', reason: '', pendingActionId: null, summary: summary.slice(0, 300), payload, ok: null, note: null };
+    actions.push(rec);
+    if (!store) {
+      const r = await perform();
+      Object.assign(rec, { reason: 'Performed: no permission check was configured, so the Setter ran as automatic.', ok: r.ok, note: r.note ?? null });
+      return { decision: 'perform', say: '', ok: r.ok, decided: null };
+    }
+    const g = await gate({ store, product: 'setter', action: kind, request: { payload, summary: rec.summary, idempotencyKey: key, contactId, ttlMinutes: d.permissions?.ttlMinutes }, execute: perform, channelId: d.auth.channel });
+    rec.decision = g.decision; rec.reason = g.permission.reason;
+    if (g.decision === 'perform') { rec.ok = g.result.ok; rec.note = g.result.note ?? null; }
+    let decided: string | null = null;
+    if (g.decision === 'hold_for_approval') {
+      // The owner sees exactly what would happen: the stored summary and payload.
+      rec.pendingActionId = g.item.id; rec.summary = g.item.summary; rec.payload = g.item.payload;
+      if (!g.created && g.item.status !== 'pending' && g.item.status !== 'approved') {
+        decided = g.item.status;
+        rec.note = `Already decided earlier (${g.item.status}); nothing new was held.`;
+      } else if (!held.includes(g.item.id)) held.push(g.item.id);
+    }
+    return { decision: g.decision, say: g.permission.say, ok: rec.ok, decided };
+  }
+  /** Taking a message for the team: always allowed (decide('take_message')); recorded as a handoff to a person. */
+  async function takeMessage(intent: string, summary: string) {
+    const rec: SetterActionRecord = { action: 'take_message', decision: 'perform', reason: '', pendingActionId: null, summary: `Message for the team about ${who}: ${intent}`.slice(0, 300), payload: null, ok: null, note: null };
+    actions.push(rec);
+    const perform = async () => { await handoff('human', intent, summary, 'A person gets back to the contact (message taken)'); return { ok: true, note: 'Message taken for the team.' }; };
+    if (!store) { const r = await perform(); Object.assign(rec, { reason: 'Taking a message is always allowed.', ok: r.ok, note: r.note }); return; }
+    const g = await gate({ store, product: 'setter', action: 'take_message', execute: perform });
+    rec.decision = g.decision; rec.reason = g.permission.reason;
+    if (g.decision === 'perform') { rec.ok = g.result.ok; rec.note = g.result.note ?? null; }
+  }
+  /** Hands the lead to a person (a 'transfer'). Returns what to tell the contact when it did not happen right away. */
+  async function toPerson(intent: string, summary: string, nextAction: string): Promise<string | null> {
+    // TODO(A-14): whether a hand-off to a person is allowed in every mode is an open owner decision. This relies on
+    // decide('transfer') as it is today (always 'perform'); the hold and refuse branches below follow whatever it answers.
+    const g = await act('transfer', { kind: 'transfer', reason: `${intent || 'follow up'}: ${summary}`.slice(0, 400) }, `Hand ${who} to a person: ${intent || 'follow up'}`, `setter:transfer:${contactId}:${d.now}:${actions.length}`, async () => {
+      await handoff('human', intent, summary, nextAction);
+      return { ok: true, note: 'Handed to a person. The AI stops replying to this contact.' };
+    });
+    if (g.decision === 'perform' && g.ok === false) throw new Error('The hand-off could not be recorded.');
+    if (g.decision === 'refuse') { await takeMessage(intent, summary); return g.say || null; }
+    if (g.decision === 'hold_for_approval') return g.say || TRANSFER_HELD_SAY;
+    return null;
   }
 
   async function run(t: ToolUseBlock): Promise<string> {
@@ -120,7 +202,13 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
       }
       case 'offer_times': {
         if (state !== 'qualified' && state !== 'no-show' && state !== 'nurture') return 'Qualify the contact first (set_stage qualified).';
-        if (!d.calendar) { await handoff('human', 'book a call', 'Calendar not connected; please book this qualified lead by hand.', 'Call the lead to book'); return 'The calendar is not connected. Tell the contact a person will text them a time today.'; }
+        // Offering times is the first half of booking: in enquiry only mode no times are offered at all.
+        if (store && decide(mode, 'book').decision === 'refuse') return 'You cannot offer or book times. Ask which day and time would suit them, and say the team will get back to them to arrange it.';
+        if (!d.calendar) {
+          const say = await toPerson('book a call', 'Calendar not connected; please book this qualified lead by hand.', 'Call the lead to book');
+          if (say) { forcedReply = say; return 'Passed to the team.'; }
+          return 'The calendar is not connected. Tell the contact a person will text them a time today.';
+        }
         offers = await offerTimes(d.calendar, d.config.availability, d.now);
         return offers.length ? JSON.stringify(offers.map(o => ({ label: o.label, start: new Date(o.start).toISOString() }))) : 'No open times in the next days. Say a person will be in touch.';
       }
@@ -129,25 +217,57 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
         if (!d.calendar) return 'The calendar is not connected.';
         if (!ctx.contact.phone && !ctx.contact.email) return 'Ask for their mobile or email first, and save it, so the confirmation reaches them.';
         if (!offers.length) offers = await offerTimes(d.calendar, d.config.availability, d.now, 12);
-        if (!offers.some(o => o.start === start)) return 'That is not one of the offered times. Call offer_times and use a start value from it.';
+        const offer = offers.find(o => o.start === start);
+        if (!offer) return 'That is not one of the offered times. Call offer_times and use a start value from it.';
         if (state !== 'qualified') await moveTo('qualified', 'Picked a time');
-        try {
-          const r = await bookSlot({ calendar: d.calendar, rpc: d.rpc, auth: d.auth, send: async () => ({ sent: false, sid: null }), availability: d.config.availability, contact: ctx.contact, start, now: d.now, businessName: d.config.businessName, where: d.config.where, meetingTitle: d.config.meetingTitle });
-          state = 'booked'; booked = true; bookedReply = r.confirmation || null;
-          await handoff('sales', 'run the booked call', `Booked ${formatSlot(start, d.config.availability.timeZone)}. ` + (Object.entries(ctx.contact.answers).map(([k, v]) => `${k}: ${v}`).join('; ') || 'No answers saved.'), `Run the ${d.config.meetingTitle} at ${new Date(start).toISOString()}`);
-          await scheduleReminders(d.rpc, d.auth, contactId, r.appointment, start, d.now);
-          return 'Booked. The confirmation text is sent automatically; you do not need to write one.';
-        } catch (e) {
-          if (e instanceof SlotTaken) { offers = []; return 'That time was just taken. Call offer_times again and offer the new times.'; }
-          throw e;
+        if (!store) {
+          // Without the permission check: the path before A-8, unchanged (books directly, errors surface as before).
+          try {
+            const r = await bookSlot({ calendar: d.calendar, rpc: d.rpc, auth: d.auth, send: async () => ({ sent: false, sid: null }), availability: d.config.availability, contact: ctx.contact, start, now: d.now, businessName: d.config.businessName, where: d.config.where, meetingTitle: d.config.meetingTitle });
+            state = 'booked'; booked = true; bookedReply = r.confirmation || null;
+            await handoff('sales', 'run the booked call', `Booked ${formatSlot(start, d.config.availability.timeZone)}. ` + (Object.entries(ctx.contact.answers).map(([k, v]) => `${k}: ${v}`).join('; ') || 'No answers saved.'), `Run the ${d.config.meetingTitle} at ${new Date(start).toISOString()}`);
+            await scheduleReminders(d.rpc, d.auth, contactId, r.appointment, start, d.now);
+            return 'Booked. The confirmation text is sent automatically; you do not need to write one.';
+          } catch (e) {
+            if (e instanceof SlotTaken) { offers = []; return 'That time was just taken. Call offer_times again and offer the new times.'; }
+            throw e;
+          }
         }
+        const tz = d.config.availability.timeZone, label = formatSlot(start, tz);
+        const box: { r?: BookOutcome } = {};
+        const g = await act('book', { kind: 'book', start: new Date(start).toISOString(), end: new Date(offer.end).toISOString(), timeZone: tz },
+          `Book ${who} for a ${d.config.meetingTitle} on ${label} (${tz})`, `setter:book:${contactId}:${start}`,
+          async () => { box.r = await performBook(x, contactId, start, { confirm: false }); return { ok: box.r.ok, note: box.r.note }; });
+        if (g.decision === 'hold_for_approval' && g.decided) {
+          // The same time was already put to the owner and is no longer waiting: do not tell the contact it is held.
+          offers = offers.filter(o => o.start !== start);
+          return `Not booked: that time was put to the team earlier and was not confirmed (${g.decided}). Offer a different time from offer_times.`;
+        }
+        if (g.decision === 'hold_for_approval') { bookingHeld = true; forcedReply = g.say; return 'Held for the owner to confirm. Nothing is booked yet.'; }
+        if (g.decision === 'refuse') {
+          // enquiry_only: the AI takes a message for a person instead of booking.
+          await takeMessage('book a call', `Wants the ${d.config.meetingTitle} on ${label}. Enquiry only mode: please arrange it by hand.`);
+          forcedReply = g.say; return 'Not booked: a message was taken for the team.';
+        }
+        const r = box.r;
+        if (r?.ok) {
+          transitions.push(...r.transitions);
+          // A retry of a booking already made has no new confirmation: say it is booked rather than reply nothing.
+          state = 'booked'; booked = true; handedTo = 'sales';
+          bookedReply = r.confirmation ?? `You're already booked with ${d.config.businessName} for ${label}. Reply here to change it, or STOP to opt out.`;
+          return 'Booked. The confirmation text is sent automatically; you do not need to write one.';
+        }
+        if (r?.slotTaken) { offers = []; return 'That time was just taken. Call offer_times again and offer the new times.'; }
+        return `Not booked: ${r?.note ?? 'the booking could not be completed.'} Tell the contact a person will confirm a time.`;
       }
       case 'handoff_receptionist':
         await handoff('receptionist', str(input.intent, 200), str(input.summary, 4000), 'Answer the customer');
         return 'Handed to the Receptionist. Tell the contact the team will help them shortly.';
-      case 'escalate_human':
-        await handoff('human', str(input.intent, 200), str(input.summary, 4000), 'A person replies to the contact');
+      case 'escalate_human': {
+        const say = await toPerson(str(input.intent, 200), str(input.summary, 4000), 'A person replies to the contact');
+        if (say) { forcedReply = say; return 'Passed to the team.'; }
         return 'A person has been asked to follow up. Tell the contact someone will be in touch soon. Do not promise anything else.';
+      }
       default:
         return 'Unknown tool.';
     }
@@ -166,12 +286,33 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
       catch (e) { results.push({ type: 'tool_result', tool_use_id: c.id, content: e instanceof Error ? e.message : 'Tool failed.', is_error: true }); }
     }
     messages.push({ role: 'user', content: results });
-    if (booked) break;
+    if (booked || forcedReply) break;
   }
-  // After a booking the logged confirmation is the reply; otherwise the model's text (capped to two SMS).
-  let text = booked ? bookedReply : ((channel === 'email' ? reply.trim() : reply.replace(/\s+/g, ' ').trim()).slice(0, replyLimit[channel]) || null);
+  // After a booking the logged confirmation is the reply; after a held or refused action, decide()'s words; otherwise the
+  // model's text (capped to two SMS).
+  const own = forcedReply ?? reply;
+  let text = booked ? bookedReply : ((channel === 'email' ? own.trim() : own.replace(/\s+/g, ' ').trim()).slice(0, replyLimit[channel]) || null);
   if (text && !booked && d.logReply !== false) await d.rpc('fo_log_outbound', { ...a, contact: contactId, message: text, agent_name: 'setter', prompt: SETTER_PROMPT_VERSION });
-  if (text && !booked && !handedTo && (ctx.contact.phone || ctx.contact.email) && !['booked', 'disqualified', 'customer'].includes(state)) await startFollowUps(d.rpc, d.auth, contactId, d.now);
+  // The follow-up ladder: not after a booking, a hand-off, or a booking waiting for the owner.
+  if (!store) {
+    // Without the permission check: the start before A-8, unchanged (now + gapBefore(1), no new checks).
+    if (text && !booked && !handedTo && (ctx.contact.phone || ctx.contact.email) && !['booked', 'disqualified', 'customer'].includes(state)) await startFollowUps(d.rpc, d.auth, contactId, d.now);
+  } else if (text && !booked && !handedTo && !bookingHeld && !['booked', 'disqualified', 'customer'].includes(state)) await followUp();
   if (!text) text = null;
-  return { reply: text, state, booked, handedTo, tools: used };
+  return result(text);
+
+  async function followUp() {
+    const chk = checkFollowUp({ ...ctx, contact: { ...ctx.contact, state } });
+    if (!chk.ok) {
+      actions.push({ action: 'follow_up', decision: 'skipped', reason: chk.why, pendingActionId: null, summary: `No follow-up for ${who}.`, payload: null, ok: null, note: null });
+      return;
+    }
+    const body = fillTemplate(d.config.followUps[0] ?? 'Hi {name}, just checking in.', { name: ctx.contact.name }).slice(0, 1000);
+    await act('follow_up', { kind: 'follow_up', channel: chk.channel, body, promptVersion: FOLLOW_UP_PROMPT, step: 1 },
+      `Follow up with ${who} by ${chk.channel === 'sms' ? 'text' : 'email'} if they go quiet: "${body}"`,
+      // Stable per contact: owner_approval keeps one follow-up item per contact instead of a new one every turn. Once
+      // that item is decided, the same key returns it (act() reports 'decided') and no new follow-up is queued.
+      `setter:follow_up:${contactId}:1`,
+      () => performFollowUp(x, contactId, chk.channel));
+  }
 }
