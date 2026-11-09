@@ -9,13 +9,15 @@ import { activeSection, createOptions, pages, searchPages } from '../../lib/vent
 import { isOpenable, searchFeatures, statusLabel } from '../../lib/feature-registry';
 import { WorkspaceProvider, useWorkspace } from './ventra-context';
 import { GlassButton, GlassCard, Icon, IconButton, ListRow, SearchField, Wordmark } from '../design-system/liquid-glass/components';
+import { glassVariantStyles } from '@/lib/glass-variants';
 import type { IconName } from '../design-system/liquid-glass/components';
 import '../design-system/tokens.css';
 import '../design-system/workspace.css';
 import '../design-system/refresh.css';
 import '../design-system/theme.css';
-import '../design-system/liquid-glass/tokens.css';
-import '../design-system/liquid-glass/glass.css';
+import '@fontsource-variable/outfit';
+import '@fontsource-variable/hanken-grotesk';
+import '../design-system/glass/ventra-glass.css';
 import '../design-system/liquid-glass/app.css';
 
 // Theme: Pearl (light) by default; Night or match-device are opt-in. Stored only in this browser. Applied as data-theme on <html>.
@@ -28,7 +30,7 @@ function useTheme() {
     const q = window.matchMedia('(prefers-color-scheme: dark)'); const sync = () => setSystem(q.matches ? 'dark' : 'light'); sync(); q.addEventListener('change', sync); return () => q.removeEventListener('change', sync);
   }, []);
   const theme = choice === 'auto' ? system : choice;
-  useEffect(() => { const root = document.documentElement; const before = root.dataset.theme; root.dataset.theme = theme; return () => { if (before) root.dataset.theme = before; else delete root.dataset.theme; }; }, [theme]);
+  useEffect(() => { const root = document.documentElement; const before = root.dataset.theme; root.dataset.theme = theme; root.classList.toggle('dark', theme === 'dark'); return () => { root.classList.remove('dark'); if (before) root.dataset.theme = before; else delete root.dataset.theme; }; }, [theme]);
   function cycle() { const next: ThemeChoice = choice === 'light' ? 'dark' : choice === 'dark' ? 'auto' : 'light'; setChoice(next); try { if (next === 'light') localStorage.removeItem(themeKey); else localStorage.setItem(themeKey, next); } catch { /* applies for this visit only */ } }
   return { theme, choice, cycle };
 }
@@ -73,21 +75,21 @@ function ShellContent({ children }: { children: ReactNode }) {
   const results = searchPages(query); const featureHits = searchFeatures(query);
   const themeLabel = choice === 'auto' ? 'Match device' : choice === 'dark' ? 'Night' : 'Pearl';
 
-  return <WorkspaceProvider><div className="vg-app" data-theme={theme}>
-    <div className="vg-stage" aria-hidden="true" />
+  return <WorkspaceProvider><div className={'vg-app' + (theme === 'dark' ? ' dark' : '')} data-theme={theme}>
+    <div className="vg-ambient" aria-hidden="true" />
     <div className="vg-shell" ref={background}>
-      <a className="vg-skip vg-btn vg-bead vg-btn-sm" href="#ventra-main" onClick={e => { e.preventDefault();document.getElementById('ventra-main')?.focus(); }}>Skip to main content</a>
-      <aside className="vg-side vg-glass" aria-label="Sidebar">
+      <a className="vg-skip vg-bead rounded-full px-4 py-2 text-sm font-semibold" href="#ventra-main" onClick={e => { e.preventDefault();document.getElementById('ventra-main')?.focus(); }}>Skip to main content</a>
+      <aside className={'vg-side ' + glassVariantStyles.frosted} aria-label="Sidebar">
         <Wordmark href="/app" />
         <WorkspaceChip />
         <nav aria-label="Main navigation">{pages.map(nav)}</nav>
         <div className="vg-side-foot">
-          <GlassButton variant="primary" icon="plus" onClick={openCreate} block>Create</GlassButton>
+          <GlassButton icon="plus" onClick={openCreate} block>Create</GlassButton>
           <GlassButton icon="sun" size="sm" onClick={cycle} aria-label={`Colour theme: ${themeLabel}. Press to change.`}>Theme: {themeLabel}</GlassButton>
         </div>
       </aside>
-      <div className="vg-frame vg-glass vg-sheet">
-        <header className="vg-topbar">
+      <div className="vg-content">
+        <header className={'vg-topbar ' + glassVariantStyles.frosted}>
           <Wordmark href="/app" />
           <div className="vg-topbar-actions">
             <IconButton icon="search" label={searching ? 'Close search' : 'Search'} aria-expanded={searching} onClick={() => { setSearching(!searching); setAccount(false); setNotifications(false); }} />
@@ -95,13 +97,13 @@ function ShellContent({ children }: { children: ReactNode }) {
             <IconButton icon="user" label="Account menu" ref={accountButton} aria-expanded={account} aria-controls="vg-account-menu" onClick={() => { setNotifications(false); setAccount(!account); }} />
           </div>
         </header>
-        {account && <nav ref={accountPanel} className="vg-popover vg-card vg-glass" id="vg-account-menu" aria-label="Account and settings" onClick={e => { if ((e.target as HTMLElement).closest('a')) setAccount(false); }}>
+        {account && <nav ref={accountPanel} className="vg-popover" id="vg-account-menu" aria-label="Account and settings" onClick={e => { if ((e.target as HTMLElement).closest('a')) setAccount(false); }}>
           <WorkspaceChip />
           {accountLinks.map(l => <ListRow key={l.href} href={l.href} icon={l.icon} tone="violet" title={l.title} note={l.note} />)}
           <ListRow onClick={cycle} icon="sun" tone="indigo" title={`Theme: ${themeLabel}`} note="Pearl, Night or match your device" />
           <ListRow href="/more" icon="more" tone="indigo" title="Everything else" note="All tools and settings" />
         </nav>}
-        {notifications && <GlassCard className="vg-popover" aria-label="Notifications"><h2>Notifications</h2><p>Approvals, failed sends and new bookings will appear here once your AI team is live. Check Customers for anything waiting on you.</p><GlassButton size="sm" href="/customers">Open Customers</GlassButton></GlassCard>}
+        {notifications && <section className="vg-popover" aria-label="Notifications"><h2>Notifications</h2><p>Approvals, failed sends and new bookings will appear here once your AI team is live. Check Customers for anything waiting on you.</p><div className="px-2.5 pb-2"><GlassButton size="sm" href="/customers">Open Customers</GlassButton></div></section>}
         {searching && <SearchField label="Search pages and tools" placeholder="Search pages, tools or guides" value={query} onChange={e => setQuery(e.target.value)} autoFocus />}
         {query.trim() && <GlassCard className="vg-search-results v-search-results">
           <h2>Pages</h2><p role="status" className="vg-muted">{results.length} matching {results.length === 1 ? 'page' : 'pages'}</p>
@@ -114,9 +116,9 @@ function ShellContent({ children }: { children: ReactNode }) {
         <main id="ventra-main" className="vg-main vg-stack" tabIndex={-1}>{children}</main>
         <p className="vg-footnote">Drafts stay drafts. Nothing is published, sent or charged without your say-so.</p>
       </div>
-      <div className="vg-dock"><nav className="vg-nav vg-glass" aria-label="Mobile main navigation">{pages.map(nav)}</nav></div>
+      <div className="vg-dock"><nav className={'vg-tabbar ' + glassVariantStyles.frosted} aria-label="Mobile main navigation">{pages.map(nav)}</nav></div>
     </div>
-    <dialog className="vg-dialog vg-glass" ref={dialog} aria-labelledby="vg-create-title" onCancel={e => { e.preventDefault(); closeCreate(); }} onKeyDown={e => { if (e.key !== 'Tab') return; const focusables = [...e.currentTarget.querySelectorAll<HTMLElement>('a[href],button:not(:disabled)')]; const first = focusables[0], last = focusables.at(-1); if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); } else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); } }}>
+    <dialog className="vg-dialog" ref={dialog} aria-labelledby="vg-create-title" onCancel={e => { e.preventDefault(); closeCreate(); }} onKeyDown={e => { if (e.key !== 'Tab') return; const focusables = [...e.currentTarget.querySelectorAll<HTMLElement>('a[href],button:not(:disabled)')]; const first = focusables[0], last = focusables.at(-1); if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); } else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); } }}>
       <div className="vg-dialog-head"><h2 id="vg-create-title">What would you like to create?</h2><IconButton icon="close" size="sm" label="Close Create" onClick={closeCreate} /></div>
       <p className="vg-muted">Start a draft. Nothing is published until you choose to.</p>
       <div className="vg-rows">{createOptions.map(o => <ListRow key={o.title} href={o.href} title={o.title} note={o.detail} />)}</div>

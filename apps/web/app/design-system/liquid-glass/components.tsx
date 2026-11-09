@@ -1,116 +1,122 @@
 'use client';
-// VENTRA Liquid Glass components, ported from docs/design/ventra-ui/components.js (approved 2026-11-08).
-// Class names (vg-*) are unchanged so glass.css applies as-is. Spec: docs/design/LIQUID_GLASS_SPEC.md.
+// VENTRA Glass (v2) components. Same API as v1 so every screen keeps working, now built on glasscn
+// (MIT, kostyniuk/glasscn-components: shadcn/ui + Tailwind v4 + Base UI) and lucide icons.
+// Rules and the element → glasscn mapping: VENTRA Glass design system (https://claude.ai/artifact/GcMeCNBwhLtUB1QBNNsogN).
 import Link from 'next/link';
 import { useId, useState } from 'react';
 import type { ButtonHTMLAttributes, ComponentPropsWithRef, CSSProperties, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
+import {
+  AlertTriangle, ArrowLeft, ArrowRight, ArrowDown, ArrowUp, Bell, BookOpen, CalendarDays, ChartColumn, Check, ChevronDown, ChevronRight, CircleHelp,
+  CreditCard, Ellipsis, Globe, Headset, House, Lock, MessageCircleMore, Phone, Plus, Receipt, Rocket, Search, Settings, Sparkles, Star, Sun,
+  TrendingUp, User, Users, X,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { glassVariantStyles } from '@/lib/glass-variants';
+import { GlassButton as GlasscnButton } from '@/components/ui/glasscn/glass-button';
+import { GlassBadge } from '@/components/ui/glasscn/glass-badge';
+import { LiquidGlass } from '@/components/ui/glasscn/liquid-glass';
+import { Switch } from '@/components/ui/switch';
 
-const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
+const ICONS = {
+  home: House, leads: Users, sparkle: Sparkles, calendar: CalendarDays, more: Ellipsis, bell: Bell, user: User, search: Search, plus: Plus,
+  chat: MessageCircleMore, headset: Headset, chart: ChartColumn, arrow: ArrowRight, up: ArrowUp, down: ArrowDown, check: Check, chevron: ChevronDown,
+  close: X, phone: Phone, alert: AlertTriangle, create: Star, grow: TrendingUp, money: CreditCard, settings: Settings, help: CircleHelp,
+  book: BookOpen, globe: Globe, rocket: Rocket, receipt: Receipt, lock: Lock, sun: Sun, back: ArrowLeft, next: ChevronRight,
+} satisfies Record<string, LucideIcon>;
+export type IconName = keyof typeof ICONS;
+export type Tone = 'violet' | 'teal' | 'magenta' | 'indigo' | 'money' | 'neutral';
+const toneVar: Record<Tone, string> = { violet: 'bookings', teal: 'conversations', magenta: 'receptionist', indigo: 'analytics', money: 'money', neutral: 'neutral' };
 
-/** Line icons, 24px grid, 1.8 stroke, round caps. */
-const PATHS = {
-  home: 'M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z',
-  leads: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1M16 3.5a4 4 0 0 1 0 7.5M19 14a5 5 0 0 1 3 5v2',
-  sparkle: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z',
-  calendar: 'M4 6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zM4 9h16M8 2v4M16 2v4M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01',
-  more: 'M5 12h.01M12 12h.01M19 12h.01',
-  bell: 'M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9zM10 20a2 2 0 0 0 4 0',
-  user: 'M12 12a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zM4 21a8 8 0 0 1 16 0',
-  search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4',
-  plus: 'M12 5v14M5 12h14',
-  chat: 'M4 12a8 8 0 0 1 8-8 8 8 0 0 1 0 16H4l2-2.8A7.9 7.9 0 0 1 4 12zM8.5 12h.01M12 12h.01M15.5 12h.01',
-  headset: 'M4 14v-2a8 8 0 0 1 16 0v2M4 14a2 2 0 0 1 2-2h1v6H6a2 2 0 0 1-2-2zM20 14a2 2 0 0 0-2-2h-1v6h1a2 2 0 0 0 2-2zM18 18a4 4 0 0 1-4 3h-2',
-  chart: 'M6 20V12M12 20V5M18 20v-9',
-  arrow: 'M5 12h14M13 6l6 6-6 6',
-  up: 'M12 19V5M6 11l6-6 6 6',
-  down: 'M12 5v14M6 13l6 6 6-6',
-  check: 'M5 12.5l4.5 4.5L19 7',
-  chevron: 'M6 9l6 6 6-6',
-  close: 'M6 6l12 12M18 6L6 18',
-  phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z',
-  alert: 'M12 9v4M12 17h.01M10.3 4l-8 14a2 2 0 0 0 1.7 3h16a2 2 0 0 0 1.7-3l-8-14a2 2 0 0 0-3.4 0z',
-  // Added for the five app areas (same grid and stroke).
-  create: 'M12 3l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 8.3l5-.7z',
-  grow: 'M3 17l6-6 4 4 8-8M15 7h6v6',
-  money: 'M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 10h18M7 15h4',
-  settings: 'M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2',
-  help: 'M9 9a3 3 0 1 1 5 2c-2 1-2 2-2 3M12 17h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
-  book: 'M4 4h6a3 3 0 0 1 3 3v14a4 4 0 0 0-4-2H4zM13 7a3 3 0 0 1 3-3h4v15h-3a4 4 0 0 0-4 2',
-  globe: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18',
-  rocket: 'M5 19c0-3 2-5 4-5M14 4c4 0 6 2 6 6-3 4-6 6-10 6l-2-2c0-4 2-7 6-10zM9 14l-2 5 5-2',
-  receipt: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6',
-  lock: 'M6 11V8a6 6 0 0 1 12 0v3M5 11h14v10H5z',
-  sun: 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4',
-  back: 'M19 12H5M11 6l-6 6 6 6',
-} as const;
-export type IconName = keyof typeof PATHS;
-export type Tone = 'violet' | 'teal' | 'magenta' | 'indigo';
-
-export function Icon({ name, size, strokeWidth, gradient, className }: { name: IconName; size?: number; strokeWidth?: number; gradient?: Tone; className?: string }) {
-  const id = 'vg-ig-' + useId().replace(/:/g, '');
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke={gradient ? `url(#${id})` : 'currentColor'} strokeWidth={strokeWidth ?? (name === 'more' ? 3.2 : 1.8)} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" width={size} height={size} className={className}>
-      {gradient && <defs><linearGradient id={id} x1="0" y1="0" x2="1" y2="1"><stop offset="0" className={`vg-g-${gradient}-a`} /><stop offset="1" className={`vg-g-${gradient}-b`} /></linearGradient></defs>}
-      <path d={PATHS[name] ?? PATHS.more} />
-    </svg>
-  );
+export function Icon({ name, size, strokeWidth, className }: { name: IconName; size?: number; strokeWidth?: number; gradient?: Tone; className?: string }) {
+  const C = ICONS[name] ?? Ellipsis;
+  return <C aria-hidden="true" focusable="false" size={size} strokeWidth={strokeWidth ?? 2} className={cn('shrink-0', !size && 'size-5', className)} />;
 }
 
-/** The VENTRA wordmark. The mark is the approved ribbon V (public/brand/ventra-mark.png); never recoloured. */
+/** The VENTRA wordmark: ribbon V (never recoloured) + tracked uppercase name. */
 export function Wordmark({ href, markOnly, className }: { href?: string; markOnly?: boolean; className?: string }) {
   const body = <>
-    <img className="vg-mark" src="/brand/ventra-mark.png" alt="" width={44} height={30} />
-    {!markOnly && <span>VENTRA</span>}
+    {/* Plain img: a tiny static asset; next/image adds nothing here. */}
+    <img className="h-7 w-auto shrink-0 drop-shadow-[0_4px_10px_rgba(114,87,228,0.35)]" src="/brand/ventra-mark.png" alt="" width={41} height={28} />
+    {!markOnly && <span className="font-display text-lg font-bold tracking-[0.18em] text-foreground">VENTRA</span>}
   </>;
-  return href ? <Link className={cx('vg-wordmark', className)} href={href} aria-label="VENTRA Home">{body}</Link> : <span className={cx('vg-wordmark', className)} aria-label="VENTRA">{body}</span>;
+  const cls = cn('vg-wordmark inline-flex items-center gap-2.5 no-underline', className);
+  return href ? <Link className={cls} href={href} aria-label="VENTRA Home">{body}</Link> : <span className={cls} aria-label="VENTRA">{body}</span>;
 }
 
 type Variant = 'primary' | 'secondary' | 'glass' | 'ghost';
 type ButtonProps = { variant?: Variant; size?: 'sm' | 'md' | 'lg'; icon?: IconName; iconRight?: IconName; block?: boolean; href?: string; children: ReactNode } & ButtonHTMLAttributes<HTMLButtonElement>;
-const buttonClass = (variant: Variant, size: string | undefined, block: boolean | undefined, className?: string) => cx('vg-btn', 'vg-btn-' + variant, variant === 'glass' && 'vg-bead', size && size !== 'md' && 'vg-btn-' + size, block && 'vg-btn-block', className);
-/** primary = violet liquid (at most one per screen); secondary = aqua; glass = default bead; ghost = hairline only. */
-export function GlassButton({ variant = 'glass', size, icon, iconRight, block, href, className, children, type, ...rest }: ButtonProps) {
+const sizes = { sm: 'h-9 px-4 text-sm', md: 'h-11 px-5 text-[15px]', lg: 'h-13 px-7 text-base' };
+const base = 'vg-btn inline-flex items-center justify-center gap-2 rounded-full font-semibold no-underline whitespace-nowrap transition-[transform,filter,background-color] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 cursor-pointer select-none [&_svg]:size-[18px]';
+const solid = {
+  primary: 'bg-primary text-primary-foreground shadow-primary hover:brightness-105',
+  secondary: 'bg-tone-conversations text-white shadow-quiet hover:brightness-105',
+  ghost: 'bg-transparent text-foreground hover:bg-secondary',
+};
+/** primary = the one violet action per screen; glass = glasscn liquid-refract button (default); ghost = text only. */
+export function GlassButton({ variant = 'glass', size = 'md', icon, iconRight, block, href, className, children, type, ...rest }: ButtonProps) {
   const inner = <>{icon && <Icon name={icon} />}{children}{iconRight && <Icon name={iconRight} />}</>;
-  if (href) return <Link href={href} className={buttonClass(variant, size, block, className)}>{inner}</Link>;
-  return <button type={type ?? 'button'} className={buttonClass(variant, size, block, className)} {...rest}>{inner}</button>;
+  if (variant === 'glass') {
+    const cls = cn(base, sizes[size], 'text-foreground', block && 'w-full', className);
+    if (href) return <LiquidGlass className={cn('rounded-full', block ? 'flex w-full' : 'inline-flex')}><Link href={href} className={cn(cls, 'bg-transparent')}>{inner}</Link></LiquidGlass>;
+    return <span className={cn(block ? 'flex w-full' : 'inline-flex')}><GlasscnButton glassVariant="liquid-refract" type={type ?? 'button'} className={cn(cls, 'h-auto min-h-11 w-full')} {...rest}>{inner}</GlasscnButton></span>;
+  }
+  const cls = cn(base, sizes[size], solid[variant], block && 'flex w-full', className);
+  if (href) return <Link href={href} className={cls}>{inner}</Link>;
+  return <button type={type ?? 'button'} className={cls} {...rest}>{inner}</button>;
 }
 
 type IconButtonProps = { icon: IconName; label: string; dot?: boolean; variant?: 'glass' | 'violet'; size?: 'sm' | 'md'; strokeWidth?: number; href?: string } & Omit<ComponentPropsWithRef<'button'>, 'children'>;
-/** label is required: it is the accessible name. */
-export function IconButton({ icon, label, dot, variant, size, strokeWidth, href, className, ...rest }: IconButtonProps) {
-  const cls = cx('vg-iconbtn', variant === 'violet' ? 'vg-iconbtn-violet' : 'vg-bead', size === 'sm' && 'vg-iconbtn-sm', className);
-  const inner = <><Icon name={icon} strokeWidth={strokeWidth} />{dot && <span className="vg-dot" aria-hidden="true" />}</>;
-  if (href) return <Link href={href} aria-label={label} className={cls}>{inner}</Link>;
-  return <button type="button" aria-label={label} className={cls} {...rest}>{inner}</button>;
+/** Round glass icon button (glasscn liquid-refract). label is required: it is the accessible name. */
+export function IconButton({ icon, label, dot, variant, size = 'md', strokeWidth, href, className, ref, ...rest }: IconButtonProps) {
+  const dim = size === 'sm' ? 'size-9' : 'size-11';
+  const inner = <><Icon name={icon} strokeWidth={strokeWidth} className={size === 'sm' ? 'size-4' : 'size-5'} />{dot && <span className="absolute right-2 top-2 size-2 rounded-full bg-primary ring-2 ring-white" aria-hidden="true" />}</>;
+  const btnCls = cn('vg-iconbtn relative grid place-items-center rounded-full text-foreground cursor-pointer transition-transform active:scale-95', dim, className);
+  if (variant === 'violet') {
+    const cls = cn(btnCls, 'bg-primary text-primary-foreground shadow-primary');
+    return href ? <Link href={href} aria-label={label} className={cls}>{inner}</Link> : <button ref={ref} type="button" aria-label={label} className={cls} {...rest}>{inner}</button>;
+  }
+  return <LiquidGlass className={cn('rounded-full', dim)}>{href ? <Link href={href} aria-label={label} className={btnCls}>{inner}</Link> : <button ref={ref} type="button" aria-label={label} className={cn(btnCls, 'bg-transparent')} {...rest}>{inner}</button>}</LiquidGlass>;
 }
 
-type CardProps = { as?: 'section' | 'div' | 'article' | 'li' | 'aside'; tight?: boolean; promo?: boolean; cyan?: boolean; className?: string; children: ReactNode; style?: CSSProperties; 'aria-label'?: string; 'aria-labelledby'?: string };
-/** A floating glass card. Never put a card inside another card. */
-export function GlassCard({ as: Tag = 'section', tight, promo, cyan, className, children, ...rest }: CardProps) {
-  return <Tag className={cx('vg-card vg-glass', tight && 'vg-card-tight', promo && 'vg-promo', cyan && 'vg-cyan', className)} {...rest}>{children}</Tag>;
+type CardProps = { as?: 'section' | 'div' | 'article' | 'li' | 'aside'; tight?: boolean; promo?: boolean; cyan?: boolean; glass?: 'liquid' | 'frosted' | 'subtle'; className?: string; children: ReactNode; style?: CSSProperties; 'aria-label'?: string; 'aria-labelledby'?: string };
+/** A glass card: glasscn's GlassCard recipe (glassVariantStyles) on a semantic element. liquid for stats/promos,
+ *  frosted for lists, forms and anything text-heavy. Never nest cards. */
+export function GlassCard({ as = 'section', tight, promo, cyan, glass, className, children, ...rest }: CardProps) {
+  const variant = glass ?? (promo ? 'liquid' : 'frosted');
+  const Tag = as;
+  return (
+    <Tag data-slot="glass-card" data-glass-variant={variant} {...rest}
+      className={cn('vg-card relative isolate block rounded-2xl text-foreground', glassVariantStyles[variant], tight ? 'px-4 py-3.5' : 'p-5 md:p-6', promo && 'vg-promo overflow-hidden', cyan && 'bg-tone-conversations-soft', className)}>
+      {children}
+    </Tag>
+  );
 }
 
-/** Card identity. Tone is fixed by meaning: violet bookings · teal conversations · magenta AI Receptionist · indigo analytics. */
+/** Card identity tile. Tone is fixed by meaning: violet bookings · teal conversations/Setter · magenta Receptionist · indigo analytics. */
 export function IconTile({ icon, tone = 'violet', size }: { icon: IconName; tone?: Tone; size?: 'sm' | 'md' }) {
-  return <span className={cx('vg-tile vg-bead', 'vg-tone-' + tone, size === 'sm' && 'vg-tile-sm')} aria-hidden="true"><Icon name={icon} strokeWidth={2.4} gradient={tone} /></span>;
+  const t = toneVar[tone];
+  return <span aria-hidden="true" className={cn('vg-tile grid shrink-0 place-items-center rounded-lg shadow-tile', size === 'sm' ? 'size-10' : 'size-12')} style={{ background: `var(--tone-${t}-soft)`, color: `var(--tone-${t})` }}><Icon name={icon} className={size === 'sm' ? 'size-5' : 'size-6'} /></span>;
 }
 
 export type BadgeTone = 'violet' | 'success' | 'warning' | 'danger' | 'neutral';
-/** Status. Always a word or icon, never colour alone. */
+const badgeTone: Record<BadgeTone, string> = { violet: 'text-primary', success: 'text-success', warning: 'text-warning', danger: 'text-destructive', neutral: 'text-muted-foreground' };
+/** Status: always a word (plus a dot or icon), never colour alone. glasscn GlassBadge, clear. */
 export function Badge({ tone = 'neutral', icon, trend, children, className }: { tone?: BadgeTone; icon?: IconName; trend?: 'up' | 'down'; children: ReactNode; className?: string }) {
   const name = icon ?? (trend === 'up' ? 'up' : trend === 'down' ? 'down' : undefined);
-  return <span className={cx('vg-badge', 'vg-badge-' + tone, className)}>{name && <Icon name={name} strokeWidth={2.4} />}{children}</span>;
+  return <GlassBadge glassVariant="clear" className={cn('vg-badge h-6 gap-1 rounded-full px-2.5 text-xs font-semibold [&_svg]:size-3.5', badgeTone[tone], className)}>{name ? <Icon name={name} /> : <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />}{children}</GlassBadge>;
 }
 
-/** One number and a label. Pass "—" plus a caption when there is no verified data. */
+/** One number and a label. "—" plus a caption when there is no verified data. */
 export function StatCard({ icon, tone, label, value, badge, control, caption, href }: { icon: IconName; tone?: Tone; label: string; value: ReactNode; badge?: ReactNode; control?: ReactNode; caption?: ReactNode; href?: string }) {
+  const unverified = value === '—';
   return (
-    <GlassCard className={cx('vg-stat', href && 'vg-stat-link')}>
+    <GlassCard glass="liquid" className={cn('vg-stat flex items-center gap-4', href && 'cursor-pointer transition-transform hover:-translate-y-px')}>
       <IconTile icon={icon} tone={tone} />
-      <div className="vg-stat-body">
-        <div className="vg-stat-label">{href ? <Link href={href} className="vg-stretch">{label}</Link> : label}</div>
-        <div className="vg-stat-row"><span className="vg-stat-value">{value}</span>{badge}{control}</div>
-        {caption && <div className="vg-stat-caption">{caption}</div>}
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-base font-semibold">{href ? <Link href={href} className="vg-stretch no-underline text-inherit after:absolute after:inset-0 after:rounded-2xl after:content-['']">{label}</Link> : label}</div>
+        <div className="flex flex-wrap items-center gap-2"><span className={cn('font-display text-[44px] font-semibold leading-[48px] tracking-tight tabular-nums', unverified && 'text-muted-foreground')}>{value}</span>{badge}{control}</div>
+        {caption && <div className="text-[13px] font-medium text-muted-foreground">{caption}</div>}
       </div>
     </GlassCard>
   );
@@ -127,7 +133,7 @@ function smooth(xy: [number, number][]) {
   return d;
 }
 export type Metric = { value: string; label: string; delta?: string; trend?: 'up' | 'down' };
-/** Trend plus up to three metrics. points run oldest to newest. Label it "Sample data" unless it is real. */
+/** Trend plus up to three metrics. Label it "Sample data" unless real. */
 export function AnalyticsCard({ title, points, metrics, note, empty }: { title: string; points: number[]; metrics: Metric[]; note?: string; empty?: ReactNode }) {
   const id = 'vg-ch-' + useId().replace(/:/g, '');
   const w = 640, ht = 170, pad = 12, top = 18;
@@ -136,114 +142,120 @@ export function AnalyticsCard({ title, points, metrics, note, empty }: { title: 
   const line = smooth(xy);
   const area = xy.length ? `${line} L${xy[xy.length - 1][0].toFixed(1)} ${ht} L${xy[0][0].toFixed(1)} ${ht} Z` : '';
   return (
-    <GlassCard>
+    <GlassCard glass="liquid">
       <div className="vg-card-head"><IconTile icon="chart" tone="indigo" size="sm" /><div><h2 className="vg-card-title">{title}</h2>{note && <span className="vg-sample">{note}</span>}</div></div>
       {points.length > 1 ? (
-        <svg className="vg-chart" viewBox={`0 0 ${w} ${ht}`} role="img" aria-label={`${title} trend`}>
+        <svg className="my-3 block h-auto w-full overflow-visible" viewBox={`0 0 ${w} ${ht}`} role="img" aria-label={`${title} trend`}>
           <defs>
-            <linearGradient id={id + 'a'} x1="0" y1="0" x2="0" y2="1"><stop offset="0" className="vg-area-a" /><stop offset="1" className="vg-area-b" /></linearGradient>
-            <linearGradient id={id + 'l'} x1="0" y1="0" x2="1" y2="0"><stop offset="0" className="vg-line-a" /><stop offset="1" className="vg-line-b" /></linearGradient>
+            <linearGradient id={id + 'a'} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--chart-1)" stopOpacity=".3" /><stop offset="1" stopColor="var(--chart-1)" stopOpacity="0" /></linearGradient>
+            <linearGradient id={id + 'l'} x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="var(--brand-violet)" /><stop offset="0.6" stopColor="var(--brand-magenta)" /><stop offset="1" stopColor="var(--brand-peach)" /></linearGradient>
           </defs>
-          <rect className="plot" x={pad} y={4} width={w - pad * 2} height={ht - 4} rx={14} />
-          <path d={area} fill={`url(#${id}a)`} /><path className="line" d={line} stroke={`url(#${id}l)`} />
-          {xy.map((q, i) => { const last = i === xy.length - 1; return (i === 0 || last || i % 2 === 1) ? <circle key={i} className={last ? 'end' : 'pt'} cx={q[0]} cy={q[1]} r={last ? 9 : 4.5} /> : null; })}
+          <path d={area} fill={`url(#${id}a)`} /><path d={line} fill="none" stroke={`url(#${id}l)`} strokeWidth="3.5" strokeLinecap="round" />
+          {xy.length > 0 && <circle cx={xy[xy.length - 1][0]} cy={xy[xy.length - 1][1]} r="7" fill="var(--primary)" stroke="#fff" strokeWidth="3" />}
         </svg>
       ) : empty}
-      {metrics.length > 0 && <div className="vg-metrics">{metrics.map(m => <div key={m.label} className="vg-metric"><span className="vg-metric-value">{m.value}</span><span className="vg-metric-label">{m.label}</span>{m.delta && <Badge tone={m.trend === 'down' ? 'danger' : 'success'} trend={m.trend ?? 'up'}>{m.delta}</Badge>}</div>)}</div>}
+      {metrics.length > 0 && <div className="grid grid-cols-3 divide-x divide-border">{metrics.map(m => <div key={m.label} className="grid min-w-0 gap-0.5 px-3 first:pl-0"><span className={cn('font-display text-[26px] font-semibold leading-8 tabular-nums', m.value === '—' && 'text-muted-foreground')}>{m.value}</span><span className="truncate text-xs font-medium text-muted-foreground">{m.label}</span>{m.delta && <Badge tone={m.trend === 'down' ? 'danger' : 'success'} trend={m.trend ?? 'up'}>{m.delta}</Badge>}</div>)}</div>}
     </GlassCard>
   );
 }
 
+const fieldShell = cn('vg-field flex min-h-12 items-center gap-2.5 rounded-xl px-4 text-muted-foreground focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-transparent', glassVariantStyles.frosted);
+const fieldInput = 'min-w-0 flex-1 border-0 bg-transparent py-3 text-base font-medium text-foreground outline-none placeholder:text-muted-foreground';
+
 export function SearchField({ label = 'Search', action, className, ...rest }: { label?: string; action?: { icon: IconName; label: string; onClick?: () => void; href?: string } } & InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label className={cx('vg-field vg-bead', className)}>
+    <label className={cn(fieldShell, 'rounded-full', className)}>
       <Icon name="search" /><span className="vg-sr-only">{label}</span>
-      <input type="search" {...rest} />
+      <input type="search" className={fieldInput} {...rest} />
       {action && <IconButton icon={action.icon} label={action.label} variant="violet" size="sm" onClick={action.onClick} href={action.href} />}
     </label>
   );
 }
 
-export function TextField({ label, hint, state, id, className, multiline, ...rest }: { label?: string; hint?: string; state?: 'valid' | 'invalid'; multiline?: boolean } & InputHTMLAttributes<HTMLInputElement>) {
+export function TextField({ label, hint, state, id, className, ...rest }: { label?: string; hint?: string; state?: 'valid' | 'invalid' } & InputHTMLAttributes<HTMLInputElement>) {
   const auto = 'vg-f-' + useId().replace(/:/g, '');
   const fid = id ?? auto, hintId = hint ? fid + '-hint' : undefined;
   return (
-    <div className={className}>
-      {label && <label className="vg-field-label" htmlFor={fid}>{label}</label>}
-      <div className={cx('vg-field vg-bead', state === 'valid' && 'vg-field-valid', state === 'invalid' && 'vg-field-invalid', multiline && 'vg-field-multi')}>
-        <input id={fid} aria-invalid={state === 'invalid' ? true : undefined} aria-describedby={hintId} {...rest} />
-        {state === 'valid' && <span className="vg-field-state" aria-label="Looks good"><Icon name="check" strokeWidth={2.6} /></span>}
-        {state === 'invalid' && <span className="vg-field-state" aria-hidden="true"><Icon name="alert" strokeWidth={2.2} /></span>}
+    <div className={cn('grid gap-2', className)}>
+      {label && <label className="vg-field-label text-sm font-semibold text-foreground" htmlFor={fid}>{label}</label>}
+      <div className={cn(fieldShell, state === 'invalid' && 'ring-2 ring-destructive')}>
+        <input id={fid} aria-invalid={state === 'invalid' ? true : undefined} aria-describedby={hintId} className={fieldInput} {...rest} />
+        {state === 'valid' && <span className="text-success" aria-label="Looks good"><Icon name="check" /></span>}
+        {state === 'invalid' && <span className="text-destructive" aria-hidden="true"><Icon name="alert" /></span>}
       </div>
-      {hint && <p id={hintId} className={cx('vg-field-hint', state === 'invalid' && 'is-error')}>{hint}</p>}
+      {hint && <p id={hintId} className={cn('vg-field-hint ml-1 text-[13px]', state === 'invalid' ? 'text-destructive' : 'text-muted-foreground')}>{hint}</p>}
     </div>
   );
 }
 
 export function SelectPill({ label, options, className, ...rest }: { label: string; options: (string | { value: string; label: string })[] } & SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <span className={cx('vg-select vg-bead', className)}>
-      <select aria-label={label} {...rest}>{options.map(o => { const v = typeof o === 'string' ? o : o.value; return <option key={v} value={v}>{typeof o === 'string' ? o : o.label}</option>; })}</select>
-      <Icon name="chevron" strokeWidth={2.2} />
+    <span className={cn('vg-select relative inline-flex items-center rounded-full', glassVariantStyles.frosted, className)}>
+      <select aria-label={label} className="cursor-pointer appearance-none rounded-full border-0 bg-transparent py-2 pl-4 pr-9 text-sm font-semibold text-foreground outline-none" {...rest}>{options.map(o => { const v = typeof o === 'string' ? o : o.value; return <option key={v} value={v}>{typeof o === 'string' ? o : o.label}</option>; })}</select>
+      <Icon name="chevron" className="pointer-events-none absolute right-3 size-4" />
     </span>
   );
 }
 
-/** 2–4 views of one list. Not page navigation. */
+/** 2–4 views of one list. Not page navigation. Track = subtle glass, selected = white puck. */
 export function SegmentedTabs<T extends string>({ items, label, value, onChange, className }: { items: readonly T[]; label: string; value: T; onChange: (v: T) => void; className?: string }) {
   return (
-    <div className={cx('vg-tabs vg-glass', className)} role="tablist" aria-label={label}>
-      {items.map(it => <button key={it} type="button" role="tab" className="vg-tab" aria-selected={it === value} onClick={() => onChange(it)}>{it}</button>)}
+    <div className={cn('vg-tabs inline-flex gap-1 rounded-full p-1', glassVariantStyles.subtle, className)} role="tablist" aria-label={label}>
+      {items.map(it => <button key={it} type="button" role="tab" aria-selected={it === value} onClick={() => onChange(it)}
+        className={cn('cursor-pointer rounded-full border-0 px-4 py-2 text-sm font-semibold transition', it === value ? 'bg-white/85 text-primary shadow-puck dark:bg-white/20' : 'bg-transparent text-muted-foreground hover:text-foreground')}>{it}</button>)}
     </div>
   );
 }
 
-/** Immediate settings. Anything that sends real messages or charges money needs a confirm step as well. */
+/** Immediate settings (shadcn Switch; on = success green). Anything that sends real messages or charges money needs a confirm step as well. */
 export function Toggle({ label, ariaLabel, checked, defaultChecked, onChange, disabled }: { label?: ReactNode; ariaLabel?: string; checked?: boolean; defaultChecked?: boolean; onChange?: (v: boolean) => void; disabled?: boolean }) {
   const [own, setOwn] = useState(!!defaultChecked);
   const on = checked ?? own;
-  const btn = <button type="button" role="switch" aria-checked={on} aria-label={label ? undefined : ariaLabel} disabled={disabled} className="vg-toggle" onClick={() => { setOwn(!on); onChange?.(!on); }} />;
-  return label ? <label className="vg-inline">{btn}{label}</label> : btn;
+  const sw = <Switch checked={on} disabled={disabled} aria-label={label ? undefined : ariaLabel} onCheckedChange={(v: boolean) => { setOwn(v); onChange?.(v); }} className="data-checked:border-success data-checked:bg-success" />;
+  return label ? <label className="inline-flex items-center gap-3 text-[15px] font-medium">{sw}{label}</label> : sw;
 }
 
 export function Checkbox({ label, checked, defaultChecked, onChange }: { label: ReactNode; checked?: boolean; defaultChecked?: boolean; onChange?: (v: boolean) => void }) {
   const [own, setOwn] = useState(!!defaultChecked);
   const on = checked ?? own;
-  return <label className="vg-inline"><button type="button" role="checkbox" aria-checked={on} className="vg-check" onClick={() => { setOwn(!on); onChange?.(!on); }}><Icon name="check" strokeWidth={3} /></button>{label}</label>;
+  return <label className="inline-flex items-center gap-3 text-[15px] font-medium"><button type="button" role="checkbox" aria-checked={on} onClick={() => { setOwn(!on); onChange?.(!on); }}
+    className={cn('grid size-6 cursor-pointer place-items-center rounded-md border-0 transition', on ? 'bg-primary text-primary-foreground shadow-primary' : cn('text-transparent', glassVariantStyles.frosted))}><Icon name="check" className="size-4" strokeWidth={3} /></button>{label}</label>;
 }
 
-/** Selected value or quick filter. Not status (Badge) and not view switching (Tabs). */
+/** Selected value or quick filter (frosted glass pill). Not status (Badge), not view switching (Tabs). */
 export function Chip({ icon, className, children, ...rest }: { icon?: IconName; children: ReactNode } & ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <button type="button" className={cx('vg-chip vg-bead', className)} {...rest}><span>{children}</span>{icon && <Icon name={icon} />}</button>;
+  const on = rest['aria-pressed'] === true || rest['aria-pressed'] === 'true';
+  return <button type="button" className={cn('vg-chip inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-full border-0 px-4 text-sm font-semibold transition', on ? 'bg-white/85 text-primary shadow-puck dark:bg-white/20' : cn('text-foreground', glassVariantStyles.frosted), className)} {...rest}><span>{children}</span>{icon && <Icon name={icon} className="size-4" />}</button>;
 }
 
-/** One featured next step per screen. Never for data. */
+/** One featured next step per screen: liquid glass over the brand wash. Never for data. */
 export function PromoCard({ title, text, action, eyebrow }: { title: string; text?: string; eyebrow?: string; action?: { label: string; icon?: IconName; href?: string; onClick?: () => void } }) {
   return (
     <GlassCard promo>
-      <span className="vg-promo-glow" aria-hidden="true" />
-      {eyebrow && <p className="vg-t-overline vg-eyebrow">{eyebrow}</p>}
-      <h2 className="vg-promo-title">{title}</h2>
-      {text && <p className="vg-promo-text">{text}</p>}
-      {action && <GlassButton icon={action.icon} href={action.href} onClick={action.onClick}>{action.label}</GlassButton>}
+      {eyebrow && <p className="vg-eyebrow mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-primary">{eyebrow}</p>}
+      <h2 className="font-display text-[22px] font-semibold leading-7">{title}</h2>
+      {text && <p className="mt-1.5 text-[15px] leading-[22px] text-muted-foreground">{text}</p>}
+      {action && <div className="mt-4"><GlassButton variant="primary" iconRight={action.icon === 'arrow' ? 'arrow' : undefined} icon={action.icon && action.icon !== 'arrow' ? action.icon : undefined} href={action.href} onClick={action.onClick}>{action.label}</GlassButton></div>}
     </GlassCard>
   );
 }
 
-/** A tappable row inside a card: icon tile, title, note, chevron. */
+/** A tappable row inside a card (glasscn subtle hover): icon tile, title, note, chevron. */
 export function ListRow({ href, icon, tone, title, note, badge, onClick }: { href?: string; icon?: IconName; tone?: Tone; title: ReactNode; note?: ReactNode; badge?: ReactNode; onClick?: () => void }) {
-  const inner = <>{icon && <IconTile icon={icon} tone={tone} size="sm" />}<span className="vg-row-text"><strong>{title}</strong>{note && <small>{note}</small>}</span>{badge}{(href || onClick) && <Icon name="arrow" className="vg-row-go" />}</>;
-  if (href) return <Link className="vg-row" href={href}>{inner}</Link>;
-  if (onClick) return <button type="button" className="vg-row" onClick={onClick}>{inner}</button>;
-  return <div className="vg-row">{inner}</div>;
+  const inner = <>{icon && <IconTile icon={icon} tone={tone} size="sm" />}<span className="vg-row-text grid min-w-0 flex-1 gap-px"><strong className="text-[15px] font-semibold leading-5 [overflow-wrap:anywhere]">{title}</strong>{note && <small className="text-[13px] leading-[18px] text-muted-foreground">{note}</small>}</span>{badge}{(href || onClick) && <Icon name="next" className="vg-row-go size-5 text-muted-foreground" />}</>;
+  const cls = 'vg-row flex w-full items-center gap-3 rounded-xl border-0 bg-transparent px-2 py-2.5 text-left text-foreground no-underline';
+  const hover = 'cursor-pointer transition-colors hover:bg-white/30 dark:hover:bg-white/[0.06]';
+  if (href) return <Link className={cn(cls, hover)} href={href}>{inner}</Link>;
+  if (onClick) return <button type="button" className={cn(cls, hover)} onClick={onClick}>{inner}</button>;
+  return <div className={cls}>{inner}</div>;
 }
 
-/** Section heading above a group of cards: text on the sheet, with an optional ghost link. */
+/** Section heading above a group of cards, with an optional ghost link. */
 export function SectionHead({ title, id, action }: { title: string; id?: string; action?: { label: string; href: string } }) {
-  return <div className="vg-section-head"><h2 id={id}>{title}</h2>{action && <Link className="vg-btn vg-btn-ghost vg-btn-sm" href={action.href}>{action.label}</Link>}</div>;
+  return <div className="vg-section-head flex items-center justify-between gap-3 px-1 pt-3"><h2 id={id} className="font-display text-lg font-semibold">{title}</h2>{action && <GlassButton variant="ghost" size="sm" href={action.href} iconRight="next">{action.label}</GlassButton>}</div>;
 }
 
 /** Page title (the one h1 per screen) and an optional line under it. */
 export function PageHead({ title, sub, eyebrow, action }: { title: string; sub?: ReactNode; eyebrow?: string; action?: ReactNode }) {
-  return <div className="vg-page-head"><div>{eyebrow && <p className="vg-t-overline vg-eyebrow">{eyebrow}</p>}<h1 className="vg-t-h1">{title}</h1>{sub && <p className="vg-page-sub">{sub}</p>}</div>{action}</div>;
+  return <div className="vg-page-head flex flex-wrap items-end justify-between gap-3 px-1 pt-2"><div>{eyebrow && <p className="vg-eyebrow mb-1 text-[11px] font-bold uppercase tracking-[0.12em] text-primary">{eyebrow}</p>}<h1 className="font-display text-[32px] font-bold leading-9 tracking-tight">{title}</h1>{sub && <p className="mt-1 max-w-[60ch] text-[15px] leading-[22px] text-muted-foreground">{sub}</p>}</div>{action}</div>;
 }
