@@ -4,8 +4,12 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { aud, blankAnswers, calculate, defaultAssumptions, opportunityKey, rangeText, restoreSavedAudit, speedLabels, validateAnswers, validateAssumptions } from '../../lib/growth-opportunity';
+import { aud, auditBusiness, blankAnswers, calculate, defaultAssumptions, opportunityKey, rangeText, restoreSavedAudit, speedLabels, validateAnswers, validateAssumptions } from '../../lib/growth-opportunity';
 import type { AuditAnswers, Assumptions, ReplySpeed } from '../../lib/growth-opportunity';
+import { opportunitySnapshot, restoreOpportunity, saveOpportunityToWorkspace } from '../../lib/audit-sync';
+import type { OpportunitySnapshot } from '../../lib/audit-sync';
+import { restoreProfile, storageKey } from '../../lib/onboarding';
+import { auditKey } from '../../lib/ventra-workspace';
 import { Badge, GlassButton, GlassCard, Icon, IconTile, PageHead, TextField } from '../design-system/liquid-glass/components';
 
 type Step = { key: keyof AuditAnswers; title: string; help: string; example: string; unit?: string; max?: number };
@@ -19,6 +23,13 @@ const steps: Step[] = [
 ];
 
 function load() { try { return restoreSavedAudit(localStorage.getItem(opportunityKey)); } catch { return null; } }
+function readWorkspace(): { raw: string | null; saved: OpportunitySnapshot | null } {
+  try { const raw = localStorage.getItem(auditKey); return { raw, saved: restoreOpportunity(raw) }; } catch { return { raw: null, saved: null }; }
+}
+const sameResult = (s: OpportunitySnapshot | null, answers: AuditAnswers, assumptions: Assumptions) =>
+  !!s && JSON.stringify(s.answers) === JSON.stringify(answers) && JSON.stringify(s.assumptions) === JSON.stringify(assumptions);
+
+type SaveState = { kind: 'idle' | 'saved' | 'conflict' | 'error'; message?: string };
 
 export default function GrowthOpportunity({ embedded = false }: { embedded?: boolean }) {
   const [step, setStep] = useState(0);
@@ -27,7 +38,33 @@ export default function GrowthOpportunity({ embedded = false }: { embedded?: boo
   const [restored, setRestored] = useState(false);
   const [error, setError] = useState('');
   const [storageNote, setStorageNote] = useState('');
-  useEffect(() => { const s = load(); if (s) { setStep(s.step); setAnswers(s.answers); setAssumptions(s.assumptions); } setRestored(true); }, []);
+  // The workspace audit record in this browser (shared with the manual audit and the account copy panel).
+  const [workspaceRaw, setWorkspaceRaw] = useState<string | null>(null);
+  const [saved, setSaved] = useState<OpportunitySnapshot | null>(null);
+  const [saveState, setSaveState] = useState<SaveState>({ kind: 'idle' });
+  useEffect(() => {
+    const s = load(), w = readWorkspace();
+    setWorkspaceRaw(w.raw); setSaved(w.saved);
+    if (s) { setStep(s.step); setAnswers(s.answers); setAssumptions(s.assumptions); }
+    else if (w.saved) { setAnswers(w.saved.answers); setAssumptions(w.saved.assumptions); setStep(steps.length); }
+    setRestored(true);
+  }, []);
+
+  function saveToWorkspace() {
+    try {
+      const business = auditBusiness(restoreProfile(localStorage.getItem(storageKey)));
+      const raw = saveOpportunityToWorkspace(localStorage, workspaceRaw, opportunitySnapshot(business, answers, assumptions));
+      setWorkspaceRaw(raw); setSaved(restoreOpportunity(raw)); setSaveState({ kind: 'saved' });
+      window.dispatchEvent(new Event('ventra:updated'));
+    } catch (e) {
+      const message = (e as Error).message || 'Could not save.';
+      setSaveState(/another tab/i.test(message) ? { kind: 'conflict' } : { kind: 'error', message });
+    }
+  }
+  function showSaved() {
+    if (!saved) return;
+    setAnswers(saved.answers); setAssumptions(saved.assumptions); setStep(steps.length); setSaveState({ kind: 'idle' });
+  }
   useEffect(() => {
     if (!restored) return;
     try { localStorage.setItem(opportunityKey, JSON.stringify({ version: 1, step, answers, assumptions, updatedAt: new Date().toISOString() })); setStorageNote(''); window.dispatchEvent(new Event('ventra:updated')); }
@@ -65,6 +102,7 @@ export default function GrowthOpportunity({ embedded = false }: { embedded?: boo
           </div>
         </form>
         <p className="vg-footnote">Saved on this device as you go. Nothing is sent anywhere.</p>
+        {saved && <GlassButton type="button" variant="ghost" size="sm" onClick={showSaved}>Show my saved result</GlassButton>}
       </GlassCard>
       {storageNote && <p className="vg-footnote" role="status">{storageNote}</p>}
     </>;
@@ -73,6 +111,7 @@ export default function GrowthOpportunity({ embedded = false }: { embedded?: boo
   const assumptionIssues = validateAssumptions(assumptions);
   const result = calculate(answers, assumptions);
   const top = result.findings[0];
+  const isSaved = saveState.kind !== 'conflict' && sameResult(saved, answers, assumptions);
   const pctField = (label: string, lo: keyof Assumptions, hi: keyof Assumptions) => <fieldset className="vg-assume"><legend>{label}</legend>
     <label>From <input type="number" min={0} max={100} value={Math.round(assumptions[lo] * 100)} onChange={e => setAssumptions(a => ({ ...a, [lo]: Math.min(100, Math.max(0, Number(e.target.value) || 0)) / 100 }))} />%</label>
     <label>to <input type="number" min={0} max={100} value={Math.round(assumptions[hi] * 100)} onChange={e => setAssumptions(a => ({ ...a, [hi]: Math.min(100, Math.max(0, Number(e.target.value) || 0)) / 100 }))} />%</label>
@@ -100,9 +139,29 @@ export default function GrowthOpportunity({ embedded = false }: { embedded?: boo
       <div className="vg-assumptions">{pctField('Missed enquiries won back by an instant reply', 'recoverLow', 'recoverHigh')}{pctField('Booking rate lift from instant replies', 'speedLiftLow', 'speedLiftHigh')}{pctField('No-shows prevented by reminders', 'noShowCutLow', 'noShowCutHigh')}</div>
       <div className="vg-card-actions"><GlassButton icon="back" onClick={() => setStep(0)}>Change my answers</GlassButton><GlassButton variant="ghost" onClick={() => setAssumptions(defaultAssumptions)}>Reset assumptions</GlassButton></div>
     </GlassCard>
+    <GlassCard aria-labelledby="audit-save">
+      <div className="vg-card-head"><div><h2 className="vg-card-title" id="audit-save">Keep this result</h2><span className="vg-sample">Saves to your workspace in this browser only, not to your account</span></div></div>
+      <p className="vg-card-text" role="status" data-testid="audit-save-state">{saveText(saveState, saved, isSaved)}</p>
+      <div className="vg-card-actions">
+        {saveState.kind === 'conflict'
+          ? <GlassButton type="button" onClick={() => window.location.reload()}>Reload</GlassButton>
+          : <GlassButton type="button" icon="check" disabled={isSaved || assumptionIssues.length > 0} onClick={saveToWorkspace}>{isSaved ? 'Saved' : 'Save to my workspace'}</GlassButton>}
+        {saved && !isSaved && saveState.kind !== 'conflict' && <GlassButton type="button" variant="ghost" onClick={showSaved}>Show my saved result</GlassButton>}
+      </div>
+    </GlassCard>
+    <p className="vg-footnote">Next: try your AI Setter with these details. <Link href="/customers/ai-team">Open your AI team</Link>.</p>
     <p className="vg-footnote">Want to write a fuller plan? <Link href="/services/growth-audit">Open the manual audit and 30-day plan</Link>.</p>
     {storageNote && <p className="vg-footnote" role="status">{storageNote}</p>}
   </>;
+}
+
+function when(iso: string) { const d = new Date(iso); return Number.isFinite(d.getTime()) ? d.toLocaleString() : 'earlier'; }
+function saveText(s: SaveState, saved: OpportunitySnapshot | null, isSaved: boolean): string {
+  if (s.kind === 'conflict') return 'Changed in another tab. Reload to see the latest, then save again.';
+  if (s.kind === 'error') return `Not saved: ${s.message}`;
+  if (isSaved && saved) return `Saved to your workspace in this browser on ${when(saved.savedAt)}.`;
+  if (saved) return `Not saved yet. Your last saved result is from ${when(saved.savedAt)}.`;
+  return 'Not saved yet.';
 }
 
 function Detail({ label, children }: { label: string; children: ReactNode }) { return <p className="vg-detail"><strong>{label}</strong>{children}</p>; }
