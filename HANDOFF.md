@@ -15,13 +15,13 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
-- Last cycle: c-609334b7 at 2026-11-09 20:58 AWST · 4 dispatched · 4 completed (P0-1, P0-2, P0-3, P0-6) · 2 blocked
-- Integration branch: agent/develop @ 59a3d957 (board commit follows)
+- Last cycle: c-e9ebba59 at 2026-11-10 ~01:40 AWST · 3 dispatched (A-1, A-4, M-0) + 1 reconciled (P1-6) · 4 verified and committed · 1 blocked
+- Integration branch: agent/develop @ 3fb9be69 (board commit follows)
+- Commits: P1-6 4a19e2a1, A-1 bd9fd252, A-4 74e037a9, M-0 3fb9be69. ventra-verify (repo copy): lint, typecheck, 668 unit, build, workspace-integration PASSED; course/launcher FROZEN; passed=true. Each code task got a ventra-review PASS WITH NOTES. No browser check of /tools/receptionist-lab yet.
 - Running / implemented (needs reconciling next cycle): none
-- Blocked, needs the owner: P0-7: decide how ventra-verify treats frozen course/launcher integration steps · P0-8: subagent Bash denied for ventra-qa and ventra-devops (permission settings)
-- Not done: the Telegram message requested in the section above was not sent. This scheduled session has no Telegram chat id (no inbound message), so it stays pending.
-- Note: pending foreign changes (UI lab, docs retirement, `apps/web/package*.json`, `CLAUDE.md`, `AGENTS.md`, agent/script files) were left uncommitted and untouched. They are not clearly described here, and P0-5 waits on them.
-- Next up: P0-4 (ventra-voice), P1-1 (ventra-feature), then P1-2 and P1-3
+- Blocked, needs the owner: P0-7: verified but uncommitted. Restore the executable bit on `scripts/agents/ventra-verify` (the edit lost it; the coordinator may not change it), then commit it and run the install script from an owner session · M-0 follow-ups: install ffmpeg or approve the `marketing/` npm install (reels have no audio for now), a white/SVG logo, the CTA waitlist link · A-4 finding: the Receptionist never tells callers to ring 000 in an emergency (wording decision) · P1-6: set a provider-side spending cap on the model key
+- Note: pending foreign changes (UI lab, docs retirement, `apps/web/package*.json`, `package.json`, `CLAUDE.md`, `AGENTS.md`, agent/script files, `marketing/BRIEF.md`) were left uncommitted and untouched.
+- Next up: A-2 (modes + approval queue, ventra-backend; answer the A-1 open questions first), A-3 (setter lab, ventra-feature), A-0 (audit, ventra-research), M-1/M-4 (marketing)
 
 ## Current task (approved scope only)
 
@@ -105,12 +105,15 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-09 20:37 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-10 00:59 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `59a3d95 fix(front-office): formatSlot builds the date from parts so Node/ICU versions give the same text [P0-6]`
-- Lock: coordinator (pid 28244, 7 min old)
+- HEAD: `3fb9be6 feat(marketing): brand kit, Instagram templates (carousel, post, story, highlight, reel) and render/reel scripts with size and font checks [M-0]`
+- Lock: coordinator (pid 80159, 16 min old)
 - Uncommitted changes:
 ```text
+ M .claude/agents/ventra-backend.md
+ M .claude/agents/ventra-feature.md
+ M .claude/agents/ventra-frontend.md
  M .claude/agents/ventra-setup.md
  M AGENTS.md
  M CLAUDE.md
@@ -124,6 +127,7 @@ _Generated 2026-11-09 20:37 by `ventra-handoff snapshot`. Do not hand-edit this 
  M apps/web/package-lock.json
  M apps/web/package.json
  M docs/agents/TASKS.md
+ M docs/agents/TASK_BOARD.json
  D docs/design/LIQUID_GLASS_SPEC.md
  D docs/design/reference/dylan-home-dashboard.png
  D docs/design/reference/dylan-liquid-glass-kit.png
@@ -136,7 +140,10 @@ _Generated 2026-11-09 20:37 by `ventra-handoff snapshot`. Do not hand-edit this 
  D docs/design/ventra-ui/tokens.json
  M package.json
  M scripts/agents/install.sh
+ M scripts/agents/ventra-backup
+ M scripts/agents/ventra-verify
 ?? .claude-sync/
+?? .claude/agents/ventra-marketing.md
 ?? .claude/agents/ventra-voice.md
 ?? "Claude outputs/"
 ?? apps/web/app/glass-showcase/lgr.css
@@ -144,39 +151,32 @@ _Generated 2026-11-09 20:37 by `ventra-handoff snapshot`. Do not hand-edit this 
 ?? apps/web/app/lab/components/
 ?? apps/web/app/lab/glass-card/
 ?? apps/web/components/glass/
-?? apps/web/components/ui/liquid-glass-card.tsx
-?? apps/web/public/glass-showcase/
-?? docs/agents/COORDINATOR.md
-?? docs/agents/PHASE0_INVENTORY.md
-?? docs/agents/TASK_BOARD.json
-?? docs/agents/parked/
-?? docs/design/UI_BIBLE.md
 ```
 - Diff stat vs HEAD:
 ```text
- apps/web/package.json                             |   1 +
- docs/agents/TASKS.md                              |   7 +
- docs/design/LIQUID_GLASS_SPEC.md                  | 188 ------
- docs/design/reference/dylan-home-dashboard.png    | Bin 627700 -> 0 bytes
- docs/design/reference/dylan-liquid-glass-kit.png  | Bin 630505 -> 0 bytes
- docs/design/reference/home-approved.png           | Bin 2071965 -> 0 bytes
- docs/design/reference/kit-approved.png            | Bin 1385351 -> 0 bytes
- docs/design/ventra-ui/components.d.ts             |  27 -
- docs/design/ventra-ui/components.js               | 225 -------
- docs/design/ventra-ui/glass.css                   | 249 --------
- docs/design/ventra-ui/tokens.css                  |  15 -
- docs/design/ventra-ui/tokens.json                 | 692 ----------------------
- package.json                                      |   5 +-
- scripts/agents/install.sh                         |   2 +-
- 25 files changed, 48 insertions(+), 1665 deletions(-)
+ docs/design/LIQUID_GLASS_SPEC.md                  |  188 ---
+ docs/design/reference/dylan-home-dashboard.png    |  Bin 627700 -> 0 bytes
+ docs/design/reference/dylan-liquid-glass-kit.png  |  Bin 630505 -> 0 bytes
+ docs/design/reference/home-approved.png           |  Bin 2071965 -> 0 bytes
+ docs/design/reference/kit-approved.png            |  Bin 1385351 -> 0 bytes
+ docs/design/ventra-ui/components.d.ts             |   27 -
+ docs/design/ventra-ui/components.js               |  225 ---
+ docs/design/ventra-ui/glass.css                   |  249 ----
+ docs/design/ventra-ui/tokens.css                  |   15 -
+ docs/design/ventra-ui/tokens.json                 |  692 ----------
+ package.json                                      |    7 +-
+ scripts/agents/install.sh                         |    2 +-
+ scripts/agents/ventra-backup                      |    3 +
+ scripts/agents/ventra-verify                      |   11 +-
+ 31 files changed, 1509 insertions(+), 1750 deletions(-)
 ```
 - Recent commits:
 ```text
-59a3d95 fix(front-office): formatSlot builds the date from parts so Node/ICU versions give the same text [P0-6]
-9eaf07c showcase: reference 'Liquid Glass' card on glasscn liquid-refract with a thick-glass layer
-27baa1b showcase: glasscn clear (transparent) card on white
-97679c8 showcase: white background, glasscn liquid card
-1160f95 showcase: one liquid-refract card on glasscn's plain app background
+3fb9be6 feat(marketing): brand kit, Instagram templates (carousel, post, story, highlight, reel) and render/reel scripts with size and font checks [M-0]
+74e037a feat(front-office): Receptionist Test Lab /tools/receptionist-lab runs simulated calls through the real Receptionist pipeline (scripted model, in-memory store, nothing sent) [A-4]
+bd9fd25 feat(front-office): shared contracts (types + non-throwing validators) and API_CONTRACTS.md for the UI to bind to [A-1]
+4a19e2a fix(front-office): Setter demo chat limited per client address and by a demo-wide ceiling so rotating visitor ids cannot run up model spend [P1-6]
+9509701 test(front-office): audit -> enquiry -> offerTimes -> bookSlot sandbox e2e with a fake calendar [P1-3]
 ```
 <!-- git-state:end -->
 
