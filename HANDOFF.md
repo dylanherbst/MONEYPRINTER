@@ -15,11 +15,13 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
-- Last cycle: c-e9ebba59 at 2026-11-10 ~01:40 AWST · 3 dispatched (A-1, A-4, M-0) + 1 reconciled (P1-6) · 4 verified and committed · 1 blocked
-- Integration branch: agent/develop @ 3fb9be69 (board commit follows)
-- Commits: P1-6 4a19e2a1, A-1 bd9fd252, A-4 74e037a9, M-0 3fb9be69. ventra-verify (repo copy): lint, typecheck, 668 unit, build, workspace-integration PASSED; course/launcher FROZEN; passed=true. Each code task got a ventra-review PASS WITH NOTES. No browser check of /tools/receptionist-lab yet.
-- Running / implemented (needs reconciling next cycle): none
-- Blocked, needs the owner: P0-7: verified but uncommitted. Restore the executable bit on `scripts/agents/ventra-verify` (the edit lost it; the coordinator may not change it), then commit it and run the install script from an owner session · M-0 follow-ups: install ffmpeg or approve the `marketing/` npm install (reels have no audio for now), a white/SVG logo, the CTA waitlist link · A-4 finding: the Receptionist never tells callers to ring 000 in an emergency (wording decision) · P1-6: set a provider-side spending cap on the model key
+- Last cycle: c-1d830624 at 2026-11-10 04:44 AWST (IN PROGRESS) · dispatched A-2, M-1, M-4, A-3 · committed M-1 0313466e, M-4 434c2a9d, A-2 c145944b
+- Integration branch: agent/develop @ c145944b
+- Reconciled: cycle c-b47869b9 dispatched A-2, A-3, M-1 and ended with no wrap-up (no files for A-2/A-3; two HTML templates for M-1). Fewer parallel agents this cycle to stay inside the spend cap.
+- Verification: repo `scripts/agents/ventra-verify` lint, typecheck, 731 unit, build, workspace-integration PASSED; course/launcher FROZEN. A-2 got ventra-review PASS WITH NOTES plus one fix round.
+- Running / implemented (needs reconciling next cycle if this line still says IN PROGRESS): A-3 (setter lab, ventra-feature; scope apps/web/app/tools/setter-lab/**, lib/front-office/setter/lab.ts, test/front-office-setter-lab.test.ts)
+- Blocked, needs the owner (new this cycle): A-14: transfer rule — should the AI always hand a customer to a person when asked (recommended), or follow the A-1 contract (enquiry-only never transfers, owner-approval holds it)? Blocks A-7 · A-2: apply migration 202611100001 to LOCAL Supabase and run `npm run test:local-integration` (the Supabase CLI needs approval in coordinator sessions) · M-1: profile package ready for review (handle, waitlist/website links, public email/phone, a larger or SVG logo) · M-4: approve the 30-day calendar (sets Day 1), confirm the "Reported" scheduling limits in the app, decide on camera/voice for the Day 6 Reel
+- Blocked, needs the owner (earlier): P0-7: verified but uncommitted. Restore the executable bit on `scripts/agents/ventra-verify` (the edit lost it; the coordinator may not change it), then commit it and run the install script from an owner session · M-0 follow-ups: install ffmpeg or approve the `marketing/` npm install (reels have no audio for now), a white/SVG logo, the CTA waitlist link · A-4 finding: the Receptionist never tells callers to ring 000 in an emergency (wording decision) · P1-6: set a provider-side spending cap on the model key
 - Note: pending foreign changes (UI lab, docs retirement, `apps/web/package*.json`, `package.json`, `CLAUDE.md`, `AGENTS.md`, agent/script files, `marketing/BRIEF.md`) were left uncommitted and untouched.
 - Next up: A-2 (modes + approval queue, ventra-backend; answer the A-1 open questions first), A-3 (setter lab, ventra-feature), A-0 (audit, ventra-research), M-1/M-4 (marketing)
 
