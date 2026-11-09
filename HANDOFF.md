@@ -13,6 +13,16 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 > VENTRA mobile app preview (tap the bottom menu to move between screens): https://claude.ai/artifact/GgRt53mn4e5BKMjWSMy2vE
 > The real app is on branch feature/mobile-app. To open it on your phone over Wi-Fi: on the Mac run `cd ~/Developer/VENTRA-FEATURES/apps/web && npx next dev --hostname 0.0.0.0`, then open http://<Mac IP>:3000/app. For a link that works anywhere, run `vercel` in apps/web (preview only).
 
+## Master Coordinator (auto)
+
+- Last cycle: c-609334b7 at 2026-11-09 20:58 AWST · 4 dispatched · 4 completed (P0-1, P0-2, P0-3, P0-6) · 2 blocked
+- Integration branch: agent/develop @ 59a3d957 (board commit follows)
+- Running / implemented (needs reconciling next cycle): none
+- Blocked, needs the owner: P0-7: decide how ventra-verify treats frozen course/launcher integration steps · P0-8: subagent Bash denied for ventra-qa and ventra-devops (permission settings)
+- Not done: the Telegram message requested in the section above was not sent. This scheduled session has no Telegram chat id (no inbound message), so it stays pending.
+- Note: pending foreign changes (UI lab, docs retirement, `apps/web/package*.json`, `CLAUDE.md`, `AGENTS.md`, agent/script files) were left uncommitted and untouched. They are not clearly described here, and P0-5 waits on them.
+- Next up: P0-4 (ventra-voice), P1-1 (ventra-feature), then P1-2 and P1-3
+
 ## Current task (approved scope only)
 
 Owner approved the pivot on 2026-11-06 (Ventra Pivot Master Plan + Implementation Tracker): build only the AI front office
@@ -83,9 +93,7 @@ books/moves/cancels, qualifies new callers, transfers or takes messages. On `fea
 
 ## App UI: Liquid Glass (2026-11-08, owner approved)
 
-- Spec to follow when building any app screen: `docs/design/LIQUID_GLASS_SPEC.md`. Approved render: `docs/design/reference/kit-approved.png` (left half). Home in light/dark: `docs/design/reference/home-approved.png`.
-- Library files: `docs/design/ventra-ui/` (tokens.css, glass.css, components.js on `window.VentraGlass`, components.d.ts, tokens.json). Port to TSX keeping `vg-*` class names; wire via `apps/web/app/design-system/liquid-glass/` (not done yet).
-- Live design system: https://claude.ai/artifact/1BSxDcrQ9HNoTR2XdUsskY · UI guide canvas: https://claude.ai/artifact/2sik8p22KKEJfZ9W8jK6J4 · PDF/ZIP: `docs/design/VENTRA-App-UI-Guide.*`.
+- App look is now the real `liquid-glass-react` component (wrapper `apps/web/components/ui/liquid-glass-card.tsx`); rules in `docs/design/UI_BIBLE.md`, kit `apps/web/components/glass/`, live gallery `/lab/components` on branch `ui/lab`. The old Liquid Glass spec, UI guide and reference images were retired on 2026-11-09. Old design-system pages on claude.ai deleted. Live screens still use `app/design-system/*` and `components/ui/glasscn` until rebuilt screen by screen.
 - Applies to the app only; `apps/web/app/site/**` (marketing website) is unchanged.
 - Not started: porting the app shell and Home to this look (owner said go after approving the kit).
 
@@ -97,43 +105,78 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-03 16:47 by `ventra-handoff snapshot`. Do not hand-edit this block._
-- Branch: `chore/agent-setup-handoff`
-- HEAD: `f4d57c1 chore: add agent setup, Claude/Codex handoff and role agents`
-- Lock: claude (pid 49645, 0 min old)
+_Generated 2026-11-09 20:37 by `ventra-handoff snapshot`. Do not hand-edit this block._
+- Branch: `agent/develop`
+- HEAD: `59a3d95 fix(front-office): formatSlot builds the date from parts so Node/ICU versions give the same text [P0-6]`
+- Lock: coordinator (pid 28244, 7 min old)
 - Uncommitted changes:
 ```text
-D  .claude/agents/backend.md
-D  .claude/agents/feature.md
-D  .claude/agents/frontend.md
-D  .claude/agents/qa.md
- M .gitignore
+ M .claude/agents/ventra-setup.md
  M AGENTS.md
  M CLAUDE.md
  M HANDOFF.md
-?? .claude/
-?? docs/
-?? scripts/agents/
+ M apps/web/app/design-system/glass/ventra-glass.css
+ D apps/web/app/glass-showcase/card-demo.tsx
+ D apps/web/app/glass-showcase/liquid-glass-card.tsx
+ M apps/web/app/glass-showcase/page.tsx
+ D apps/web/app/lab/lab.css
+ D apps/web/app/lab/page.tsx
+ M apps/web/package-lock.json
+ M apps/web/package.json
+ M docs/agents/TASKS.md
+ D docs/design/LIQUID_GLASS_SPEC.md
+ D docs/design/reference/dylan-home-dashboard.png
+ D docs/design/reference/dylan-liquid-glass-kit.png
+ D docs/design/reference/home-approved.png
+ D docs/design/reference/kit-approved.png
+ D docs/design/ventra-ui/components.d.ts
+ D docs/design/ventra-ui/components.js
+ D docs/design/ventra-ui/glass.css
+ D docs/design/ventra-ui/tokens.css
+ D docs/design/ventra-ui/tokens.json
+ M package.json
+ M scripts/agents/install.sh
+?? .claude-sync/
+?? .claude/agents/ventra-voice.md
+?? "Claude outputs/"
+?? apps/web/app/glass-showcase/lgr.css
+?? apps/web/app/glass-showcase/liquid-glass-lab.tsx
+?? apps/web/app/lab/components/
+?? apps/web/app/lab/glass-card/
+?? apps/web/components/glass/
+?? apps/web/components/ui/liquid-glass-card.tsx
+?? apps/web/public/glass-showcase/
+?? docs/agents/COORDINATOR.md
+?? docs/agents/PHASE0_INVENTORY.md
+?? docs/agents/TASK_BOARD.json
+?? docs/agents/parked/
+?? docs/design/UI_BIBLE.md
 ```
 - Diff stat vs HEAD:
 ```text
- .claude/agents/backend.md  |  6 ----
- .claude/agents/feature.md  |  6 ----
- .claude/agents/frontend.md |  6 ----
- .claude/agents/qa.md       |  6 ----
- .gitignore                 |  6 ++--
- AGENTS.md                  | 35 +++++++++++++----------
- CLAUDE.md                  | 70 ++++++++++++++++++++++++----------------------
- HANDOFF.md                 | 41 ++++++++++++++-------------
- 8 files changed, 82 insertions(+), 94 deletions(-)
+ apps/web/package.json                             |   1 +
+ docs/agents/TASKS.md                              |   7 +
+ docs/design/LIQUID_GLASS_SPEC.md                  | 188 ------
+ docs/design/reference/dylan-home-dashboard.png    | Bin 627700 -> 0 bytes
+ docs/design/reference/dylan-liquid-glass-kit.png  | Bin 630505 -> 0 bytes
+ docs/design/reference/home-approved.png           | Bin 2071965 -> 0 bytes
+ docs/design/reference/kit-approved.png            | Bin 1385351 -> 0 bytes
+ docs/design/ventra-ui/components.d.ts             |  27 -
+ docs/design/ventra-ui/components.js               | 225 -------
+ docs/design/ventra-ui/glass.css                   | 249 --------
+ docs/design/ventra-ui/tokens.css                  |  15 -
+ docs/design/ventra-ui/tokens.json                 | 692 ----------------------
+ package.json                                      |   5 +-
+ scripts/agents/install.sh                         |   2 +-
+ 25 files changed, 48 insertions(+), 1665 deletions(-)
 ```
 - Recent commits:
 ```text
-f4d57c1 chore: add agent setup, Claude/Codex handoff and role agents
-f8cfd9f feat(course-creator): add account save and load
-476be49 Connect configurable authenticated AI generation and integrate isolated course UI and persistence
-a5ac294 Add browser regression for course authoring and reload persistence
-fe8a1ad Keep restored course textarea accessible names stable
+59a3d95 fix(front-office): formatSlot builds the date from parts so Node/ICU versions give the same text [P0-6]
+9eaf07c showcase: reference 'Liquid Glass' card on glasscn liquid-refract with a thick-glass layer
+27baa1b showcase: glasscn clear (transparent) card on white
+97679c8 showcase: white background, glasscn liquid card
+1160f95 showcase: one liquid-refract card on glasscn's plain app background
 ```
 <!-- git-state:end -->
 

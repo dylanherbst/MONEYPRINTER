@@ -1,0 +1,196 @@
+{
+  "version": 1,
+  "updatedAt": "2026-11-09T12:55:00Z",
+  "integrationBranch": "agent/develop",
+  "lastRun": {
+    "id": "c-609334b7",
+    "startedAt": "2026-11-09T12:29:35Z",
+    "endedAt": "2026-11-09T12:58:00Z",
+    "summary": "First cycle. Created agent/develop. P0-1 inventory written, P0-2 baseline recorded, P0-3 health partly checked, P0-6 date-format fix committed (59a3d957, 610/610 tests). Subagent Bash denied for ventra-qa and ventra-devops (P0-8, owner). Frozen-feature integration steps fail by design (P0-7)."
+  },
+  "tasks": [
+    {
+      "id": "P0-1",
+      "title": "Phase 0 inventory: KEEP / REPAIR / FINISH / BUILD / BLOCKED for the six modules against the real code",
+      "phase": 0, "module": "platform", "owner": "ventra-research", "state": "done", "priority": 1, "dependsOn": [], "scope": ["docs/agents/PHASE0_INVENTORY.md"],
+      "acceptance": [
+        "A table in docs/agents/PHASE0_INVENTORY.md with one row per module plus the shared engine",
+        "Each row names the real files/routes, state, tests and plan reference",
+        "Nothing is marked working without a test or route that proves it; unknowns are written as unknown",
+        "Written by the coordinator from the research report"
+      ],
+      "plan": "Build Plan p.8 step 01; Blueprint pages 6-15", "branch": "agent/develop", "worktree": null,
+      "startedAt": "2026-11-09T12:32:00Z", "finishedAt": "2026-11-09T12:50:00Z", "lastRunId": "c-609334b7", "commits": ["see cycle board commit"],
+      "evidence": [
+        { "at": "2026-11-09T12:50:00Z", "kind": "diff", "detail": "Coordinator wrote docs/agents/PHASE0_INVENTORY.md (6 module rows + 6 engine rows) from the read-only research report; live providers marked unknown" },
+        { "at": "2026-11-09T12:50:00Z", "kind": "note", "detail": "Blueprint pages 6-15 not re-read by research; module files named in the report were listed by Glob/Grep, not opened in full" }
+      ],
+      "blocker": null, "notes": "Research recommended P1-1..P1-5 (queued below)."
+    },
+    {
+      "id": "P0-2",
+      "title": "Baseline verification of the current tree: lint, typecheck, unit tests, build (ventra-verify)",
+      "phase": 0, "module": "platform", "owner": "ventra-qa", "state": "done", "priority": 1, "dependsOn": [], "scope": [],
+      "acceptance": [
+        "ventra-verify has been run on the current HEAD and last-verify.json shows the result with this commit hash",
+        "Unit test count, lint and typecheck exit codes recorded; any failure listed with test name and cause",
+        "No code changes in this task"
+      ],
+      "plan": "Build Plan p.8 step 04", "branch": "agent/develop", "worktree": null,
+      "startedAt": "2026-11-09T12:32:00Z", "finishedAt": "2026-11-09T12:42:00Z", "lastRunId": "c-609334b7", "commits": [],
+      "evidence": [
+        { "at": "2026-11-09T12:33:00Z", "kind": "note", "detail": "ventra-qa subagent BLOCKED: its Bash call was denied by the permission system (see P0-8). Coordinator ran the baseline itself." },
+        { "at": "2026-11-09T12:34:00Z", "kind": "test", "detail": "ventra-verify on 9eaf07c (working tree incl. foreign UI-lab changes), exit 1: lint PASS, typecheck PASS, unit-tests FAIL 605/610, build PASS, workspace-integration PASS, course-integration FAIL, launcher-integration FAIL. Recorded in last-verify.json (commit 9eaf07c)." },
+        { "at": "2026-11-09T12:38:00Z", "kind": "test", "detail": "5 unit failures (slots x2, booking, scenario happy path, jobs) all from formatSlot: Node v26.13.0 / ICU 79.1 prints 'Tue 10 Nov' without the comma the tests expect. Not caused by the foreign changes. Fixed in P0-6." },
+        { "at": "2026-11-09T12:38:00Z", "kind": "test", "detail": "course/launcher integration failures: routes answer 'paused while VENTRA focuses on the AI front office' (scope freeze, by design). See P0-7." }
+      ],
+      "blocker": null, "notes": "Repo docs say Node 24; this Mac runs Node 26.13.0."
+    },
+    {
+      "id": "P0-3",
+      "title": "Machine, CI and backup health: ventra-backup verify, ventra-git ci-check, npm audit (report only)",
+      "phase": 0, "module": "platform", "owner": "ventra-devops", "state": "done", "priority": 2, "dependsOn": [], "scope": [],
+      "acceptance": [
+        "Report with backup verify, ci-check, npm audit summary, disk and memory headroom, local Supabase/Colima state",
+        "Coordinator records the report and queues follow-ups"
+      ],
+      "plan": "Build Plan p.8 step 01", "branch": "agent/develop", "worktree": null,
+      "startedAt": "2026-11-09T12:32:00Z", "finishedAt": "2026-11-09T12:52:00Z", "lastRunId": "c-609334b7", "commits": [],
+      "evidence": [
+        { "at": "2026-11-09T12:33:00Z", "kind": "note", "detail": "ventra-devops subagent BLOCKED: every Bash call denied (P0-8). Coordinator ran the checks." },
+        { "at": "2026-11-09T12:36:00Z", "kind": "note", "detail": "ventra-git ci-check: no production deployment trigger on agent/develop (exit 0)" },
+        { "at": "2026-11-09T12:36:00Z", "kind": "note", "detail": "npm --prefix apps/web audit --omit=dev: found 0 vulnerabilities (exit 0)" },
+        { "at": "2026-11-09T12:36:00Z", "kind": "note", "detail": "df -h /: 228Gi, 19Gi available" },
+        { "at": "2026-11-09T12:50:00Z", "kind": "note", "detail": "ventra-backup verify: PASS, but newest bundle is ventra-20261106-170716-202a30b (3 days old, before today's commits)" },
+        { "at": "2026-11-09T12:50:00Z", "kind": "note", "detail": "Local Supabase reachable (workspace-integration passed). colima status and memory_pressure not run: they need approval in this session" }
+      ],
+      "blocker": null, "notes": "Follow-up: a fresh backup should be taken (owner or devops tooling)."
+    },
+    {
+      "id": "P0-4",
+      "title": "Receptionist regression tests: 'not switched on' path, call-back message and Vapi function-call shapes (scripted model, no live calls)",
+      "phase": 0, "module": "receptionist", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": [],
+      "scope": [
+        "apps/web/test/front-office-receptionist.test.ts",
+        "apps/web/test/front-office-receptionist-*.test.ts",
+        "apps/web/lib/front-office/receptionist/**",
+        "apps/web/lib/front-office/vapi.ts",
+        "apps/web/lib/front-office/vapi-route.ts"
+      ],
+      "acceptance": [
+        "Tests for: FRONT_OFFICE_VOICE_LIVE unset -> honest 'not switched on' line, call-back message, hang up; transferCall and endCall shapes; unknown channel id rejected",
+        "npm --prefix apps/web test passes with the new tests counted; typecheck and lint pass",
+        "No network calls, no Vapi account, no change to live behaviour"
+      ],
+      "plan": "Build Plan p.3; HANDOFF.md 'AI front office for gyms + AI Receptionist'", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": null, "commits": [], "evidence": [], "blocker": null,
+      "notes": "Not dispatched in c-609334b7: too little time before the 15-minute wrap-up cutoff. ventra-voice does have working Bash (it ran node --test in P0-6)."
+    },
+    {
+      "id": "P0-5",
+      "title": "Mobile shell check: Home, Create, Customers, Grow, Money at 390px and 1440px in Pearl and Night; fix in-scope defects only",
+      "phase": 0, "module": "shared", "owner": "ventra-frontend", "state": "queued", "priority": 3, "dependsOn": ["P0-2"],
+      "scope": ["apps/web/app/ui/**", "apps/web/app/design-system/**", "apps/web/components/**"],
+      "acceptance": [
+        "Playwright run: no horizontal scroll, no page errors, bottom nav at 390px, sidebar at 1440px, both themes",
+        "Each defect fixed listed with file and before/after; nothing outside scope changed",
+        "lint, typecheck and unit tests pass"
+      ],
+      "plan": "Build Plan p.2; Blueprint pages 16-18; docs/design/UI_BIBLE.md", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": null, "commits": [], "evidence": [], "blocker": null,
+      "notes": "Scope overlaps the pending foreign UI-lab changes (components/glass, components/ui/liquid-glass-card.tsx, design-system/glass/ventra-glass.css). Do not dispatch until those are committed or the owner says how to treat them."
+    },
+    {
+      "id": "P0-6",
+      "title": "formatSlot gives the same text on every Node/ICU version (fixes 5 failing unit tests)",
+      "phase": 0, "module": "shared", "owner": "ventra-voice", "state": "done", "priority": 1, "dependsOn": ["P0-2"],
+      "scope": ["apps/web/lib/front-office/calendar/slots.ts"],
+      "acceptance": [
+        "formatSlot always returns '<Wkd>, <d> <Mon>, <h>:<mm> <am|pm>' independent of ICU punctuation",
+        "Full unit suite, lint and typecheck pass"
+      ],
+      "plan": "Build Plan p.8 step 04 (repair baseline)", "branch": "agent/develop", "worktree": null,
+      "startedAt": "2026-11-09T12:42:00Z", "finishedAt": "2026-11-09T12:47:00Z", "lastRunId": "c-609334b7", "commits": ["59a3d957"],
+      "evidence": [
+        { "at": "2026-11-09T12:45:00Z", "kind": "diff", "detail": "git diff --stat: apps/web/lib/front-office/calendar/slots.ts | 10 ++++++++-- (formatSlot built from formatToParts)" },
+        { "at": "2026-11-09T12:46:00Z", "kind": "lint", "detail": "npm --prefix apps/web run lint: exit 0" },
+        { "at": "2026-11-09T12:46:00Z", "kind": "typecheck", "detail": "npm --prefix apps/web run typecheck: exit 0" },
+        { "at": "2026-11-09T12:46:00Z", "kind": "test", "detail": "npm --prefix apps/web test: 610 tests, 610 pass, 0 fail (before: 605 pass, 5 fail)" },
+        { "at": "2026-11-09T12:53:00Z", "kind": "test", "detail": "ventra-verify on 59a3d957: lint, typecheck, unit-tests, build, workspace-integration PASS; course/launcher integration FAIL (scope freeze, P0-7)" },
+        { "at": "2026-11-09T12:47:00Z", "kind": "commit", "detail": "59a3d957 on agent/develop via ventra-git" }
+      ],
+      "blocker": null, "notes": "Open question from ventra-voice: en-AU prints September as 'Sept'; decide whether customer messages should always use 3-letter months."
+    },
+    {
+      "id": "P0-7",
+      "title": "ventra-verify: course and launcher integration steps fail because those features are frozen (423 feature_paused)",
+      "phase": 0, "module": "platform", "owner": "ventra-devops", "state": "blocked", "priority": 2, "dependsOn": [],
+      "scope": [],
+      "acceptance": [
+        "Owner decides: skip frozen-feature integration steps in ventra-verify, or run them with VENTRA_SCOPE_FREEZE=off locally",
+        "After the decision, ventra-verify passes end to end on agent/develop"
+      ],
+      "plan": "SCOPE_FREEZE.md; Build Plan p.8 step 04", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": "c-609334b7", "commits": [],
+      "evidence": [
+        { "at": "2026-11-09T12:53:00Z", "kind": "test", "detail": "last-verify.json: course-integration 'Course Creator is paused...', launcher-integration 'This tool is paused...'" }
+      ],
+      "blocker": { "reason": "ventra-verify lives in the agent tooling the coordinator may not edit; owner must choose how frozen features are verified", "needsApproval": true, "approvalId": null, "since": "2026-11-09T12:53:00Z" },
+      "notes": ""
+    },
+    {
+      "id": "P0-8",
+      "title": "Subagent Bash denied for ventra-qa and ventra-devops (could not run ventra-verify, ci-check, npm audit)",
+      "phase": 0, "module": "platform", "owner": "ventra-devops", "state": "blocked", "priority": 1, "dependsOn": [],
+      "scope": [],
+      "acceptance": ["ventra-qa can run ventra-verify and npm lint/typecheck/test; ventra-devops can run ventra-backup verify, ventra-git ci-check, npm audit, df, colima status"],
+      "plan": "COORDINATOR.md step 6", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": "c-609334b7", "commits": [],
+      "evidence": [
+        { "at": "2026-11-09T12:33:00Z", "kind": "note", "detail": "Both subagents reported their Bash calls denied (they chained commands with ; and &&). Single commands from the coordinator were allowed. ventra-voice could run node --test." }
+      ],
+      "blocker": { "reason": "Permission settings are owner-only; the coordinator must not edit .claude/settings.json. Either allow these read-only commands for subagents, or accept that the coordinator runs verification itself.", "needsApproval": true, "approvalId": null, "since": "2026-11-09T12:33:00Z" },
+      "notes": "Workaround in place: the coordinator runs verification directly."
+    },
+    {
+      "id": "P1-1",
+      "title": "Growth Audit saves to the workspace and produces a Setter hand-off payload (auditToSetterConfig)",
+      "phase": 1, "module": "booster", "owner": "ventra-feature", "state": "queued", "priority": 1, "dependsOn": [],
+      "scope": ["apps/web/lib/audit-sync.ts", "apps/web/lib/growth-opportunity.ts", "apps/web/lib/audit-to-setter.ts", "apps/web/test/audit-sync.test.ts", "apps/web/test/audit-to-setter.test.ts", "apps/web/app/tools/growth-audit/**"],
+      "acceptance": [
+        "Each finding carries an evidence string derived from the business answers",
+        "auditToSetterConfig(audit) returns a valid SetterConfig (lib/front-office/setter/config.ts), unit-tested",
+        "Test page tools/growth-audit shows DEMO/LIVE and connection state; lint, typecheck, tests pass"
+      ],
+      "plan": "Build Plan p.5 Business Booster, p.8 'First sellable result'; PHASE0_INVENTORY.md", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": null, "commits": [], "evidence": [], "blocker": null,
+      "notes": "Must not edit app/ui/growth-opportunity.tsx in the same cycle as a frontend task."
+    },
+    {
+      "id": "P1-2",
+      "title": "Setter demo pre-filled from the Growth Audit (business name, offer, area); qualifies a lead into fo_contacts with a fake store",
+      "phase": 1, "module": "setter", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["P1-1"],
+      "scope": ["apps/web/lib/front-office/templates/audit.ts", "apps/web/app/api/front-office/chat/route.ts", "apps/web/test/front-office-chat.test.ts"],
+      "acceptance": [
+        "Demo-mode chat uses the audit's business details",
+        "A qualified lead creates an fo_contacts record (fake store), opt-out still works",
+        "No live sending; lint, typecheck, tests pass"
+      ],
+      "plan": "Build Plan p.3 Setter, p.8 first sellable result", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": null, "commits": [], "evidence": [], "blocker": null, "notes": ""
+    },
+    {
+      "id": "P1-3",
+      "title": "Enquiry to booking in sandbox: e2e test audit demo -> enquiry -> offerTimes -> bookSlot with a fake calendar",
+      "phase": 1, "module": "receptionist", "owner": "ventra-voice", "state": "queued", "priority": 3, "dependsOn": ["P1-2"],
+      "scope": ["apps/web/lib/front-office/booking.ts", "apps/web/test/front-office-ventra-e2e.test.ts", "apps/web/test/front-office-calendar.test.ts"],
+      "acceptance": [
+        "E2E test writes an appointment row via the fake store and produces a confirmation text",
+        "Owner-approval mode holds the slot as pending and records approval before any send",
+        "lint, typecheck, tests pass"
+      ],
+      "plan": "Build Plan p.3 Receptionist modes, phase 2", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": null, "commits": [], "evidence": [], "blocker": null, "notes": ""
+    }
+  ]
+}
