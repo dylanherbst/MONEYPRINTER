@@ -32,16 +32,15 @@
     inset 2px 0 1px rgba(255,255,255,.7),             /* left rim */
     inset 0 -3px 2px rgba(255,255,255,.55),           /* bottom rim reflection */
     inset -2px 0 2px rgba(255,255,255,.35),
-    inset 0 0 0 1px rgba(255,255,255,.65),            /* outer hairline */
     inset 0 -18px 26px -16px rgba(30,40,70,.18),      /* thickness: darker lower inner wall */
     inset 0 18px 22px -16px rgba(255,255,255,.55); }  /* thickness: bright upper inner wall */
 .dark .slab-body { background: linear-gradient(150deg, rgba(255,255,255,.16), rgba(255,255,255,.04) 45%, rgba(255,255,255,.08)); }
 
 /* 3. the bevel: an inner rounded wall --edge px in from the outside, like the reference's double outline */
-.slab-bevel { position: absolute; inset: var(--edge); border-radius: calc(var(--r) - var(--edge)); pointer-events: none;
+.slab-bevel { display: none; position: absolute; inset: var(--edge); border-radius: calc(var(--r) - var(--edge)); pointer-events: none;
   box-shadow: 0 1px 0 rgba(255,255,255,.9), 0 -1px 0 rgba(20,30,60,.10), inset 0 1px 1px rgba(20,30,60,.10), inset 0 -1px 1px rgba(255,255,255,.7); }
 /* 4. prismatic edge: rainbow dispersion living only in the edge band, strongest on the lower right */
-.slab-prism { position: absolute; inset: 0; border-radius: var(--r); padding: calc(var(--edge) - 2px); pointer-events: none; opacity: .75; mix-blend-mode: screen;
+.slab-prism { position: absolute; inset: 0; border-radius: var(--r); padding: calc(var(--edge) - 2px); pointer-events: none; opacity: .45; mix-blend-mode: screen;
   background: conic-gradient(from 200deg at 50% 50%, transparent 0deg, rgba(120,190,255,.0) 40deg, rgba(120,190,255,.55) 90deg, rgba(255,150,210,.6) 130deg, rgba(255,200,130,.55) 165deg, transparent 210deg, transparent 300deg, rgba(190,160,255,.45) 330deg, transparent 360deg);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
 /* 5. specular streak across the top-left */
