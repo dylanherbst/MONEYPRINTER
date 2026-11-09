@@ -45,6 +45,15 @@ export function validateAssumptions(x: Assumptions): string[] {
   return ok(x.recoverLow, x.recoverHigh) && ok(x.speedLiftLow, x.speedLiftHigh) && ok(x.noShowCutLow, x.noShowCutHigh) ? [] : ['Each assumption needs a low value no higher than its high value, between 0 and 100 percent.'];
 }
 
+/** The evidence line for a finding, built only from the owner's own answers (never from assumptions or outside data). */
+export function findingEvidence(id: Finding['id'], a: AuditAnswers): string {
+  const enquiries = clamp(a.enquiriesPerMonth, 0, 100_000), missed = enquiries * pct(a.missedPct);
+  const bookingsNow = (enquiries - missed) * pct(a.bookingPct), noShows = bookingsNow * pct(a.noShowPct);
+  if (id === 'missed') return `You estimated ${Math.round(missed)} of ${Math.round(enquiries)} enquiries a month go unanswered.`;
+  if (id === 'speed') return `You usually reply ${(speedLabels[a.replySpeed] ?? speedLabels.hour).toLowerCase()}. People often book with whoever answers first.`;
+  return `About ${Math.round(noShows)} of your ${Math.round(bookingsNow)} monthly bookings are no-shows, from your answers.`;
+}
+
 /** Estimated extra bookings and value per month, by problem, largest first. */
 export function calculate(a: AuditAnswers, x: Assumptions = defaultAssumptions): AuditResult {
   const enquiries = clamp(a.enquiriesPerMonth, 0, 100_000), value = clamp(a.averageValue, 0, 1_000_000);
@@ -55,7 +64,7 @@ export function calculate(a: AuditAnswers, x: Assumptions = defaultAssumptions):
   const missedBookings: Range = { low: missed * x.recoverLow * rate, high: missed * x.recoverHigh * rate };
   if (missed > 0 && rate > 0) findings.push({
     id: 'missed', title: 'Missed calls and unanswered enquiries',
-    evidence: `You estimated ${Math.round(missed)} of ${Math.round(enquiries)} enquiries a month go unanswered.`,
+    evidence: findingEvidence('missed', a),
     action: 'Switch on the AI Receptionist and AI Setter so every call and message gets an answer, day or night.', href: '/customers/ai-team',
     bookings: missedBookings, value: money(missedBookings), confidence: 'Low',
   });
@@ -64,7 +73,7 @@ export function calculate(a: AuditAnswers, x: Assumptions = defaultAssumptions):
   const speedBookings: Range = slow ? { low: answered * rate * x.speedLiftLow, high: answered * rate * x.speedLiftHigh } : { low: 0, high: 0 };
   if (slow && answered > 0 && rate > 0) findings.push({
     id: 'speed', title: 'Slow first replies',
-    evidence: `You usually reply ${speedLabels[a.replySpeed].toLowerCase()}. People often book with whoever answers first.`,
+    evidence: findingEvidence('speed', a),
     action: 'Let the AI Setter answer in seconds and offer real booking times.', href: '/customers/ai-team',
     bookings: speedBookings, value: money(speedBookings), confidence: 'Low',
   });
@@ -73,7 +82,7 @@ export function calculate(a: AuditAnswers, x: Assumptions = defaultAssumptions):
   const showBookings: Range = { low: noShows * x.noShowCutLow, high: noShows * x.noShowCutHigh };
   if (noShows > 0) findings.push({
     id: 'no-show', title: 'Bookings that do not turn up',
-    evidence: `About ${Math.round(noShows)} of your ${Math.round(bookingsNow)} monthly bookings are no-shows, from your answers.`,
+    evidence: findingEvidence('no-show', a),
     action: 'Turn on booking reminders (24 hours and 2 hours before) and the no-show rescue message.', href: '/customers/ai-team',
     bookings: showBookings, value: money(showBookings), confidence: 'Medium',
   });
@@ -107,6 +116,16 @@ export function restoreSavedAudit(raw: string | null): SavedAudit | null {
     if (!nums.every(n => typeof n === 'number' && Number.isFinite(n) && n >= 0) || !(a.replySpeed in speedLabels) || validateAssumptions(x).length) return null;
     return v;
   } catch { return null; }
+}
+
+// The business the audit is about, taken from the saved business profile. Used to brief the AI Setter.
+export type AuditBusiness = { name: string; offer: string; area: string; audience: string; industry: string };
+type ProfileLike = { name?: unknown; industry?: unknown; location?: unknown; audience?: unknown; expertise?: unknown; primary?: unknown; educationOffer?: unknown; businessType?: unknown };
+const text = (v: unknown, max: number) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '');
+export function auditBusiness(p: ProfileLike | null | undefined): AuditBusiness {
+  const industry = text(p?.industry, 200), expertise = text(p?.expertise, 300);
+  const offer = p?.primary === 'education' && expertise ? `${text(p?.educationOffer, 60) || 'Course'}: ${expertise}` : industry || expertise || text(p?.businessType, 60);
+  return { name: text(p?.name, 120), offer: offer.slice(0, 400), area: text(p?.location, 200), audience: text(p?.audience, 300), industry };
 }
 
 export const aud = (n: number) => new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(n);
