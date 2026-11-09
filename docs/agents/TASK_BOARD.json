@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-09T22:28:14.996Z",
+  "updatedAt": "2026-11-09T22:55:12.977Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-9edb821b",
-    "startedAt": "2026-11-09T22:18:08Z",
-    "endedAt": "2026-11-09T22:28:19.008Z",
-    "summary": "A-17 fixed, reviewed, committed e338a072; W-0 audit done; W-1 shell implemented (uncommitted, needs review + browser check)."
+    "id": "c-2f01e5b4",
+    "startedAt": "2026-11-09T22:49:08Z",
+    "endedAt": "2026-11-09T22:55:12.977Z",
+    "summary": "A-21 implemented (10 new tests pass); review+verify+commit next cycle; spending cap reached."
   },
   "tasks": [
     {
@@ -2156,7 +2156,7 @@
       "phase": "A",
       "module": "shared",
       "owner": "ventra-voice",
-      "state": "queued",
+      "state": "implemented",
       "priority": 3,
       "dependsOn": [
         "A-2"
@@ -2172,17 +2172,29 @@
       "plan": "docs/agents/FRONT_OFFICE_AUDIT.md",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
+      "startedAt": "2026-11-09T22:49:33.918Z",
       "finishedAt": null,
-      "lastRunId": "c-255a1537",
+      "lastRunId": "c-2f01e5b4",
       "runIds": [
-        "c-255a1537"
+        "c-255a1537",
+        "c-2f01e5b4"
       ],
       "commits": [],
-      "evidence": [],
+      "evidence": [
+        {
+          "at": "2026-11-09T22:55:12.977Z",
+          "kind": "test",
+          "detail": "c-2f01e5b4: coordinator ran node --test apps/web/test/front-office-modes-api.test.ts: 10 pass 0 fail. Specialist reports full suite 823 pass, typecheck+lint clean (exit codes masked by tail)."
+        },
+        {
+          "at": "2026-11-09T22:55:12.977Z",
+          "kind": "note",
+          "detail": "Not committed: needs ventra-review (approval queue + channel sends) and an unpiped ventra-verify; cycle spending cap reached. Files: api/front-office/modes/route.ts, pending-actions/{route.ts,[id]/route.ts,shared.ts}, test/front-office-modes-api.test.ts, docs/agents/API_CONTRACTS.md. Follow-ups: Receptionist approval executor missing (approve returns 409); Setter approve uses env channel ids until A-15 lookup wired."
+        }
+      ],
       "blocker": null,
       "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit.",
-      "updatedAt": "2026-11-09T21:18:48.280Z"
+      "updatedAt": "2026-11-09T22:55:12.977Z"
     }
   ]
 }

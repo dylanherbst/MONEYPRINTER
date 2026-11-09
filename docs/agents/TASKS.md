@@ -41,7 +41,8 @@ The only task board. Update a row when its state changes, with evidence. States:
 | A-17 | Mode check in live routes (chat, sms, email, meta, jobs run) + jobs.ts follow-up gate, DST-safe quiet hours | `ventra-voice` | Verified locally (committed) | `agent/develop` @ e338a072 | 813/813 unit, lint, typecheck; review CHANGES NEEDED -> fix -> re-review APPROVE | — |
 | W-0 | Website audit (docs/agents/WEBSITE_AUDIT.md) | `ventra-research` | Done | — | audit written by coordinator | — |
 | W-1 | Website shell: nav, mobile menu, footer, sections, metadata helper | `ventra-web-design` | Implemented (uncommitted in VENTRA-WEBSITE) | — | 747/747 unit (website worktree); needs review + 390/1440 browser check | — |
-| A-16, A-18, A-20, A-21 | Knowledge base, one approval queue, caller identity check, modes API (A-19 done) | various | Assigned | — | from A-0 audit | — |
+| A-21 | Modes and approval-queue API routes | `ventra-voice` | Implemented (10 route tests pass; awaiting review + commit) | — | c-2f01e5b4 | — |
+| A-16, A-18, A-20 | Knowledge base, one approval queue, caller identity check (A-19 done) | various | Assigned | — | from A-0 audit | — |
 | M-0 | Marketing brand kit, templates, render + reel scripts | `ventra-marketing` | Verified locally (not yet accepted by owner) | `agent/develop` @ 3fb9be69 | sample PNGs measured at exact sizes; sample reel H.264 1080x1920 5 s | no ffmpeg (no audio); Playwright borrowed from npx cache; owner: ffmpeg/npm install, logo variant, CTA link |
 | P2-1 | Owner-approval booking mode (pending hold, approve/reject) | `ventra-backend` | Assigned (blocked) | — | P1-3 finding: no such status or queue exists | owner: should bookings wait for approval? needs a migration |
 | P1-5 | Same-tab manual-audit save no longer shows "another tab" | `ventra-frontend` | Verified locally (not yet accepted by owner) | `agent/develop` @ 6bbfbfa1 | eslint 0; typecheck 0; related tests 23/23 | no component test or browser check |

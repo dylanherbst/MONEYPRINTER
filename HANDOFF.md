@@ -15,8 +15,11 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
-- Last cycle: c-9edb821b at 2026-11-10 ~06:50 AWST · 4 dispatched (A-17 fix, W-0, W-1, A-17 re-review) · 2 finished (A-17 committed e338a072, W-0 done) · 0 new blocked
-- Integration branch: agent/develop @ e338a072 (board commit follows)
+- Last cycle: c-2f01e5b4 at 2026-11-10 06:49 AWST · 1 dispatched (A-21) · 0 verified · 0 new blocked · stopped at the cycle spending cap
+- A-21 IMPLEMENTED, UNCOMMITTED: api/front-office/modes/route.ts, pending-actions/route.ts, pending-actions/[id]/route.ts, pending-actions/shared.ts, test/front-office-modes-api.test.ts (10/10 pass, coordinator-run), docs/agents/API_CONTRACTS.md. Next cycle: ventra-review (check approve path wraps createJobsExecutor(createSetterExecutor(x)) per A-17 note), unpiped typecheck/lint/test, then commit. Gaps: no Receptionist approval executor (approve returns 409, item stays pending); Setter approve uses env channel ids until A-15 lookup.
+- W-1 still implemented/uncommitted (not touched this cycle).
+- Previous cycle: c-9edb821b · A-17 committed e338a072, W-0 done
+- Integration branch: agent/develop @ eea15a8 (board commit follows)
 - Verification: npm --prefix apps/web test 813/813, typecheck exit 0, lint exit 0. A-17 re-review APPROVE. Test fixture META_SECRET literal changed to generated value after a ventra-git secret-scan false positive. Full ventra-verify not run (cycle budget).
 - Running / implemented (needs reconciling next cycle): W-1 implemented, UNCOMMITTED in ~/Developer/VENTRA-WEBSITE (site/_ui/meta.ts, shell.tsx, sections.tsx, test/site-shell.test.ts; layout, page, privacy, terms, get-started, icons, chrome, site.css). Website tests 747/747. Needs ventra-review + 390/1440 browser check, then commit in the worktree. Open: SITE_DESIGN.md; chrome.tsx is now a pass-through (deletion needs owner OK); nav links 404 until W-3..W-8; W-3 path course vs courses; next.config domain mapping (W-13).
 - A-17 follow-ups (for A-21 and agent.ts): approval route must wrap createJobsExecutor(createSetterExecutor(x)); setter/agent.ts step-1 key has no conversation marker so an expired step-1 approval cannot be renewed (both fail safe).
@@ -107,10 +110,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-10 06:28 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-10 06:55 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `e338a07 feat(front-office): mode check in every live route; jobs runner gates reminders, no-show rescue and follow-ups through gate(), consent and DST-safe quiet hours; per-step approval keys with expiry; single reschedule [A-17]`
-- Lock: coordinator (pid 61591, 10 min old)
+- HEAD: `eea15a8 chore(coordinator): cycle c-9edb821b board, handoff and website audit`
+- Lock: coordinator (pid 75499, 6 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -129,6 +132,7 @@ _Generated 2026-11-10 06:28 by `ventra-handoff snapshot`. Do not hand-edit this 
  D apps/web/app/lab/page.tsx
  M apps/web/package-lock.json
  M apps/web/package.json
+ M docs/agents/API_CONTRACTS.md
  M docs/agents/TASKS.md
  M docs/agents/TASK_BOARD.json
  D docs/design/LIQUID_GLASS_SPEC.md
@@ -151,8 +155,7 @@ _Generated 2026-11-10 06:28 by `ventra-handoff snapshot`. Do not hand-edit this 
 ?? .claude/agents/ventra-voice.md
 ?? .claude/agents/ventra-web-design.md
 ?? "Claude outputs/"
-?? apps/web/app/glass-showcase/lgr.css
-?? apps/web/app/glass-showcase/liquid-glass-lab.tsx
+?? apps/web/app/api/front-office/modes/
 ```
 - Diff stat vs HEAD:
 ```text
@@ -170,15 +173,15 @@ _Generated 2026-11-10 06:28 by `ventra-handoff snapshot`. Do not hand-edit this 
  scripts/agents/install.sh                         |   2 +-
  scripts/agents/ventra-backup                      |   3 +
  scripts/agents/ventra-verify                      |  11 +-
- 32 files changed, 115 insertions(+), 1687 deletions(-)
+ 33 files changed, 111 insertions(+), 1688 deletions(-)
 ```
 - Recent commits:
 ```text
+eea15a8 chore(coordinator): cycle c-9edb821b board, handoff and website audit
 e338a07 feat(front-office): mode check in every live route; jobs runner gates reminders, no-show rescue and follow-ups through gate(), consent and DST-safe quiet hours; per-step approval keys with expiry; single reschedule [A-17]
 b8b156d chore(coordinator): cycle c-9286948e board and handoff
 0ae76c7 feat(front-office): fo_connections per-business channel identifiers (no secrets, unique per kind+id), owner writes not_connected/pending/disabled only, server-only connected/error and service-role resolve, generic cross-tenant errors; PGlite tests [A-15]
 bf91f1c chore(coordinator): cycle c-255a1537 board and handoff
-fd650ae feat(front-office): Setter actions (offer times, book, follow-up, handoff) through decide()/gate() when a permission store is passed; owner-approval holds with payload, approved actions re-validated before running, follow-up consent/opt-out/channel/quiet hours, handoff stops the AI; live routes unchanged until A-17 [A-8]
 ```
 <!-- git-state:end -->
 
