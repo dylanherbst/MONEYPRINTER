@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-09T21:31:46.283Z",
+  "updatedAt": "2026-11-09T21:57:26.862Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-255a1537",
-    "startedAt": "2026-11-09T21:15:08Z",
-    "endedAt": "2026-11-09T21:31:46.283Z",
-    "summary": "5 dispatched (A-8, A-0, A-5, M-2, A-19); 5 committed: A-0 8d232d37, A-5 f0e8c484, M-2 1dd4d91e (owner review), A-19 3468cefa, A-8 fd650aee; 768 unit tests pass; A-15..A-21 planned from the audit"
+    "id": "c-9286948e",
+    "startedAt": "2026-11-09T21:46:08Z",
+    "endedAt": "2026-11-09T21:57:26.862Z",
+    "summary": "2 dispatched (A-15, A-17); A-15 reviewed, fixed once, committed 0ae76c7e; A-17 implemented (798 tests, lint/typecheck pass) but review asked for changes, left uncommitted for next cycle"
   },
   "tasks": [
     {
@@ -1840,7 +1840,7 @@
       "phase": "A",
       "module": "shared",
       "owner": "ventra-backend",
-      "state": "queued",
+      "state": "done",
       "priority": 2,
       "dependsOn": [
         "A-1"
@@ -1857,17 +1857,41 @@
       "plan": "docs/agents/FRONT_OFFICE_AUDIT.md",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
-      "lastRunId": "c-255a1537",
+      "startedAt": "2026-11-09T21:46:30.580Z",
+      "finishedAt": "2026-11-09T21:56:34.423Z",
+      "lastRunId": "c-9286948e",
       "runIds": [
-        "c-255a1537"
+        "c-255a1537",
+        "c-9286948e"
       ],
-      "commits": [],
-      "evidence": [],
+      "commits": [
+        "0ae76c7e"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-09T21:56:34.423Z",
+          "kind": "diff",
+          "detail": "2 new files: supabase/migrations/202611100002_front_office_connections.sql, apps/web/test/front-office-connections-db.test.ts; nothing else in scope changed"
+        },
+        {
+          "at": "2026-11-09T21:56:34.423Z",
+          "kind": "review",
+          "detail": "ventra-review: CHANGES NEEDED (HIGH owner could self-mark connected -> identifier squatting; MEDIUM enumeration via error text; LOW FK on delete, check drift). Sent back once; all four fixed (fo_mark_connection_state service_role only, generic cross-tenant error, on delete set null, check-violation mapped)"
+        },
+        {
+          "at": "2026-11-09T21:56:34.423Z",
+          "kind": "test",
+          "detail": "coordinator ran npm --prefix apps/web test: 798/798 pass (771 before this cycle, includes A-17 in-progress tests); typecheck exit 0"
+        },
+        {
+          "at": "2026-11-09T21:56:34.423Z",
+          "kind": "commit",
+          "detail": "0ae76c7e"
+        }
+      ],
       "blocker": null,
-      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit.",
-      "updatedAt": "2026-11-09T21:18:48.280Z"
+      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit. Open after A-15: contracts.ts connectionStates/Connection shape and API_CONTRACTS.md entry (coordinator/voice follow-up); routes still resolve business from env until a routing task uses fo_resolve_connection with a service_role client; migration not applied to local or production Supabase.",
+      "updatedAt": "2026-11-09T21:56:34.423Z"
     },
     {
       "id": "A-16",
@@ -1912,7 +1936,7 @@
       "phase": "A",
       "module": "shared",
       "owner": "ventra-voice",
-      "state": "queued",
+      "state": "implemented",
       "priority": 2,
       "dependsOn": [
         "A-8"
@@ -1930,17 +1954,34 @@
       "plan": "docs/agents/FRONT_OFFICE_AUDIT.md",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
+      "startedAt": "2026-11-09T21:46:30.580Z",
       "finishedAt": null,
-      "lastRunId": "c-255a1537",
+      "lastRunId": "c-9286948e",
       "runIds": [
-        "c-255a1537"
+        "c-255a1537",
+        "c-9286948e"
       ],
       "commits": [],
-      "evidence": [],
+      "evidence": [
+        {
+          "at": "2026-11-09T21:57:26.862Z",
+          "kind": "diff",
+          "detail": "uncommitted: api/front-office chat, sms/inbound, email/inbound, meta/webhook, jobs/run routes; lib/front-office/jobs.ts; new tests front-office-routes-modes.test.ts (16) and front-office-routes-modes-jobs.test.ts (11)"
+        },
+        {
+          "at": "2026-11-09T21:57:26.862Z",
+          "kind": "test",
+          "detail": "coordinator: npm --prefix apps/web test 798/798 pass; typecheck exit 0; lint exit 0"
+        },
+        {
+          "at": "2026-11-09T21:57:26.862Z",
+          "kind": "review",
+          "detail": "ventra-review CHANGES NEEDED: (1) MED reminder-24h/2h and no-show-rescue in runDueJobs bypass gate() and quiet hours; (2) LOW-MED approved follow-up item keyed :1 so approval mid-ladder restarts at step 1 and approval never expires; (3) LOW quiet-hours reschedule via fo_schedule_job may duplicate the step (check SQL idempotency); (4) LOW test title overclaims. Not committed: send back to ventra-voice once next cycle (cycle budget exhausted)."
+        }
+      ],
       "blocker": null,
-      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit. Needs migration 202611100001 on local Supabase first (A-2 owner item).",
-      "updatedAt": "2026-11-09T21:18:48.280Z"
+      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit. Needs migration 202611100001 on local Supabase first (A-2 owner item). Also from the specialist: setter/actions.ts outsideQuietHours is not DST-safe (should use afterJobQuietHours); jobs.ts copies quiet-hours/consent/failSafe rules (consolidate later). Live effect: until migration 202611100001 is applied, live routes fall back to enquiry_only (no booking, no follow-ups).",
+      "updatedAt": "2026-11-09T21:57:26.862Z"
     },
     {
       "id": "A-18",
