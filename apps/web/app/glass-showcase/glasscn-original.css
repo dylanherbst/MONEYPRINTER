@@ -80,7 +80,7 @@
 }
 
 /* A colourful backdrop with hard edges, so the refraction at the glass edge is visible. */
-.gc-stage { position: relative; min-height: 100dvh; display: grid; place-items: center; align-content: center; padding: 32px 16px; background: var(--app-background); }
+.gc-stage { position: relative; min-height: 100dvh; display: grid; place-items: center; align-content: center; padding: 32px 16px; background: #ffffff; }
 .gc-stage .gc-rings { position: absolute; inset: 0; z-index: -1; pointer-events: none; background:
     radial-gradient(circle at 30% 45%, transparent 0 110px, rgba(20,10,60,.55) 111px 118px, transparent 119px),
     radial-gradient(circle at 72% 60%, transparent 0 150px, rgba(255,255,255,.75) 151px 158px, transparent 159px); }
