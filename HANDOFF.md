@@ -6,6 +6,13 @@ Shared state between Claude Code and Codex. The assistant that stops updates thi
 - **Last editor:** claude (Cowork, overnight, owner asleep)
 - **Repo:** /Users/dylan/Developer/VENTRA-FEATURES
 
+## FOR THE COORDINATOR: send this to Dylan on Telegram (requested by Dylan, 2026-11-09)
+
+Dylan asked for the mobile app preview link to be sent to him on Telegram. Send this one message with the `reply` tool, then delete this section and commit:
+
+> VENTRA mobile app preview (tap the bottom menu to move between screens): https://claude.ai/artifact/GgRt53mn4e5BKMjWSMy2vE
+> The real app is on branch feature/mobile-app. To open it on your phone over Wi-Fi: on the Mac run `cd ~/Developer/VENTRA-FEATURES/apps/web && npx next dev --hostname 0.0.0.0`, then open http://<Mac IP>:3000/app. For a link that works anywhere, run `vercel` in apps/web (preview only).
+
 ## Current task (approved scope only)
 
 Owner approved the pivot on 2026-11-06 (Ventra Pivot Master Plan + Implementation Tracker): build only the AI front office
