@@ -5,7 +5,7 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 @import "tw-animate-css";
-@import "shadcn/tailwind.css"; /* shadcn's state variants (data-open, data-checked…) that glasscn components rely on */
+@import "./shadcn-tailwind.css"; /* shadcn's state variants (data-open, data-checked…) that glasscn components rely on */
 @source "../../../components";
 @source "../../ui";
 @source "../../(ventra)";
