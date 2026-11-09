@@ -23,7 +23,6 @@ export default function GlassLab() {
       <main className="lab-stage">
         <div className="lab-plate">
           <i className="lab-bolt tl" /><i className="lab-bolt tr" /><i className="lab-bolt bl" /><i className="lab-bolt br" />
-          <Slab><button type="button" className="pill-black">Start project</button></Slab>
           <Slab iri />
           <p className="lab-caption">UI lab · test 2: thick clear glass slab with a bright rim, inner bevel, prismatic edge and a coloured light spill, matched to your reference.</p>
           <button type="button" className="lab-toggle" onClick={() => setDark(!dark)}>{dark ? 'Light background' : 'Dark background'}</button>
