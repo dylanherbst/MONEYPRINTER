@@ -13,7 +13,7 @@ import type { LlmMessage, StreamLlm, ToolResultBlock, ToolSpec, ToolUseBlock } f
 import type { ChannelAuth, Rpc } from '../orchestrator';
 import type { OperatingMode } from '../contracts';
 import { decide } from '../permissions';
-import { availabilityFor } from '../settings';
+import { availabilityFor, knowledgeAnswer } from '../settings';
 import type { AgentSettings } from '../settings';
 import { canTransition, isContactState } from '../state';
 import type { ContactState } from '../state';
@@ -65,6 +65,27 @@ export function matchFaqs(question: string, faqs: AgentSettings['faqs'], max = 2
   const q = words(question);
   return faqs.map(f => { const fw = words(f.q + ' ' + f.a); let n = 0; for (const w of q) if (fw.has(w)) n++; return { f, n: n + (words(f.q).size && [...words(f.q)].every(w => q.has(w)) ? 2 : 0) }; })
     .filter(x => x.n > 0).sort((a, b) => b.n - a.n).slice(0, max).map(x => x.f);
+}
+
+const hasKnowledge = (s: AgentSettings) => { const k = s.knowledge; return !!k && (k.services.length + k.offers.length + k.policies.length + k.objections.length) > 0; };
+export const NO_ANSWER = 'No answer on file. Say you do not have that in front of you and offer to take a message or put them through.';
+/** What answer_faq hands back to the model: the business's own words (knowledge base, then FAQs), an objection rule's
+ * reply, or an honest "not on file". hit false: nothing to state (logged as faq-miss). Never a generated fact. */
+export function faqLookup(question: string, s: AgentSettings, now: number): { hit: boolean; result: string } {
+  const k = knowledgeAnswer(question, s, now);
+  if (k.objection) return { hit: true, result: JSON.stringify([{ question: 'objection', answer: k.objection.response, ...(k.objection.escalate ? { note: 'Then offer to take a message so a person from the team follows up.' } : {}) }]) };
+  const noPrice = (names: string[]) => names.filter(x => x !== 'that');
+  if (!k.answers.length && k.missingPrice.length) {
+    const named = noPrice(k.missingPrice);
+    return { hit: false, result: `No price on file${named.length ? ` for ${named.join(', ')}` : ''}. Do not give a price, range or estimate. Say you do not have that price in front of you, that the team will check and get back to them, and offer to take a message.` };
+  }
+  // FAQs the knowledge base did not already cover, by the original matcher (kept so existing FAQ answers behave as before).
+  const seen = new Set(k.answers.map(a => a.answer));
+  const faqs = matchFaqs(question, s.faqs).filter(f => !seen.has(f.a)).map(f => ({ question: f.q, answer: f.a }));
+  const answers = [...k.answers.map(a => ({ question: a.topic, answer: a.answer })), ...faqs].slice(0, 3);
+  if (!answers.length) return { hit: false, result: NO_ANSWER };
+  const missing = noPrice(k.missingPrice);
+  return { hit: true, result: JSON.stringify(missing.length ? [...answers, { question: 'not on file', answer: `No price on file for ${missing.join(', ')}: do not give one, say the team will confirm it.` }] : answers) };
 }
 
 /** Vapi's conversation as Messages API turns: user first and last, same-role turns merged. */
@@ -135,9 +156,9 @@ export async function receptionistSession(d: Omit<ReceptionistDeps, 'llm' | 'con
     const input = t.input ?? {};
     switch (t.name) {
       case 'answer_faq': {
-        const hits = matchFaqs(str(input.question, 300), s.faqs);
-        await outcome(hits.length ? 'faq' : 'faq-miss');
-        return hits.length ? JSON.stringify(hits.map(f => ({ question: f.q, answer: f.a }))) : 'No answer on file. Say you do not have that in front of you and offer to take a message or put them through.';
+        const r = faqLookup(str(input.question, 300), s, d.now);
+        await outcome(r.hit ? 'faq' : 'faq-miss');
+        return r.result;
       }
       case 'qualify': {
         await ensureContact(input.phone, str(input.name, 160) || undefined);
@@ -324,7 +345,7 @@ export async function* runReceptionistTurn(d: ReceptionistDeps): AsyncGenerator<
     c0 ? `Caller on record: ${c0.contact.name ?? 'name unknown'}, stage ${c0.contact.state}.` : (d.call.caller ? 'New caller.' : 'Caller’s number is withheld.'),
     c0 && Object.keys(c0.contact.answers).length ? `Answers on file: ${JSON.stringify(c0.contact.answers)}.` : '',
     c0?.appointment ? `They have a booking on ${formatSlot(Date.parse(c0.appointment.starts), tz)}.` : '',
-    s.faqs.length ? '' : 'The business has not added any FAQ answers yet.',
+    s.faqs.length || hasKnowledge(s) ? '' : 'The business has not added any FAQ answers yet.',
     s.transferNumber ? '' : 'Transfers are not set up: take a message instead.',
   ].filter(Boolean).join('\n');
   const system = receptionistSystemPrompt(s, formatSlot(d.now, tz), contactLine);

@@ -1,8 +1,36 @@
 // Setter system prompt. The version string is logged with every message it produces (tracker 0.6), so bump it on any change.
 import type { Channel } from '../handoff';
+import { activeOffers, emptyKnowledge, formatPriceAud } from '../settings';
+import type { KnowledgeBase } from '../settings';
 import type { SetterConfig } from './config';
 
-export const SETTER_PROMPT_VERSION = 'setter/qualify@1';
+// @2 (A-16): the business's knowledge base (services and prices, offers, policies, objection rules) and the
+// no-invented-price rule.
+export const SETTER_PROMPT_VERSION = 'setter/qualify@2';
+
+/** Owner text on one prompt line: newlines and runs of whitespace collapsed, so it cannot start lines of its own. */
+const one = (t: string) => t.replace(/\s+/g, ' ').trim();
+
+/** The knowledge base as prompt lines. Nothing on file: an explicit "no price list", so the model never fills the gap.
+ * Offers past their end date (in timeZone, on the day of now) are left out here, in code. */
+export function knowledgeLines(raw: KnowledgeBase | undefined, now: number = Date.now(), timeZone = 'Australia/Perth'): string[] {
+  const k: KnowledgeBase = {
+    services: (raw?.services ?? []).map(x => ({ ...x, name: one(x.name), description: one(x.description), priceUnit: one(x.priceUnit) })),
+    offers: activeOffers({ ...emptyKnowledge(), offers: raw?.offers ?? [] }, now, timeZone).map(o => ({ ...o, name: one(o.name), details: one(o.details) })),
+    policies: (raw?.policies ?? []).map(p => ({ ...p, topic: one(p.topic), text: one(p.text) })),
+    objections: (raw?.objections ?? []).map(r => ({ ...r, triggers: r.triggers.map(t => one(t).replace(/"/g, "'")), response: one(r.response) })),
+  };
+  const { services, offers, policies, objections } = k;
+  const out: string[] = ['Services and prices (state a price only exactly as written here; "price not on file" means you do not know it):'];
+  if (services.length) out.push(...services.map(x => `- ${x.name}: ${x.priceAud === null ? 'price not on file' : formatPriceAud(x.priceAud, x.priceUnit)}${x.durationMinutes ? `, ${x.durationMinutes} minutes` : ''}${x.description ? `. ${x.description}` : ''}`));
+  else out.push('- No price list on file. You do not know any prices.');
+  out.push('- Asked a price that is not written here (or "price not on file"): never guess, estimate or give a range. Say you will check with the team and get back to them, and call escalate_human.');
+  if (offers.length) out.push('', 'Current offers:', ...offers.map(o => `- ${o.name}: ${o.details}${o.priceAud !== null ? ` (${formatPriceAud(o.priceAud)})` : ''}${o.validUntil ? ` Ends ${o.validUntil}.` : ''}`));
+  if (policies.length) out.push('', 'Policies (state them as written):', ...policies.map(p => `- ${p.topic}: ${p.text}`));
+  if (objections.length) out.push('', 'Objections: when the contact says something like the phrases below, answer in the spirit of the given reply (keep it short, in your own channel style):',
+    ...objections.map(r => `- "${r.triggers.join('", "')}": ${r.response}${r.escalate ? ' Then call escalate_human so a person follows up.' : ''}`));
+  return out;
+}
 
 const style: Record<Channel, string> = {
   sms: 'Reply style: SMS. One to three short sentences, under 300 characters, one question at a time, Australian English, warm and direct, no emojis, no links unless given in the facts.',
@@ -14,7 +42,9 @@ const style: Record<Channel, string> = {
   messenger: 'Reply style: Messenger chat. One to three short, friendly sentences, under 400 characters, one question at a time. No links.',
 };
 
-export function setterSystemPrompt(c: SetterConfig, nowLabel: string, channel: Channel = 'sms'): string {
+/** c.knowledge: the business's knowledge base, attached by settings.setterConfigFor. Absent: no price list on file.
+ * now: picks which offers are still running (default: the current time, in the business's time zone). */
+export function setterSystemPrompt(c: SetterConfig & { knowledge?: KnowledgeBase }, nowLabel: string, channel: Channel = 'sms', now: number = Date.now()): string {
   return [
     `You are the AI assistant for ${c.businessName}, replying to leads by ${channel === 'sms' ? 'SMS' : channel === 'web-chat' ? 'website chat' : channel === 'instagram' ? 'Instagram DM' : channel === 'messenger' ? 'Facebook Messenger' : channel}. Current time: ${nowLabel} (${c.availability.timeZone}).`,
     `Your only job: turn this contact into a booked, confirmed ${c.meetingTitle} (${c.where}).`,
@@ -23,8 +53,10 @@ export function setterSystemPrompt(c: SetterConfig, nowLabel: string, channel: C
     'Good fit:', c.idealCustomer,
     'Not a fit:', c.notAFit,
     '',
-    'Facts you may state (nothing else about price, guarantees, discounts or results):',
+    'Facts you may state (these and the services, offers and policies below; nothing else about price, guarantees, discounts or results):',
     ...c.facts.map(f => '- ' + f),
+    '',
+    ...knowledgeLines(c.knowledge, now, c.availability.timeZone),
     '',
     'Find out, one short question at a time, in this order unless they already told you:',
     ...c.questions.map(q => `- ${q.id}: ${q.ask}${q.required ? '' : ' (optional)'}`),
