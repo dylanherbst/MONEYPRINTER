@@ -15,6 +15,14 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
+- Last cycle: c-ef7fc367 at 2026-11-11 00:43 AWST · 4 dispatched (A-9, A-10, A-16, A-29) + 4 reviews · 4 verified and committed · 0 new owner blockers
+- Committed on agent/develop: c9bd2c8e A-10 GET /api/front-office/performance · 85405836 A-9 GET contacts + activity, AU phone/email normalisation · bc7cfbe7 A-16 knowledge base (Setter prompt setter/qualify@2, Receptionist answer_faq) · 8deb3478 A-29 Meta 24h window guard (ladder step 3 now 20h). API_CONTRACTS.md A-9/A-10 sections updated (board commit).
+- Verification: npm --prefix apps/web test 890/890 (baseline 851), typecheck 0, lint 0. ventra-verify not run this cycle (no migrations or routes outside front-office API; next cycle should run it).
+- Owner decisions (non-blocking): approve the seeded objection replies (A-16); allow merging a chat visitor into an existing contact (A-9, needs migration); confirm "one owner task then stop" when the Meta window closes (A-29).
+- Backup FAILED again this cycle: `ventra-backup create` exit 1, no output. Newest complete backup still 2026-11-09 21:55. Needs ventra-devops diagnosis or the owner.
+- Next up: A-30 (voice, knowledge follow-ups), A-32 (voice, before A-11), A-31 (backend, CRM follow-ups), A-24 presets, A-25 lab persistence (A-9 done), A-26 Receptionist browser voice; W-1 still needs Playwright.
+
+### Previous cycle c-90917b1a
 - Last cycle: c-90917b1a at 2026-11-11 00:12 AWST · 7 dispatched (A-21 review, A-22, A-23, A-23h, A-23b + review, W-1 QA + finish) · 5 verified and committed · 0 new owner blockers
 - Owner note 2026-11-10 07:35 handled: planned A-22, A-23 (server) + A-23b (UI), A-24..A-28, plus A-29 (Meta 24h window guard from research). A-9 priority raised to 2 (A-25 depends on it).
 - Committed on agent/develop: 58f4bc6b A-22 research (docs/agents/FRONT_OFFICE_RESEARCH.md) · 4ea05b17 A-21 modes + approval-queue routes · 0b5bd67b A-23 Live AI Test engine · af563b9c A-23h hardening · 6f905221 A-23b Setter Lab UI.
@@ -113,10 +121,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-11 00:29 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-11 01:02 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `6f90522 feat(setter-lab): Demo / Live AI Test / Connected mode switch; Live only for a server-verified Supabase user (no client user id); per-turn LIVE/DEMO badge, tokens, latency, AUD estimate; today's usage vs cap [A-23b]`
-- Lock: coordinator (pid 36804, 17 min old)
+- HEAD: `8deb347 feat(front-office): Meta 24-hour window guard: gate() and the jobs runner refuse automated Instagram/Messenger sends outside 24h of the last inbound; reroute only with explicit SMS/email consent, else one owner task; never HUMAN_AGENT; ladder step 3 at 20h [A-29]`
+- Lock: coordinator (pid 45489, 19 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -135,9 +143,9 @@ _Generated 2026-11-11 00:29 by `ventra-handoff snapshot`. Do not hand-edit this 
  D apps/web/app/lab/page.tsx
  M apps/web/package-lock.json
  M apps/web/package.json
+ M docs/agents/API_CONTRACTS.md
  M docs/agents/TASKS.md
  M docs/agents/TASK_BOARD.json
- M docs/agents/WEBSITE_BOARD.json
  D docs/design/LIQUID_GLASS_SPEC.md
  D docs/design/reference/dylan-home-dashboard.png
  D docs/design/reference/dylan-liquid-glass-kit.png
@@ -176,15 +184,15 @@ _Generated 2026-11-11 00:29 by `ventra-handoff snapshot`. Do not hand-edit this 
  scripts/agents/install.sh                         |   2 +-
  scripts/agents/ventra-backup                      |   3 +
  scripts/agents/ventra-verify                      |  11 +-
- 33 files changed, 205 insertions(+), 1688 deletions(-)
+ 33 files changed, 184 insertions(+), 1705 deletions(-)
 ```
 - Recent commits:
 ```text
-6f90522 feat(setter-lab): Demo / Live AI Test / Connected mode switch; Live only for a server-verified Supabase user (no client user id); per-turn LIVE/DEMO badge, tokens, latency, AUD estimate; today's usage vs cap [A-23b]
-af563b9 fix(setter-lab): harden Live AI Test: live model must be metered (private brand), anthropic-only fetch refuses userinfo and redirects, byte-based worst-case estimate, process-wide usage store; tests for concurrency, 500 reservation, no secrets in state [A-23h]
-0b5bd67 feat(setter-lab): Live AI Test engine on the real Setter agent with sandboxed side effects, per-turn tokens/latency/AUD estimate, server-side daily cap (FRONT_OFFICE_LAB_DAILY_CAP_AUD, default 5), caller required, anthropic-only fetch fence; demo unchanged [A-23]
-4ea05b1 feat(front-office): modes and approval-queue API routes (GET/PUT modes, list pending actions, approve/reject through createJobsExecutor(createSetterExecutor)), members-only, generic cross-tenant errors; route tests [A-21]
-58f4bc6 docs(front-office): A-22 research on Setter and Receptionist architecture, AUD costs, AU numbers, consent and Meta limits [A-22]
+8deb347 feat(front-office): Meta 24-hour window guard: gate() and the jobs runner refuse automated Instagram/Messenger sends outside 24h of the last inbound; reroute only with explicit SMS/email consent, else one owner task; never HUMAN_AGENT; ladder step 3 at 20h [A-29]
+bc7cfbe feat(front-office): business knowledge base (services, prices, offers, policies, objection rules) in agent settings; Setter prompt and Receptionist answer_faq answer listed prices and refuse unlisted ones; expired offers filtered in code; template seeds only state what templates say [A-16]
+8540583 feat(front-office): one customer record read path: GET /api/front-office/contacts and /activity, AU phone and email normalisation, read-side dedupe, local-crm import plan (no writes), PGlite RLS tests [A-9]
+c9bd2c8 feat(front-office): lead-to-booking performance from fo_* rows at GET /api/front-office/performance; paged reads, cohort-scoped events/appointments, attended null with reason, null ratios on zero denominators [A-10]
+7ad03ae chore(coordinator): cycle c-90917b1a backup failure note
 ```
 <!-- git-state:end -->
 

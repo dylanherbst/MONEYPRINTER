@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-10T16:43:00Z",
+  "updatedAt": "2026-11-10T17:10:00Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-90917b1a",
-    "startedAt": "2026-11-10T16:12:09Z",
-    "endedAt": "2026-11-10T16:45:00Z",
-    "summary": "Owner note 2026-11-10 planned (A-22..A-29). Committed A-21, A-22, A-23, A-23h, A-23b (851/851). Setter Lab Live AI Test usable by a signed-in user within A$5/day cap; not yet tried with a real model call. W-1 still blocked on a browser check (no Playwright)."
+    "id": "c-ef7fc367",
+    "startedAt": "2026-11-10T16:43:09Z",
+    "endedAt": "2026-11-10T17:12:00Z",
+    "summary": "Committed A-10 performance API, A-9 contacts/activity read path, A-16 knowledge base, A-29 Meta 24h guard; each reviewed (pass with nits, A-10/A-16 after one fix round); 890/890 tests, typecheck, lint. Follow-ups A-30, A-31, A-32 queued. Backup create failed again. W-1 still blocked on Playwright."
   },
   "tasks": [
     {
@@ -1338,7 +1338,7 @@
       "phase": 1,
       "module": "platform",
       "owner": "ventra-backend",
-      "state": "queued",
+      "state": "done",
       "priority": 3,
       "dependsOn": [
         "A-1"
@@ -1358,14 +1358,20 @@
       "plan": "Build Plan p.6 'one source of truth'; Phase 0 inventory REPAIR row",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
-      "lastRunId": null,
-      "runIds": [],
-      "commits": [],
-      "evidence": [],
+      "startedAt": "2026-11-10T16:45:00Z",
+      "finishedAt": "2026-11-10T16:56:00Z",
+      "lastRunId": "c-ef7fc367",
+      "runIds": ["c-ef7fc367"],
+      "commits": ["85405836"],
+      "evidence": [
+        {"at": "2026-11-10T16:55:00Z", "kind": "diff", "detail": "6 new files: lib/front-office/crm.ts, activity.ts, api/front-office/contacts/route.ts, activity/route.ts, test/front-office-crm.test.ts, front-office-crm-db.test.ts. No migration needed (named file would clash with 202611100002_front_office_connections.sql)."},
+        {"at": "2026-11-10T16:55:00Z", "kind": "review", "detail": "ventra-review PASS WITH NITS: auth+membership before fo_* reads, caller token (RLS), workspace filter, no filter injection, keyset paging correct, PGlite RLS test real. Lows queued as A-31."},
+        {"at": "2026-11-10T16:55:00Z", "kind": "test", "detail": "coordinator: npm --prefix apps/web test 879/879 pass, 0 fail (baseline 851); typecheck exit 0; eslint on A-9 files exit 0"},
+        {"at": "2026-11-10T16:56:00Z", "kind": "commit", "detail": "85405836 on agent/develop; API_CONTRACTS.md A-9 section updated by coordinator"}
+      ],
       "blocker": null,
-      "notes": "Workstream A (owner directive 2026-11-09): AI Setter + AI Receptionist. Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site (owner's frontend)."
+      "updatedAt": "2026-11-10T16:56:00Z",
+      "notes": "Read path only. Open: chat visitor who later gives a phone/email on another record stays separate (fo_save_details: no silent merges) - merge needs a migration + owner decision; Setter accepts only +61 phones (should use normalisePhone); activityDigest not yet wired into Setter/Receptionist; contacts/<id>, conversations, messages, bookings routes still planned; per-route rate limiter (rate-limit.ts out of scope)."
     },
     {
       "id": "A-10",
@@ -1373,7 +1379,7 @@
       "phase": 1,
       "module": "setter",
       "owner": "ventra-feature",
-      "state": "queued",
+      "state": "done",
       "priority": 3,
       "dependsOn": [
         "A-1"
@@ -1389,14 +1395,19 @@
       "plan": "Owner directive: show real lead-to-booking performance",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
-      "lastRunId": null,
-      "runIds": [],
-      "commits": [],
-      "evidence": [],
+      "startedAt": "2026-11-10T16:45:00Z",
+      "finishedAt": "2026-11-10T16:52:00Z",
+      "lastRunId": "c-ef7fc367",
+      "runIds": ["c-ef7fc367"],
+      "commits": ["c9bd2c8e"],
+      "evidence": [
+        {"at": "2026-11-10T16:50:00Z", "kind": "review", "detail": "ventra-review PASS WITH NITS; medium: limit(5001) under PostgREST default max_rows would silently undercount; events/appointments not cohort-scoped. Sent back once; fixed with 1000-row paging and 200-id cohort chunks, too_large at caps."},
+        {"at": "2026-11-10T16:52:00Z", "kind": "test", "detail": "coordinator: node --test apps/web/test/front-office-performance.test.ts 8/8 pass (incl. >1000-row paging test); typecheck exit 0; lint exit 0; full suite later 879/879"},
+        {"at": "2026-11-10T16:52:00Z", "kind": "commit", "detail": "c9bd2c8e on agent/develop (3 new files); API_CONTRACTS.md A-10 section replaced by coordinator"}
+      ],
       "blocker": null,
-      "notes": "Workstream A (owner directive 2026-11-09): AI Setter + AI Receptionist. Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site (owner's frontend)."
+      "updatedAt": "2026-11-10T16:56:00Z",
+      "notes": "attended always null with a reason: nothing sets fo_appointments.status='attended' (needs a backend function). 'Per business' = one workspace per call. booked counts any appointment status; lost uses current state and can overlap booked. No /tools test page (out of scope; fold into A-27 overview). Own rate limiter 60/min (move to workspaceLimits later)."
     },
     {
       "id": "A-11",
@@ -1899,7 +1910,7 @@
       "phase": "A",
       "module": "shared",
       "owner": "ventra-voice",
-      "state": "queued",
+      "state": "done",
       "priority": 2,
       "dependsOn": [
         "A-1"
@@ -1918,17 +1929,22 @@
       "plan": "docs/agents/FRONT_OFFICE_AUDIT.md",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
-      "lastRunId": "c-255a1537",
+      "startedAt": "2026-11-10T16:45:00Z",
+      "finishedAt": "2026-11-10T16:56:00Z",
+      "lastRunId": "c-ef7fc367",
       "runIds": [
-        "c-255a1537"
+        "c-255a1537",
+        "c-ef7fc367"
       ],
-      "commits": [],
-      "evidence": [],
+      "commits": ["bc7cfbe7"],
+      "evidence": [
+        {"at": "2026-11-10T16:53:00Z", "kind": "review", "detail": "ventra-review PASS WITH NITS; mediums: one shared word ('session') gave another service's price; template seeds stated unapproved 'free'; Setter prompt listed expired offers. Sent back once; fixed (all/>=2 name words, seeds $0 only when template text says free, expired offers filtered in code, trigger min 4 chars, whitespace collapsed in prompt lines)."},
+        {"at": "2026-11-10T16:55:00Z", "kind": "test", "detail": "coordinator: node --test apps/web/test/front-office-knowledge.test.ts 9/9 pass; npm --prefix apps/web test 879/879 pass 0 fail; typecheck exit 0; eslint on A-16 files exit 0"},
+        {"at": "2026-11-10T16:56:00Z", "kind": "commit", "detail": "bc7cfbe7 on agent/develop (settings.ts, setter/prompt.ts, receptionist/agent.ts, test/front-office-knowledge.test.ts). Setter prompt version setter/qualify@2."}
+      ],
       "blocker": null,
-      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit.",
-      "updatedAt": "2026-11-09T21:18:48.280Z"
+      "notes": "Follow-ups queued: A-30 (settings PUT without knowledge wipes it; contracts.ts + API_CONTRACTS knowledge shape; receptionist prompt mentions objections via answer_faq, bump receptionist/voice@2). Owner to approve seeded objection replies; no knowledge editor in app/ui yet (Workstream B).",
+      "updatedAt": "2026-11-10T16:56:00Z"
     },
     {
       "id": "A-17",
@@ -2242,12 +2258,15 @@
     },
     {
       "id": "A-29", "title": "Meta 24-hour window guard for automated follow-ups: before any automated Instagram/Messenger send from the jobs runner or gate(), require inReplyWindow; outside it reroute to consented SMS/email or create an owner task; never HUMAN_AGENT from automation; third ladder gap 23h to 20h; boundary tests 23/24/25h",
-      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": [],
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "done", "priority": 2, "dependsOn": [],
       "scope": ["apps/web/lib/front-office/jobs.ts", "apps/web/lib/front-office/pending-actions.ts", "apps/web/test/front-office-meta-window*.test.ts"],
       "acceptance": ["No automated Meta send outside 24h of last inbound (tested)", "Ladder step 3 at 20h", "Existing tests pass"],
       "plan": "docs/agents/FRONT_OFFICE_RESEARCH.md section 8 risk 1, section 10 item 1", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [{"at": "2026-11-10T16:27:00Z", "kind": "note", "detail": "c-90917b1a: planned from A-22. Today runner follow-ups go only by SMS/email, so this is a guard to ship with any Meta follow-up path, not a live bug."}], "blocker": null,
-      "notes": "Must land before A-11 enables Meta follow-ups.", "updatedAt": "2026-11-10T16:27:00Z"
+      "startedAt": "2026-11-10T16:57:00Z", "finishedAt": "2026-11-10T17:08:00Z", "lastRunId": "c-ef7fc367", "runIds": ["c-ef7fc367"], "commits": ["8deb3478"], "evidence": [{"at": "2026-11-10T16:27:00Z", "kind": "note", "detail": "c-90917b1a: planned from A-22. Today runner follow-ups go only by SMS/email, so this is a guard to ship with any Meta follow-up path, not a live bug."},
+        {"at": "2026-11-10T17:06:00Z", "kind": "test", "detail": "coordinator: updated test/front-office-setter.test.ts:108 ladder expectation 82_800_000 -> 72_000_000 (step 3 now 20h, per acceptance); npm --prefix apps/web test 890/890 pass 0 fail (11 new meta-window tests: 23h sends, 24h and 25h refused); specialist typecheck 0, lint 0"},
+        {"at": "2026-11-10T17:07:00Z", "kind": "review", "detail": "ventra-review PASS WITH NITS: 24h boundary refused (now - t < 24h), gate refuses Meta without window, reroute needs explicit consent and goes through checkJob, no HUMAN_AGENT, Meta runner path not wired in jobs/run route. Medium: window not re-checked at owner approval -> A-32."},
+        {"at": "2026-11-10T17:08:00Z", "kind": "commit", "detail": "8deb3478 on agent/develop"}], "blocker": null,
+      "notes": "Must land before A-11 enables Meta follow-ups. Out-of-window jobs become one owner task and the sequence stops (owner to confirm). SMS/email reroute never fires today: fo_contact_context returns no per-channel consent.", "updatedAt": "2026-11-10T17:08:00Z"
     },
     {
       "id": "A-23b", "title": "Setter Lab UI: Demo / Live AI Test / Connected (disabled with reason) mode switch, per-turn tokens, latency, AUD cost and remaining daily cap; Live only for a signed-in user",
@@ -2306,6 +2325,33 @@
       "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
       "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [], "blocker": null,
       "notes": "Owner note 2026-11-10 07:35.", "updatedAt": "2026-11-10T16:20:00Z"
+    },
+    {
+      "id": "A-30", "title": "Knowledge base follow-ups: settings PUT keeps stored knowledge when the body omits it; knowledge shape in contracts.ts and API_CONTRACTS.md; Receptionist prompt says objections go through answer_faq (bump receptionist/voice@2 and its lab test line)",
+      "phase": "A", "module": "shared", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["A-16"],
+      "scope": ["apps/web/app/api/front-office/settings/route.ts", "apps/web/lib/front-office/contracts.ts", "apps/web/lib/front-office/receptionist/prompt.ts", "apps/web/test/front-office-receptionist-lab.test.ts", "apps/web/test/front-office-knowledge*.test.ts", "docs/agents/API_CONTRACTS.md"],
+      "acceptance": ["PUT without knowledge leaves the saved knowledge unchanged (tested)", "Contract documents the knowledge shape", "lint, typecheck, tests pass"],
+      "plan": "A-16 review finding 5 and specialist proposals", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": "c-ef7fc367", "runIds": ["c-ef7fc367"], "commits": [], "evidence": [{"at": "2026-11-10T16:56:00Z", "kind": "note", "detail": "c-ef7fc367: planned from A-16 review (PUT omitting knowledge overwrites it with empty lists)."}], "blocker": null,
+      "notes": "", "updatedAt": "2026-11-10T16:56:00Z"
+    },
+    {
+      "id": "A-31", "title": "CRM follow-ups: stricter AU phone validation (valid area codes, 04 mobiles exactly 9 digits after +61, 13xxxx numbers supported or documented), email search tolerant of legacy mixed-case rows, PGlite test for created_at ties in keyset paging; Setter accepts local AU phone formats via normalisePhone",
+      "phase": "A", "module": "platform", "owner": "ventra-backend", "state": "queued", "priority": 3, "dependsOn": ["A-9"],
+      "scope": ["apps/web/lib/front-office/crm.ts", "apps/web/test/front-office-crm*.test.ts", "apps/web/lib/front-office/setter/agent.ts"],
+      "acceptance": ["0000000000 and 0112345678 refused; 13 12 34 handled per decision", "tie test passes on real migrations", "lint, typecheck, tests pass"],
+      "plan": "A-9 review findings 1, 2, 4, 6; A-9 open question 2", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": "c-ef7fc367", "runIds": ["c-ef7fc367"], "commits": [], "evidence": [{"at": "2026-11-10T16:56:00Z", "kind": "note", "detail": "c-ef7fc367: planned from A-9 review (all low severity)."}], "blocker": null,
+      "notes": "Contact merge (chat visitor later matching another record) needs an owner decision and a new migration number; not in this task.", "updatedAt": "2026-11-10T16:56:00Z"
+    },
+    {
+      "id": "A-32", "title": "Meta window follow-ups (before A-11): re-check inReplyWindow when an owner approves a held Instagram/Messenger item; reject future lastInbound timestamps; per-channel consent (sms/email) returned by fo_contact_context so out-of-window reroute can work; wire Meta pair into the jobs/run runner",
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["A-29"],
+      "scope": ["apps/web/lib/front-office/pending-actions.ts", "apps/web/lib/front-office/meta.ts", "apps/web/lib/front-office/jobs.ts", "apps/web/app/api/front-office/jobs/run/**", "apps/web/test/front-office-meta-window*.test.ts"],
+      "acceptance": ["Approving a held Meta item after the window closes does not send (tested)", "Future lastInbound refused", "Consent column work split to ventra-backend if a migration is needed"],
+      "plan": "A-29 review findings 1-3", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": "c-ef7fc367", "runIds": ["c-ef7fc367"], "commits": [], "evidence": [{"at": "2026-11-10T17:08:00Z", "kind": "note", "detail": "c-ef7fc367: planned from A-29 review. Not live today: Meta runner path is not wired."}], "blocker": null,
+      "notes": "Blocks A-11.", "updatedAt": "2026-11-10T17:08:00Z"
     }
   ]
 }

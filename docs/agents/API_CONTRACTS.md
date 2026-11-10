@@ -127,19 +127,44 @@ business: the same generic `403 no_workspace_access` (nothing about the other bu
   setter lab.
 
 ### One customer record and history (A-9)
-- `GET /api/front-office/contacts?state=<ContactState>&q=<text>&limit=50&before=<createdAt>` -> `{ items: Contact[] }`.
+EXISTS (read path): `apps/web/app/api/front-office/contacts/route.ts`, `.../activity/route.ts`; logic in
+`lib/front-office/crm.ts` and `lib/front-office/activity.ts`. Tests: `test/front-office-crm.test.ts`,
+`test/front-office-crm-db.test.ts`. Signed-in members; not a member gets `403 no_workspace_access`.
+- `GET /api/front-office/contacts?state=<ContactState>&q=<name | email | phone>&limit=1..200 (50)&before=<createdAt>&beforeId=<id>`
+  -> `{ items: Contact[], next: { before, beforeId } | null }`. Newest first. Phone search accepts AU local formats
+  (0412 345 678) and is exact; email search is the lower-cased value; name search allows letters, digits, space and
+  `' . -` only; anything else is `400`.
+- `GET /api/front-office/activity?contact=<id>&limit=1..200 (50)&before=<activity id>` -> `{ items: ActivityEvent[],
+  next: number | null }` (`fo_events` newest first; pass `next` back as `before`). A contact from another workspace gets
+  an empty list, the same as an unknown id.
+- Writers pass phone and email through `normalisePhone` and `normaliseEmail` (crm.ts) before any `fo_*` call.
+- Still planned below: `contacts/<id>`, conversations, messages, bookings.
 - `GET /api/front-office/contacts/<id>` -> `{ contact: Contact, bookings: Booking[], calls: CallRecord[] }`; an id from
   another workspace gets the same `invalid_request` answer as an unknown id, so it never reveals that the record exists.
 - `GET /api/front-office/conversations` -> `{ items: Conversation[] }`.
 - `GET /api/front-office/messages?contact=<id>&before=<createdAt>` -> `{ items: Message[] }` (oldest first, 100 max).
-- `GET /api/front-office/activity?contact=<id>` (or the whole workspace without `contact`) -> `{ items: ActivityEvent[] }`.
 - `GET /api/front-office/bookings?from=<ISO>&to=<ISO>` -> `{ items: Booking[] }`.
 - One contact per person per workspace: phone (E.164) and email (lower case) are unique; no silent merges.
 
-### Lead-to-booking performance (A-10)
-- `GET /api/front-office/performance?from=<ISO date>&to=<ISO date>&tz=<IANA>` -> `{ from, to, channels: { channel:
-  ChannelKind, enquiries, qualified, booked, attended, lost }[], total: { same counts } }`. Counted only from fo_* rows;
-  nothing exists yet: all zeros, never estimates. Shape is finalised (and gets a validator) in A-10.
+### GET /api/front-office/performance?workspace=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD&tz=<IANA zone> (A-10)
+EXISTS: `apps/web/app/api/front-office/performance/route.ts` (logic `lib/front-office/performance.ts`). Tests:
+`apps/web/test/front-office-performance.test.ts`.
+- Auth: signed in, workspace member (reads under the caller's token, so RLS applies). Counts only; no names, numbers or text.
+- Range: from/to inclusive local days in tz (default Australia/Sydney), at most 366 days.
+- Response: `{ performance: { workspaceId, range{from,to,timeZone,startsAt,endsAt}, asOf, empty, business: StageCounts,
+  byChannel: [{ channel: ChannelKind|'unattributed', ...StageCounts }], reasons{ attended? } } }`.
+  StageCounts = `{ enquiries, qualified, booked, attended: number|null, lost, conversion{ qualifiedFromEnquiry,
+  bookedFromQualified, bookedFromEnquiry, attendedFromBooked, lostFromEnquiry } }`; a ratio is null when its denominator
+  is 0 or its stage is null.
+- Cohort: enquiries = contacts created in range; later stages are what those contacts have reached as of `asOf`.
+  Channel = 'created' event detail, else first 'inbound' event. qualified = state event to qualified/booked, a booking,
+  or state qualified/booked/no-show now. booked = any fo_appointments row of any status (cancelled included) or state
+  event to booked. lost = now disqualified or opted out (may overlap booked). attended = null with a reason until
+  something records attendance.
+- Reads are paged (1000 rows) and events/appointments are read only for cohort contacts; past the caps (5000 contacts,
+  20000 events, 5000 appointments) the route refuses with `too_large` and never returns a partial count.
+- Errors: `signed_out`, `session_revoked`, `no_workspace_access`, `invalid_request` (bad dates, to<from, >366 days),
+  `too_large`, `storage_unavailable`, `rate_limited`.
 
 ### Connections and calendar (A-12)
 - `GET /api/front-office/connections` -> `{ items: ChannelConnectionState[] }`, one per `ConnectionTarget`. Never returns
