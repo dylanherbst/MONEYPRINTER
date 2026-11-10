@@ -16,6 +16,10 @@ import type { Permission, PermissionAction } from './permissions';
 import { parsePendingAction } from './contracts';
 import type { OperatingMode, OperatingModes, PendingAction, PendingActionPayload, PendingActionStatus, Product } from './contracts';
 import type { Rpc } from './orchestrator';
+import { inReplyWindow } from './meta';
+
+/** Why gate() refused an automated Instagram or Messenger message. */
+export const META_WINDOW_CLOSED = 'Meta’s 24-hour reply window has closed (or the contact has not messaged on Instagram or Messenger), so nothing was sent automatically. Reply from the Instagram or Facebook app.';
 
 export type PendingActionErrorCode = 'invalid' | 'not_allowed' | 'not_found' | 'forbidden' | 'conflict' | 'unavailable';
 export class PendingActionError extends Error {
@@ -120,9 +124,18 @@ export async function gate(input: {
   request?: Omit<PendingActionRequest, 'product'>;
   execute: ActionExecutor;
   channelId?: string | null;
+  /** Meta's 24-hour reply window (task A-29): for a send or follow-up on Instagram or Messenger, when the contact last
+   * messaged the business. Missing or older than 24 hours: refused, never held or performed. Automation never uses the
+   * HUMAN_AGENT tag to get past the window; outside it a person replies from the Instagram or Facebook app. */
+  replyWindow?: { lastInbound: string | number | null; now?: number };
 }): Promise<GateResult> {
   let permission = decide(await input.store.mode(input.product), input.action);
   if (permission.decision === 'refuse') return { decision: 'refuse', permission };
+  const p = input.request?.payload;
+  if (p && (p.kind === 'send' || p.kind === 'follow_up') && (p.channel === 'instagram' || p.channel === 'messenger')
+    && !inReplyWindow(input.replyWindow?.lastInbound ?? null, input.replyWindow?.now ?? Date.now())) {
+    return { decision: 'refuse', permission: { decision: 'refuse', mode: permission.mode, reason: META_WINDOW_CLOSED, say: decide('enquiry_only', input.action).say } };
+  }
   if (input.action !== 'take_message') {
     if (!input.request || input.request.payload?.kind !== input.action) throw new PendingActionError('invalid', 'Action and payload kind must match.');
     checkRequest({ ...input.request, product: input.product });

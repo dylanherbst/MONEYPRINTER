@@ -24,10 +24,13 @@ import { fillTemplate } from './setter/config';
 import type { SetterConfig } from './setter/config';
 import type { SmsSender } from './sms-send';
 import type { EmailSender } from './email';
+import { inReplyWindow } from './meta';
+import type { MetaKind, MetaSender } from './meta';
 
 const MIN = 60_000, HOUR = 60 * MIN, DAY = 24 * HOUR;
-/** Gap before each follow-up: touches at 5 min, 1 h, 1 d, 3 d, 7 d after going quiet, then monthly. */
-export const ladderGaps = [5 * MIN, 55 * MIN, 23 * HOUR, 2 * DAY, 4 * DAY];
+/** Gap before each follow-up: touches at 5 min, 1 h, 21 h, about 3 d and 7 d after going quiet, then monthly. Step 3 is
+ * 20 h after step 2 (A-29) so on Instagram and Messenger it still lands inside Meta's 24-hour reply window. */
+export const ladderGaps = [5 * MIN, 55 * MIN, 20 * HOUR, 2 * DAY, 4 * DAY];
 export const MONTHLY = 30 * DAY, LADDER_MAX_STEP = 10;
 export const rescueGaps = [15 * MIN, DAY];
 export const FOLLOW_UP_PROMPT = 'setter/follow-up@1', REMINDER_PROMPT = 'setter/reminder@1', RESCUE_PROMPT = 'setter/no-show-rescue@1';
@@ -88,7 +91,9 @@ export function afterJobQuietHours(t: number, timeZone: string, q: QuietHours = 
 
 type Job = { id: string; contact: string; kind: 'follow-up' | 'reminder-24h' | 'reminder-2h' | 'no-show-rescue'; step: number; appointment: string | null };
 type Ctx = {
-  contact: { name: string | null; phone: string | null; email: string | null; state: string; optedOut: boolean };
+  /** consent: explicit consent per channel. fo_contact_context does not return it yet, so a Meta contact is never moved
+   * to SMS or email today (an owner task is created instead). */
+  contact: { name: string | null; phone: string | null; email: string | null; state: string; optedOut: boolean; consent?: { sms?: boolean; email?: boolean } };
   appointment: { id: string; starts: string } | null;
   messages?: { direction: 'inbound' | 'outbound'; at?: string }[];
   handoffs?: { owner: string }[];
@@ -138,6 +143,20 @@ export function createJobsExecutor(setter: ActionExecutor): ActionExecutor {
     return setter(action);
   };
 }
+/** What fo_social_window returns for one Instagram or Messenger contact. */
+export type SocialWindow = { recipient: string | null; optedOut: boolean; lastInbound: string | null };
+export type MetaRoute = { via: 'meta'; recipient: string } | { via: 'sms' | 'email' } | { via: 'owner'; reason: string };
+/** How an automated job on an Instagram or Messenger channel may reach the contact (A-29). Inside Meta's 24-hour reply
+ * window (from the contact's last inbound message): by Meta. Outside it: by SMS or email only with explicit consent for
+ * that channel and no opt-out; otherwise an owner task. Never the HUMAN_AGENT tag: that is for a real person only. */
+export function metaRoute(w: SocialWindow, contact: Ctx['contact'], now: number, canEmail: boolean): MetaRoute {
+  if (w.optedOut || contact.optedOut) return { via: 'owner', reason: 'The contact opted out.' };
+  if (w.recipient && inReplyWindow(w.lastInbound, now)) return { via: 'meta', recipient: w.recipient };
+  if (contact.phone && contact.consent?.sms === true) return { via: 'sms' };
+  if (contact.email && canEmail && contact.consent?.email === true) return { via: 'email' };
+  return { via: 'owner', reason: w.recipient ? 'Meta’s 24-hour reply window has closed and there is no SMS or email consent.' : 'No Instagram or Messenger id for this contact.' };
+}
+
 /** The store, except that a mode that cannot be read is the safe default (enquiry_only). */
 function failSafe(s: PendingActionStore): PendingActionStore {
   return { ...s, mode: async product => { try { return await s.mode(product); } catch { return DEFAULT_OPERATING_MODE; } } };
@@ -146,7 +165,10 @@ function failSafe(s: PendingActionStore): PendingActionStore {
 /** Texts go by SMS when the contact has a mobile, otherwise by email when an email sender is given. */
 /** config: the business's Setter texts, or a loader that is only called when there are jobs to run. */
 /** permissions: the Setter's approval queue and mode (live runner: channelPermissions()); see the note at the top. */
-export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: SmsSender; email?: EmailSender; config: SetterConfig | (() => Promise<SetterConfig>); now: number; max?: number; permissions?: SetterPermissions }): Promise<JobOutcome[]> {
+/** meta: set when this channel is Instagram or Messenger. Every job then goes through metaRoute(): Meta inside the
+ * 24-hour window, consented SMS/email outside it, otherwise the text is queued for the owner (fo_queue_outbound) and
+ * the ladder stops. gate() checks the window again for a Meta payload. */
+export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: SmsSender; email?: EmailSender; config: SetterConfig | (() => Promise<SetterConfig>); now: number; max?: number; permissions?: SetterPermissions; meta?: { kind: MetaKind; send: MetaSender } }): Promise<JobOutcome[]> {
   const a = { channel: input.auth.channel, channel_key: input.auth.key };
   const jobs = await input.rpc('fo_claim_jobs', { ...a, max_jobs: input.max ?? 25 }) as Job[];
   if (!jobs.length) return [];
@@ -160,7 +182,7 @@ export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: Sms
     try {
       const ctx = await i.rpc('fo_contact_context', { ...a, contact: job.contact }) as Ctx;
       let text: string | null = null, prompt = FOLLOW_UP_PROMPT, next: { step: number; gap: number; kind: Job['kind'] } | null = null;
-      const reachable = !!ctx.contact.phone || (!!ctx.contact.email && !!i.email);
+      const reachable = !!i.meta || !!ctx.contact.phone || (!!ctx.contact.email && !!i.email);
       if (ctx.contact.optedOut || !reachable) { outcome = 'cancelled'; note = 'Opted out or no way to reach them'; }
       else if (job.kind === 'follow-up') {
         if (done.has(ctx.contact.state)) { outcome = 'cancelled'; note = `Contact is ${ctx.contact.state}`; }
@@ -183,9 +205,22 @@ export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: Sms
           text = fillTemplate(job.kind === 'reminder-24h' ? i.config.reminder24h : i.config.reminder2h, { name: ctx.contact.name, meeting: i.config.meetingTitle, time });
         }
       }
+      // Instagram / Messenger channel: Meta's 24-hour window decides the route before anything can be sent.
+      let route: MetaRoute | null = null, socialInbound: string | null = null;
+      if (text && i.meta) {
+        const w = await i.rpc('fo_social_window', { ...a, contact: job.contact }) as SocialWindow;
+        socialInbound = w.lastInbound;
+        route = metaRoute(w, ctx.contact, i.now, !!i.email);
+        if (route.via === 'owner') {
+          if (!w.optedOut && !ctx.contact.optedOut) await i.rpc('fo_queue_outbound', { ...a, contact: job.contact, message: text, prompt });
+          outcome = 'cancelled'; note = `Not sent automatically: ${route.reason}${w.optedOut || ctx.contact.optedOut ? '' : ' Queued for the owner to reply from the Instagram or Facebook app.'}`;
+          text = null; next = null;
+        }
+      }
       if (text && store) {
         // Every job that sends goes through the same permission check and quiet hours (follow-ups, reminders, rescues).
-        const held = await checkJob(store, job, ctx, text, prompt);
+        const channel = route?.via === 'meta' ? i.meta!.kind : route?.via === 'email' ? 'email' : route?.via === 'sms' ? 'sms' : ctx.contact.phone ? 'sms' : 'email';
+        const held = await checkJob(store, job, ctx, text, prompt, channel, socialInbound);
         if (held) {
           text = null; outcome = 'cancelled'; note = held.note;
           if (held.move !== undefined) await moveJob(job, held.move, held.note, () => { finished = true; });
@@ -193,7 +228,10 @@ export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: Sms
       }
       if (text) {
         await i.rpc('fo_log_outbound', { ...a, contact: job.contact, message: text, agent_name: 'setter', prompt });
-        sent = ctx.contact.phone ? (await i.send(ctx.contact.phone, text)).sent : (await i.email!(ctx.contact.email as string, `${i.config.businessName}: ${job.kind.startsWith('reminder') ? 'your booking' : 'following up'}`, text)).sent;
+        const byEmail = route ? route.via === 'email' : !ctx.contact.phone;
+        // A Meta send is a plain RESPONSE inside the window (meta.ts); automation never adds a message tag.
+        if (route?.via === 'meta') sent = (await i.meta!.send(i.meta!.kind, route.recipient, text)).sent;
+        else sent = !byEmail ? (await i.send(ctx.contact.phone as string, text)).sent : (await i.email!(ctx.contact.email as string, `${i.config.businessName}: ${job.kind.startsWith('reminder') ? 'your booking' : 'following up'}`, text)).sent;
         note = sent ? 'Sent' : 'Logged (live sending off)';
         if (next) {
           const due = store ? afterJobQuietHours(i.now + next.gap, tz, quiet) : i.now + next.gap;
@@ -222,7 +260,7 @@ export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: Sms
 
   /** The shared permission check for one job that would send text: null to send now, otherwise why not (and, with move,
    * when to look again). Nothing is performed inside the gate: a 'perform' answer only lets the runner send. */
-  async function checkJob(s: PendingActionStore, job: Job, ctx: Ctx, text: string, prompt: string): Promise<{ note: string; move?: number } | null> {
+  async function checkJob(s: PendingActionStore, job: Job, ctx: Ctx, text: string, prompt: string, channel: 'sms' | 'email' | MetaKind, socialInbound: string | null): Promise<{ note: string; move?: number } | null> {
     const label = job.kind === 'follow-up' ? 'No follow-up' : job.kind === 'no-show-rescue' ? 'No missed-call message' : 'No reminder';
     const what = job.kind === 'follow-up' ? `follow-up ${job.step}` : job.kind === 'no-show-rescue' ? `missed-call message ${job.step}` : 'reminder';
     const blocked = jobBlocked(job, ctx);
@@ -230,7 +268,7 @@ export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: Sms
     const start = job.appointment && ctx.appointment ? Date.parse(ctx.appointment.starts) : null;
     const late = (t: number) => start !== null && t >= start;
     const who = ctx.contact.name ?? ctx.contact.phone ?? ctx.contact.email ?? 'this lead';
-    const channel = ctx.contact.phone ? 'sms' : 'email', by = channel === 'sms' ? 'text' : 'email';
+    const by = channel === 'sms' ? 'text' : channel === 'email' ? 'email' : channel === 'instagram' ? 'Instagram DM' : 'Messenger';
     const body = text.slice(0, 1000), inbound = lastInbound(ctx);
     const payload: PendingActionPayload = job.kind === 'follow-up'
       ? { kind: 'follow_up', channel, body, promptVersion: prompt, step: job.step }
@@ -244,6 +282,7 @@ export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: Sms
         ttlMinutes: start === null ? ttl : Math.max(5, Math.min(ttl, Math.floor((start - i.now) / MIN))),
       },
       execute: async () => ({ ok: true, note: 'Allowed.' }),
+      replyWindow: { lastInbound: socialInbound, now: i.now },
     });
     if (g.decision === 'refuse') return { note: `${label}: ${g.permission.reason}` };
     if (g.decision === 'hold_for_approval') {

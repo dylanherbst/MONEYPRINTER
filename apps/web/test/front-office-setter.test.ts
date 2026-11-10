@@ -105,7 +105,7 @@ test('guardrails: no qualified without answers, no booking of an invented time, 
   assert.equal(turn.reply, null, 'customers belong to the Receptionist');
 });
 test('jobs: ladder steps and stops; reminders only while booked; rescue only for no-shows; failures recorded', async () => {
-  assert.deepEqual([1, 2, 3, 4, 5, 6].map(gapBefore), [300_000, 3_300_000, 82_800_000, 172_800_000, 345_600_000, 2_592_000_000]);
+  assert.deepEqual([1, 2, 3, 4, 5, 6].map(gapBefore), [300_000, 3_300_000, 72_000_000, 172_800_000, 345_600_000, 2_592_000_000]);
   const s = store('qualifying');
   const claimAll = async (fn: string, a: Record<string, unknown>) => s.rpc(fn, fn === 'fo_claim_jobs' ? { ...a, __now: Infinity } : a);
   s.db.jobs.push({ id: 'f1', contact: 'c1', kind: 'follow-up', step: 1, appointment: null, due: new Date(NOW).toISOString(), status: 'pending' });
