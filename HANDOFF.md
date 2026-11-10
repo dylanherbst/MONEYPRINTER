@@ -28,6 +28,7 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 - Blocked, needs the owner: unchanged from c-9286948e (A-14 transfer rule, A-2 local migration, M-1, M-2, M-4, P0-7, M-0 items, A-4 emergency wording, P1-6). New owner needs from W-0: Stripe test keys/products/prices, un-freeze checkout decision, domain + analytics account, legal read of privacy/terms.
 - Note: pending foreign changes left uncommitted and untouched (same list as before).
 - Blocked, new this cycle: browser checks (W-1, A-23b) need Playwright installed as a dev dependency or the owner to run them.
+- Backup FAILED: newest good backup 2026-11-09 21:55; `ventra-backup create` exited 1 with no output (twice) and `ventra-backup verify` reports missing ~/Backups/ventra/ventra-20261111-002936-56732fc.head (partial backup left in place, not deleted). scripts/agents/ventra-backup has uncommitted foreign edits; ventra-devops should diagnose next cycle.
 - Next up: A-16 knowledge base (voice) → A-24 presets; A-9 (backend) → A-25 lab persistence; A-26 Receptionist browser voice (voice, after A-16 or in parallel with backend); A-29 window guard; W-1 browser check + commit, then W-2/W-8.
 
 ## Current task (approved scope only)
