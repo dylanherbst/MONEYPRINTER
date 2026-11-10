@@ -44,9 +44,21 @@ export function parseMetaWebhook(body: unknown): MetaInbound[] {
   return out;
 }
 
+/** True only when the contact's last inbound message is at most 24 hours old (exclusive). Missing, unreadable or in the
+ * future (clock skew or a bad timestamp, A-32) is outside the window: a future time must never stretch the window. */
 export function inReplyWindow(lastInbound: string | number | null, now: number): boolean {
   const t = typeof lastInbound === 'number' ? lastInbound : lastInbound ? Date.parse(lastInbound) : NaN;
-  return Number.isFinite(t) && now - t < REPLY_WINDOW_MS;
+  if (!Number.isFinite(t) || !Number.isFinite(now)) return false;
+  const age = now - t;
+  return age >= 0 && age < REPLY_WINDOW_MS;
+}
+
+/** The Meta sender the jobs runner uses (A-32): the real Send API only when the owner switched on automatic Meta replies
+ * (FRONT_OFFICE_META_AUTOSEND=1) and Meta is configured; otherwise a dry run that sends nothing ({ sent: false }). */
+export function metaJobSender(env: Record<string, string | undefined> = process.env, fetchImpl: typeof fetch = fetch): MetaSender {
+  const c = metaConfigFromEnv(env);
+  if (!c || !autoSendOn(env)) return async () => ({ sent: false, id: null });
+  return metaSender(c, fetchImpl);
 }
 
 export type MetaConfig = { graphVersion: string; instagramToken: string | null; messengerToken: string | null };

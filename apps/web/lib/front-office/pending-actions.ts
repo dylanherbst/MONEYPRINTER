@@ -131,9 +131,7 @@ export async function gate(input: {
 }): Promise<GateResult> {
   let permission = decide(await input.store.mode(input.product), input.action);
   if (permission.decision === 'refuse') return { decision: 'refuse', permission };
-  const p = input.request?.payload;
-  if (p && (p.kind === 'send' || p.kind === 'follow_up') && (p.channel === 'instagram' || p.channel === 'messenger')
-    && !inReplyWindow(input.replyWindow?.lastInbound ?? null, input.replyWindow?.now ?? Date.now())) {
+  if (isMetaMessage(input.request?.payload) && !inReplyWindow(input.replyWindow?.lastInbound ?? null, input.replyWindow?.now ?? Date.now())) {
     return { decision: 'refuse', permission: { decision: 'refuse', mode: permission.mode, reason: META_WINDOW_CLOSED, say: decide('enquiry_only', input.action).say } };
   }
   if (input.action !== 'take_message') {
@@ -198,15 +196,41 @@ function outcomeOf(item: PendingActionRecord, changed: boolean): DecideResult {
   return { outcome: item.status === 'rejected' ? 'rejected' : item.status === 'performed' ? 'performed' : 'failed', item };
 }
 
+/** Why an approved Instagram or Messenger item was closed without sending (A-32). */
+export const META_WINDOW_CLOSED_AT_APPROVAL = 'Meta’s 24-hour reply window had closed by the time this was approved (or it could not be confirmed), so nothing was sent. Reply from the Instagram or Facebook app.';
+
+/** True for an automated send or follow-up on Instagram or Messenger: these are bound by Meta's 24-hour reply window. */
+export function isMetaMessage(p: PendingActionPayload | null | undefined): boolean {
+  return !!p && (p.kind === 'send' || p.kind === 'follow_up') && (p.channel === 'instagram' || p.channel === 'messenger');
+}
+
+export type ApproveOptions = {
+  /** Meta's 24-hour reply window, checked again when the owner approves (A-32). lastInbound: when the contact last
+   * messaged the business on Instagram or Messenger (jobs.ts socialWindowCheck reads fo_social_window). Without it, or
+   * when it fails, an Instagram or Messenger item is treated as outside the window: closed as failed, never performed.
+   * onClosed: the owner task for a closed window (for example fo_queue_outbound); its failure is ignored. */
+  replyWindow?: { lastInbound: (item: PendingActionRecord) => Promise<string | number | null>; now?: () => number; onClosed?: (item: PendingActionRecord) => Promise<void> };
+};
+
 /** Owner approves: performs the original action exactly once. A repeat returns 'already_decided' (or 'expired') with the
- * item as it is, and does not call the executor. */
-export async function approvePendingAction(store: PendingActionStore, id: string, by: string, execute: ActionExecutor, note: string | null = null): Promise<DecideResult> {
+ * item as it is, and does not call the executor. An Instagram or Messenger item outside Meta's 24-hour window at this
+ * moment is closed as failed with META_WINDOW_CLOSED_AT_APPROVAL and never reaches the executor. */
+export async function approvePendingAction(store: PendingActionStore, id: string, by: string, execute: ActionExecutor, note: string | null = null, options: ApproveOptions = {}): Promise<DecideResult> {
   if (!UUID.test(id)) throw new PendingActionError('invalid', 'Pending action id must be an id.');
   const d = await store.decide(id, 'approve', by, clip(note, 500));
   if (!d.changed) return outcomeOf(d.item, false);
   const a = d.item;
   // Never perform something that does not match the contract; close it as failed so it cannot stay 'approved'.
   if (a.invalid || !parsePendingAction(a).ok) return outcomeOf((await store.finish(a.id, false, INVALID_NOTE)).item, true);
+  if (isMetaMessage(a.payload)) {
+    const w = options.replyWindow;
+    let last: string | number | null;
+    try { last = w ? await w.lastInbound(a) : null; } catch { last = null; }
+    if (!inReplyWindow(last, w?.now ? w.now() : Date.now())) {
+      if (w?.onClosed) await w.onClosed(a).catch(() => undefined);
+      return outcomeOf((await store.finish(a.id, false, META_WINDOW_CLOSED_AT_APPROVAL)).item, true);
+    }
+  }
   const result = await runExecutor(execute, { product: a.product, payload: a.payload, contactId: a.contactId, callId: a.callId, channelId: a.channelId, pendingActionId: a.id });
   const f = await store.finish(a.id, result.ok, result.note ?? null);
   return outcomeOf(f.item, true);

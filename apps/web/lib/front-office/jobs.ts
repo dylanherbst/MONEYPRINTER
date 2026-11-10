@@ -18,7 +18,7 @@ import { DEFAULT_OPERATING_MODE } from './contracts';
 import type { PendingActionPayload } from './contracts';
 import type { ChannelAuth, Rpc } from './orchestrator';
 import { DEFAULT_TTL_MINUTES, gate } from './pending-actions';
-import type { ActionExecutor, PendingActionStore } from './pending-actions';
+import type { ActionExecutor, ApproveOptions, PendingActionStore } from './pending-actions';
 import type { QuietHours, SetterPermissions } from './setter/actions';
 import { fillTemplate } from './setter/config';
 import type { SetterConfig } from './setter/config';
@@ -91,8 +91,9 @@ export function afterJobQuietHours(t: number, timeZone: string, q: QuietHours = 
 
 type Job = { id: string; contact: string; kind: 'follow-up' | 'reminder-24h' | 'reminder-2h' | 'no-show-rescue'; step: number; appointment: string | null };
 type Ctx = {
-  /** consent: explicit consent per channel. fo_contact_context does not return it yet, so a Meta contact is never moved
-   * to SMS or email today (an owner task is created instead). */
+  /** consent: explicit consent per channel (only the boolean true counts). fo_contact_context does not return it yet
+   * (needs ventra-backend), so a Meta contact is never moved to SMS or email today (an owner task is created instead);
+   * metaRoute() starts rerouting as soon as the field is returned. */
   contact: { name: string | null; phone: string | null; email: string | null; state: string; optedOut: boolean; consent?: { sms?: boolean; email?: boolean } };
   appointment: { id: string; starts: string } | null;
   messages?: { direction: 'inbound' | 'outbound'; at?: string }[];
@@ -323,6 +324,44 @@ export function runnerChannels(env: Record<string, string | undefined>): { name:
     if (UUID_RE.test(channel) && key.length >= 32 && !out.some(o => o.auth.channel === channel)) out.push({ name, auth: { channel, key } });
   }
   return out;
+}
+
+/** Instagram and Messenger channels for the runner (A-32): FRONT_OFFICE_INSTAGRAM_CHANNEL_ID/_KEY and
+ * FRONT_OFFICE_MESSENGER_CHANNEL_ID/_KEY. Each is run with meta set, so every job goes through metaRoute() and the
+ * 24-hour window. A channel already listed by runnerChannels(), invalid pairs and duplicates are skipped. These are
+ * deliberately not part of runnerChannels(): the approval route cannot check Meta's window yet (see socialWindowCheck). */
+export function metaRunnerChannels(env: Record<string, string | undefined>): { name: MetaKind; auth: ChannelAuth }[] {
+  const taken = new Set(runnerChannels(env).map(c => c.auth.channel));
+  const out: { name: MetaKind; auth: ChannelAuth }[] = [];
+  for (const [name, idKey, keyKey] of [['instagram', 'FRONT_OFFICE_INSTAGRAM_CHANNEL_ID', 'FRONT_OFFICE_INSTAGRAM_CHANNEL_KEY'], ['messenger', 'FRONT_OFFICE_MESSENGER_CHANNEL_ID', 'FRONT_OFFICE_MESSENGER_CHANNEL_KEY']] as const) {
+    const channel = (env[idKey] ?? '').trim(), key = (env[keyKey] ?? '').trim();
+    if (UUID_RE.test(channel) && key.length >= 32 && !taken.has(channel)) { taken.add(channel); out.push({ name, auth: { channel, key } }); }
+  }
+  return out;
+}
+
+/** The approval-time window check for approvePendingAction (A-32) on an Instagram or Messenger channel: reads
+ * fo_social_window for the item's contact; an opted-out contact or one without a Meta id counts as outside the window.
+ * onClosed queues the held text for the owner to send from the Instagram or Facebook app (fo_queue_outbound), the same
+ * owner task the runner creates, unless the contact opted out. */
+export function socialWindowCheck(rpc: Rpc, auth: ChannelAuth, now: () => number = Date.now): NonNullable<ApproveOptions['replyWindow']> {
+  const a = { channel: auth.channel, channel_key: auth.key };
+  const read = async (contact: string) => await rpc('fo_social_window', { ...a, contact }) as SocialWindow | null;
+  return {
+    now,
+    async lastInbound(item) {
+      if (!item.contactId) return null;
+      const w = await read(item.contactId);
+      return w && w.recipient && !w.optedOut ? w.lastInbound : null;
+    },
+    async onClosed(item) {
+      const p = item.payload;
+      if (!item.contactId || !p || (p.kind !== 'send' && p.kind !== 'follow_up')) return;
+      const w = await read(item.contactId);
+      if (w?.optedOut) return;
+      await rpc('fo_queue_outbound', { ...a, contact: item.contactId, message: p.body, prompt: p.promptVersion });
+    },
+  };
 }
 
 /** Runner secrets that are long enough to trust: Vercel Cron's CRON_SECRET and our own FRONT_OFFICE_CRON_SECRET. */
