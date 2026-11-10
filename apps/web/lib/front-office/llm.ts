@@ -7,7 +7,9 @@ export type Block = TextBlock | ToolUseBlock | ToolResultBlock;
 export type LlmMessage = { role: 'user' | 'assistant'; content: string | Block[] };
 export type ToolSpec = { name: string; description: string; input_schema: Record<string, unknown> };
 export type LlmRequest = { system: string; messages: LlmMessage[]; tools: ToolSpec[]; maxTokens?: number };
-export type LlmResponse = { content: Block[]; stopReason: string };
+/** usage: token counts from the provider when it reports them (optional; fakes and the scripted model leave it out). */
+export type LlmUsage = { inputTokens: number; outputTokens: number };
+export type LlmResponse = { content: Block[]; stopReason: string; usage?: LlmUsage };
 export type Llm = (req: LlmRequest) => Promise<LlmResponse>;
 
 export type AnthropicConfig = { apiKey: string; model: string };
@@ -23,9 +25,12 @@ export function anthropicLlm(config: AnthropicConfig, fetchImpl: typeof fetch = 
       headers: { 'x-api-key': config.apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({ model: config.model, max_tokens: req.maxTokens ?? 600, system: req.system, messages: req.messages, tools: req.tools }),
     });
-    const body = await res.json().catch(() => ({})) as { content?: Block[]; stop_reason?: string };
+    const body = await res.json().catch(() => ({})) as { content?: Block[]; stop_reason?: string; usage?: { input_tokens?: unknown; output_tokens?: unknown } };
     if (!res.ok || !Array.isArray(body.content)) throw new Error(`AI provider error (${res.status}).`);
-    return { content: body.content, stopReason: body.stop_reason ?? 'end_turn' };
+    const out: LlmResponse = { content: body.content, stopReason: body.stop_reason ?? 'end_turn' };
+    const inT = body.usage?.input_tokens, outT = body.usage?.output_tokens;
+    if (typeof inT === 'number' && typeof outT === 'number' && Number.isFinite(inT) && Number.isFinite(outT) && inT >= 0 && outT >= 0) out.usage = { inputTokens: inT, outputTokens: outT };
+    return out;
   };
 }
 

@@ -15,6 +15,10 @@
 // What is fake, on purpose: the model (scripted keyword rules; the /tools page never uses a paid model), the
 // database (an in-memory copy of the fo_* RPCs the Setter uses), the calendar (in memory) and the SMS sender (records
 // only). Nothing is sent, nothing is booked in a real calendar, nothing is written to Supabase.
+//
+// Live AI Test (task A-23, lab-live.ts) swaps ONLY the scripted model for the real, metered Anthropic model through
+// runLabTurnWith. The store, calendar, SMS sender and gate() wiring above stay exactly the same, so the sandbox holds
+// whatever the model says and whatever *_LIVE switches are set.
 import { bookSlot, offerTimes } from '../booking';
 import type { CalendarEventInput, CalendarProvider } from '../calendar/google';
 import type { Interval } from '../calendar/slots';
@@ -61,8 +65,18 @@ export type BookingProposal = {
   /** perform only: whether the pipeline's book_time then booked it. */
   booked: boolean | null;
 };
+/** Live AI Test only (lab-live.ts): what the real model calls of one turn used. All costs are estimates. */
+export type LabTurnUsage = {
+  estimate: true; model: string; priceKnown: boolean; calls: number;
+  inputTokens: number; outputTokens: number; latencyMs: number; costAud: number;
+  /** false when at least one call reported no usage, so its worst case was counted instead. */
+  usageReported: boolean; note: string;
+};
+export type LabModel = 'scripted' | 'live';
 export type LabTurn = {
-  n: number; customer: string; reply: string | null; model: 'scripted';
+  n: number; customer: string; reply: string | null; model: LabModel;
+  /** Present on live turns only. */
+  usage?: LabTurnUsage;
   route: string; contactId: string | null; state: ContactState | null; answers: Record<string, string>; missing: string[];
   detected: { needs: string | null; budget: string; timing: string | null; business: string | null };
   objection: string; offer: string; tools: LabToolCall[]; handedTo: string | null; writes: LabWrite[];
@@ -379,8 +393,16 @@ function gatedModel(base: Llm, s: LabState, db: Ctx, contactId: string, tools: L
 
 const detected = (answers: Record<string, string>) => ({ needs: answers.problem ?? null, budget: BUDGET_NOTE, timing: answers.timing ?? null, business: answers.business ?? null });
 
-/** One customer message through the real inbound router and Setter. Returns the next lab state (the input is not changed). */
+/** One customer message through the real inbound router and Setter, with the scripted model. Returns the next lab state
+ * (the input is not changed). */
 export async function runLabTurn(state: LabState, input: { message: string; mode?: OperatingMode }): Promise<LabState> {
+  return runLabTurnWith(state, input, { base: scriptedSetterModel(), model: 'scripted' });
+}
+
+/** The same turn with a given base model. Used by lab-live.ts (Live AI Test), which passes the metered Anthropic model
+ * and is the only place that may pass a paid one. Whatever the model is, it only ever reaches the lab's in-memory store,
+ * calendar and recording SMS sender, and every book_time goes through gate() first. */
+export async function runLabTurnWith(state: LabState, input: { message: string; mode?: OperatingMode }, m: { base: Llm; model: LabModel }): Promise<LabState> {
   const s = checkedLab(state);
   if (input.mode && isOperatingMode(input.mode)) s.mode = input.mode;
   if (s.turns.length >= LAB_LIMITS.turns) throw new Error(`This lab conversation has reached ${LAB_LIMITS.turns} messages. Start a new one.`);
@@ -388,7 +410,7 @@ export async function runLabTurn(state: LabState, input: { message: string; mode
   if (!message) throw new Error('Type a message first.');
   const db = labStore(s);
   const n = s.turns.length + 1;
-  const turn: LabTurn = { n, customer: message, reply: null, model: 'scripted', route: '', contactId: null, state: null, answers: {}, missing: [], detected: detected({}), objection: OBJECTION_NOTE, offer: `${LAB_CONFIG.meetingTitle} (${LAB_CONFIG.where}), the one offer in the Setter config. The pipeline does not pick a different offer per lead.`, tools: [], handedTo: null, writes: db.writes, booking: null, error: null };
+  const turn: LabTurn = { n, customer: message, reply: null, model: m.model, route: '', contactId: null, state: null, answers: {}, missing: [], detected: detected({}), objection: OBJECTION_NOTE, offer: `${LAB_CONFIG.meetingTitle} (${LAB_CONFIG.where}), the one offer in the Setter config. The pipeline does not pick a different offer per lead.`, tools: [], handedTo: null, writes: db.writes, booking: null, error: null };
   try {
     let setterContact: string | null = null;
     const r = await handleInboundSms(db.rpc, LAB_AUTH, { from: s.phone, to: '+61400000000', body: message, messageSid: `SMlab${String(n).padStart(6, '0')}` }, { setter: c => { setterContact = c; } });
@@ -397,7 +419,7 @@ export async function runLabTurn(state: LabState, input: { message: string; mode
     turn.reply = r.reply;
     if (setterContact) {
       const contactId: string = setterContact;
-      const llm = gatedModel(scriptedSetterModel(), s, db, contactId, turn.tools, p => { turn.booking = p; });
+      const llm = gatedModel(m.base, s, db, contactId, turn.tools, p => { turn.booking = p; });
       const out = await runSetterTurn(contactId, { llm, rpc: db.rpc, auth: LAB_AUTH, calendar: db.calendar, send: db.send, config: LAB_CONFIG, now: s.now, channel: 'sms' });
       turn.reply = out.reply; turn.handedTo = out.handedTo;
       if (turn.booking?.decision === 'perform') turn.booking.booked = out.booked;
