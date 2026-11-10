@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-09T22:55:12.977Z",
+  "updatedAt": "2026-11-10T16:43:00Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-2f01e5b4",
-    "startedAt": "2026-11-09T22:49:08Z",
-    "endedAt": "2026-11-09T22:55:12.977Z",
-    "summary": "A-21 implemented (10 new tests pass); review+verify+commit next cycle; spending cap reached."
+    "id": "c-90917b1a",
+    "startedAt": "2026-11-10T16:12:09Z",
+    "endedAt": "2026-11-10T16:45:00Z",
+    "summary": "Owner note 2026-11-10 planned (A-22..A-29). Committed A-21, A-22, A-23, A-23h, A-23b (851/851). Setter Lab Live AI Test usable by a signed-in user within A$5/day cap; not yet tried with a real model call. W-1 still blocked on a browser check (no Playwright)."
   },
   "tasks": [
     {
@@ -2156,7 +2156,7 @@
       "phase": "A",
       "module": "shared",
       "owner": "ventra-voice",
-      "state": "implemented",
+      "state": "done",
       "priority": 3,
       "dependsOn": [
         "A-2"
@@ -2173,14 +2173,18 @@
       "branch": "agent/develop",
       "worktree": null,
       "startedAt": "2026-11-09T22:49:33.918Z",
-      "finishedAt": null,
-      "lastRunId": "c-2f01e5b4",
+      "finishedAt": "2026-11-10T16:24:00Z",
+      "lastRunId": "c-90917b1a",
       "runIds": [
         "c-255a1537",
-        "c-2f01e5b4"
+        "c-2f01e5b4",
+        "c-90917b1a"
       ],
-      "commits": [],
+      "commits": ["4ea05b17"],
       "evidence": [
+        {"at": "2026-11-10T16:18:00Z", "kind": "review", "detail": "c-90917b1a: ventra-review APPROVE WITH NITS, no blockers/majors. Access via owner-only RPCs, approve wraps createJobsExecutor(createSetterExecutor) (shared.ts:59), double/expired approval safe (row lock), Receptionist 409 fails safe, env channel ids safe. Nits: lookup by listing 500 rows ([id]/route.ts:35), revision not capped at int4 (modes/route.ts:41), Receptionist owner_approval items can never be approved yet, missing tests (concurrent approve, executor failure, invalid payload, mismatched env channel)."},
+        {"at": "2026-11-10T16:19:00Z", "kind": "test", "detail": "c-90917b1a: coordinator ran node --test front-office-modes-api.test.ts 10/10 pass; npm --prefix apps/web test 836/836 pass; typecheck exit 0; lint exit 0."},
+        {"at": "2026-11-10T16:24:00Z", "kind": "commit", "detail": "4ea05b17 (6 files incl. API_CONTRACTS.md, single A-21 hunk confirmed by review)."},
         {
           "at": "2026-11-09T22:55:12.977Z",
           "kind": "test",
@@ -2193,8 +2197,115 @@
         }
       ],
       "blocker": null,
-      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit.",
-      "updatedAt": "2026-11-09T22:55:12.977Z"
+      "notes": "Workstream A (owner directive 2026-11-09). Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site. From the A-0 audit. Review nits left as follow-ups (see evidence).",
+      "updatedAt": "2026-11-10T16:24:00Z"
+    },
+    {
+      "id": "A-22", "title": "Front-office research: docs/agents/FRONT_OFFICE_RESEARCH.md (ten brief sections; Vapi Web SDK vs Twilio ConversationRelay + own STT/LLM/TTS vs OpenAI Realtime / LiveKit + SIP; AUD costs, AU numbers, latency, recording consent, Meta 24h window / tags / private replies)",
+      "phase": "A", "module": "shared", "owner": "ventra-research", "state": "done", "priority": 1, "dependsOn": [],
+      "scope": ["docs/agents/FRONT_OFFICE_RESEARCH.md (coordinator writes)"],
+      "acceptance": ["All ten output sections of the brief", "At least three voice architectures compared with AUD per-minute costs and sources", "Concrete backend instructions; never blocks A-23..A-28"],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
+      "startedAt": "2026-11-10T16:13:00Z", "finishedAt": "2026-11-10T16:17:00Z", "lastRunId": "c-90917b1a", "runIds": ["c-90917b1a"], "commits": ["58f4bc6b"],
+      "evidence": [{"at": "2026-11-10T16:13:00Z", "kind": "note", "detail": "c-90917b1a: planned from owner note 2026-11-10 07:35 and dispatched."},
+        {"at": "2026-11-10T16:17:00Z", "kind": "diff", "detail": "Coordinator wrote docs/agents/FRONT_OFFICE_RESEARCH.md: all ten sections, three voice architectures with AUD/min and sources; recommendation keep Vapi (Web SDK step 2), Twilio AU number import needs owner approval + regulatory bundle; many prices marked unverified."},
+        {"at": "2026-11-10T16:17:00Z", "kind": "note", "detail": "Coordinator checked the research's 'ladder breaks Meta 24h window' claim: runner follow-ups go only by SMS/email (jobs.ts:233); webhook and outbox routes already call inReplyWindow. Not a live bug; guard queued as A-29 for when Meta follow-ups are added. Correction added to the doc."},
+        {"at": "2026-11-10T16:18:00Z", "kind": "commit", "detail": "58f4bc6b"}],
+      "blocker": null, "notes": "Owner note 2026-11-10 07:35. One cycle max.", "updatedAt": "2026-11-10T16:20:00Z"
+    },
+    {
+      "id": "A-23", "title": "Setter Lab Live AI Test engine (server side): real Anthropic model through the same Setter agent, sandboxed side effects, per-turn tokens / latency / AUD cost, server-side daily lab cap FRONT_OFFICE_LAB_DAILY_CAP_AUD (default 5), never honours FRONT_OFFICE_SEND_LIVE",
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "done", "priority": 1, "dependsOn": ["A-3"],
+      "scope": ["apps/web/lib/front-office/setter/lab.ts", "apps/web/lib/front-office/setter/lab-live.ts", "apps/web/lib/front-office/lab-usage.ts", "apps/web/lib/front-office/llm.ts (additive usage field only)", "apps/web/test/front-office-lab-live*.test.ts"],
+      "acceptance": ["Demo mode unchanged and still scripted; existing setter-lab tests pass", "Live mode uses anthropicLlm via anthropicConfigFromEnv; tests use a fake fetch, no network", "Input/output tokens, latency ms and AUD estimate per turn in LabState", "Cap enforced server-side before the call; over cap = clear refusal and no model call", "Lab stays sandboxed regardless of FRONT_OFFICE_SEND_LIVE (test proves it)", "Live entry point requires an authorised caller argument (no anonymous paid calls)"],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md (Test Playground, Modes)", "branch": "agent/develop", "worktree": null,
+      "startedAt": "2026-11-10T16:13:00Z", "finishedAt": "2026-11-10T16:26:00Z", "lastRunId": "c-90917b1a", "runIds": ["c-90917b1a"], "commits": ["0b5bd67b"],
+      "evidence": [{"at": "2026-11-10T16:13:00Z", "kind": "note", "detail": "c-90917b1a: planned from owner note 2026-11-10 07:35 and dispatched. Owner authorised real model calls from the labs within the cap."},
+        {"at": "2026-11-10T16:21:00Z", "kind": "test", "detail": "Coordinator: npm --prefix apps/web test 836/836 pass (823 before + 13 new in front-office-lab-live.test.ts); typecheck exit 0; lint exit 0. ventra-verify: lint/typecheck/unit/build/workspace-integration PASSED; course-integration and launcher-integration FAILED (pre-existing, frozen features, P0-7)."},
+        {"at": "2026-11-10T16:23:00Z", "kind": "review", "detail": "ventra-review APPROVE WITH NITS: no blockers/majors. Hardening nits (runLabTurnWith unbranded live Llm, fetch redirect, worst-case token estimate for CJK/emoji, per-process store, missing concurrency/500/no-secret tests) sent to A-23h."},
+        {"at": "2026-11-10T16:25:00Z", "kind": "note", "detail": "Secret-scan false positive on test fixture key literal; coordinator replaced with fixture-${crypto.randomUUID()}; lab-live tests 13/13 after change."},
+        {"at": "2026-11-10T16:26:00Z", "kind": "commit", "detail": "0b5bd67b (5 files). No real model call made; first real Live AI turn will be the owner's."}],
+      "blocker": null, "notes": "Owner note 2026-11-10 07:35. Server half of the note's A-23; UI half is A-23b. Cap store is per process until A-25.", "updatedAt": "2026-11-10T16:26:00Z"
+    },
+    {
+      "id": "A-23h", "title": "Live lab hardening from A-23 review: brand metered Llm so runLabTurnWith refuses unmetered live calls, fetch redirect:'error', stricter worst-case token estimate, globalThis usage store, tests for concurrency / 500 reservation / no secrets in state",
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "done", "priority": 1, "dependsOn": ["A-23"],
+      "scope": ["apps/web/lib/front-office/setter/lab.ts", "apps/web/lib/front-office/setter/lab-live.ts", "apps/web/lib/front-office/lab-usage.ts", "apps/web/lib/front-office/llm.ts (additive)", "apps/web/test/front-office-lab-live*.test.ts"],
+      "acceptance": ["Exported signatures unchanged (A-23b binds to them)", "New tests pass; full suite, typecheck, lint pass"],
+      "plan": "A-23 review findings 1, 3, 4, 5, 9", "branch": "agent/develop", "worktree": null,
+      "startedAt": "2026-11-10T16:27:00Z", "finishedAt": "2026-11-10T16:36:00Z", "lastRunId": "c-90917b1a", "runIds": ["c-90917b1a"], "commits": ["af563b9c"],
+      "evidence": [{"at": "2026-11-10T16:27:00Z", "kind": "note", "detail": "c-90917b1a: dispatched to ventra-voice."},
+        {"at": "2026-11-10T16:35:00Z", "kind": "diff", "detail": "Coordinator read diff: lab.ts runLabTurnWith refuses unmetered 'live' (isMetered brand from lab-usage.ts); anthropicOnlyFetch refuses username/password and forces redirect:'error'; meteredLlm moved to lab-usage.ts, re-exported unchanged. 4 files +171/-42."},
+        {"at": "2026-11-10T16:35:00Z", "kind": "test", "detail": "Coordinator: lab-live + setter-lab tests 28/28 (lab-live 18, was 13); typecheck exit 0; lint exit 0. Specialist full suite 851/851 (includes A-23b in-progress tests)."},
+        {"at": "2026-11-10T16:36:00Z", "kind": "commit", "detail": "af563b9c"}],
+      "blocker": null, "notes": "", "updatedAt": "2026-11-10T16:27:00Z"
+    },
+    {
+      "id": "A-29", "title": "Meta 24-hour window guard for automated follow-ups: before any automated Instagram/Messenger send from the jobs runner or gate(), require inReplyWindow; outside it reroute to consented SMS/email or create an owner task; never HUMAN_AGENT from automation; third ladder gap 23h to 20h; boundary tests 23/24/25h",
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": [],
+      "scope": ["apps/web/lib/front-office/jobs.ts", "apps/web/lib/front-office/pending-actions.ts", "apps/web/test/front-office-meta-window*.test.ts"],
+      "acceptance": ["No automated Meta send outside 24h of last inbound (tested)", "Ladder step 3 at 20h", "Existing tests pass"],
+      "plan": "docs/agents/FRONT_OFFICE_RESEARCH.md section 8 risk 1, section 10 item 1", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [{"at": "2026-11-10T16:27:00Z", "kind": "note", "detail": "c-90917b1a: planned from A-22. Today runner follow-ups go only by SMS/email, so this is a guard to ship with any Meta follow-up path, not a live bug."}], "blocker": null,
+      "notes": "Must land before A-11 enables Meta follow-ups.", "updatedAt": "2026-11-10T16:27:00Z"
+    },
+    {
+      "id": "A-23b", "title": "Setter Lab UI: Demo / Live AI Test / Connected (disabled with reason) mode switch, per-turn tokens, latency, AUD cost and remaining daily cap; Live only for a signed-in user",
+      "phase": "A", "module": "setter", "owner": "ventra-feature", "state": "done", "priority": 1, "dependsOn": ["A-23"],
+      "scope": ["apps/web/app/tools/setter-lab/**", "apps/web/test/setter-lab*.test.ts"],
+      "acceptance": ["Plain functional markup; may import glass components read-only", "Anonymous visitors get Demo only", "Mocked results never labelled live"],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
+      "startedAt": "2026-11-10T16:27:00Z", "finishedAt": "2026-11-10T16:42:00Z", "lastRunId": "c-90917b1a", "runIds": ["c-90917b1a"], "commits": ["6f905221"], "evidence": [{"at": "2026-11-10T16:27:00Z", "kind": "note", "detail": "c-90917b1a: dispatched to ventra-feature; caller only from server-verified Supabase user."},
+        {"at": "2026-11-10T16:39:00Z", "kind": "test", "detail": "Coordinator: npm --prefix apps/web test 851/851 (10 new in setter-lab-live-ui.test.ts); next build succeeded (/tools/setter-lab dynamic); typecheck and lint exit 0 (run after A-23h with these files present)."},
+        {"at": "2026-11-10T16:40:00Z", "kind": "review", "detail": "ventra-review APPROVE WITH NITS: caller only via auth.getUser(token)+session_active (live-auth.ts:33-45), cookies() awaited, no 'use server' leaks, generic errors, LIVE badge only for model=live with usage, anonymous spend impossible. Nits: getLabUsage anonymous (figures only), no per-user rate limit (one user can use the whole daily cap), 'unknown' liveAi state never reverts label."},
+        {"at": "2026-11-10T16:41:00Z", "kind": "browser", "detail": "NOT DONE: no Playwright installed; local server fetch needs approval in this session. Page not opened in a browser; no real Live AI call made."},
+        {"at": "2026-11-10T16:42:00Z", "kind": "commit", "detail": "6f905221 (6 files)."}], "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35.", "updatedAt": "2026-11-10T16:20:00Z"
+    },
+    {
+      "id": "A-24", "title": "Industry presets: Beauty (nails/lashes), Fitness (PT/coach), Trades (electrician/plumber/cleaner): services + prices, policies, qualification rules, booking types, example conversations; preset selector + knowledge editor data for the Setter Lab",
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["A-16"],
+      "scope": ["apps/web/lib/front-office/templates/**", "apps/web/test/front-office-presets*.test.ts"],
+      "acceptance": ["Three presets complete", "Prices labelled as example values the business edits; never presented as real"],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [], "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35.", "updatedAt": "2026-11-10T16:20:00Z"
+    },
+    {
+      "id": "A-25", "title": "Lab persistence: lab bookings, contacts and action log write to a dedicated sandbox workspace in local Supabase through the real booking/CRM services; reset + save/reload scenarios",
+      "phase": "A", "module": "shared", "owner": "ventra-backend", "state": "queued", "priority": 2, "dependsOn": ["A-9"],
+      "scope": ["supabase/migrations/*_front_office_lab.sql", "apps/web/lib/supabase/**", "apps/web/test/front-office-lab-db*.test.ts"],
+      "acceptance": ["A lab booking is verifiable in the CRM of the sandbox workspace", "Reset clears only the sandbox workspace; PGlite tests; migration local only"],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [], "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35.", "updatedAt": "2026-11-10T16:20:00Z"
+    },
+    {
+      "id": "A-26", "title": "Receptionist Lab browser voice, step 1 (no new account): browser speech-to-text + en-AU speech synthesis driving the existing Receptionist turn in Live AI Test mode; live transcript, tool actions, latency, post-call summary. Step 2 (provider swap) needs the owner's key",
+      "phase": "A", "module": "receptionist", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["A-23"],
+      "scope": ["apps/web/lib/front-office/receptionist/**", "apps/web/test/front-office-receptionist-lab*.test.ts"],
+      "acceptance": ["Same knowledge, tools and booking pipeline as phone calls", "Live AI inside the same lab cap as A-23"],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [], "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35. Page part (app/tools/receptionist-lab) is a ventra-feature follow-up.", "updatedAt": "2026-11-10T16:20:00Z"
+    },
+    {
+      "id": "A-27", "title": "/tools/front-office-lab overview: links both labs, current mode and usage, cross-channel check (contact qualified in the Setter Lab recognised in the Receptionist Lab after the A-20 identity check)",
+      "phase": "A", "module": "shared", "owner": "ventra-feature", "state": "queued", "priority": 3, "dependsOn": ["A-23b", "A-26", "A-20"],
+      "scope": ["apps/web/app/tools/front-office-lab/**", "apps/web/test/front-office-lab-page*.test.ts"],
+      "acceptance": ["DEMO/LIVE and connection-state indicators", "Cross-channel recognition only after identity check"],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [], "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35.", "updatedAt": "2026-11-10T16:20:00Z"
+    },
+    {
+      "id": "A-28", "title": "QA scenario suites: 12 Setter + 13 Receptionist scenarios from the brief plus prompt injection, unauthorised tool calls and cross-tenant access; each records inputs, outputs, tool calls, DB state, latency, cost, pass/fail; Demo mode in CI, Live AI on demand",
+      "phase": "A", "module": "shared", "owner": "ventra-qa", "state": "queued", "priority": 3, "dependsOn": ["A-23", "A-26"],
+      "scope": ["apps/web/test/front-office-scenarios*.test.ts (written by ventra-voice from the QA spec)"],
+      "acceptance": ["Scenario list matches the brief", "Runs in Demo mode in npm test"],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [], "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35.", "updatedAt": "2026-11-10T16:20:00Z"
     }
   ]
 }

@@ -67,12 +67,16 @@
       "worktree": "~/Developer/VENTRA-WEBSITE",
       "startedAt": null,
       "finishedAt": "2026-11-09T22:26:32.358Z",
-      "lastRunId": "c-9edb821b",
+      "lastRunId": "c-90917b1a",
       "runIds": [
-        "c-9edb821b"
+        "c-9edb821b",
+        "c-90917b1a"
       ],
       "commits": [],
       "evidence": [
+        {"at": "2026-11-10T16:16:00Z", "kind": "review", "detail": "c-90917b1a ventra-qa: code PASS WITH NITS (menu aria-expanded/controls, Escape + focus return, overflow-x clip, no secrets, scope clean); acceptance FAIL: SITE_DESIGN.md missing, no screenshots, browser check blocked. Findings: --faint #8A979C ~3:1 on white used for small text (medium); nav links 404 until W-3..W-8 (medium); home page does not yet use the new Hero/Section/PlanCard components; chrome.tsx dead stub (deletion needs owner OK)."},
+        {"at": "2026-11-10T16:19:00Z", "kind": "diff", "detail": "c-90917b1a ventra-web-design: --faint changed to #647176 (5.04:1 white, 4.65:1 on #F4F6F7, lowest background); new docs/agents/SITE_DESIGN.md (~120 lines) in the worktree; new contrast test in site-shell.test.ts. Specialist reports typecheck 0, lint 0, tests 748/748."},
+        {"at": "2026-11-10T16:20:00Z", "kind": "note", "detail": "c-90917b1a: browser check at 390/1440 BLOCKED: curl to localhost:3020 and npx playwright denied for subagents; Playwright not installed in either worktree. Next cycle: coordinator installs Playwright as a dev dependency through a main-project task (package.json is shared) or the owner runs the check; then commit W-1 in the worktree (exclude next-env.d.ts and test-results/)."},
         {
           "at": "2026-11-09T22:26:32.358Z",
           "kind": "diff",

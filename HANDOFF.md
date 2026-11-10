@@ -15,18 +15,20 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
-- Last cycle: c-2f01e5b4 at 2026-11-10 06:49 AWST · 1 dispatched (A-21) · 0 verified · 0 new blocked · stopped at the cycle spending cap
-- A-21 IMPLEMENTED, UNCOMMITTED: api/front-office/modes/route.ts, pending-actions/route.ts, pending-actions/[id]/route.ts, pending-actions/shared.ts, test/front-office-modes-api.test.ts (10/10 pass, coordinator-run), docs/agents/API_CONTRACTS.md. Next cycle: ventra-review (check approve path wraps createJobsExecutor(createSetterExecutor(x)) per A-17 note), unpiped typecheck/lint/test, then commit. Gaps: no Receptionist approval executor (approve returns 409, item stays pending); Setter approve uses env channel ids until A-15 lookup.
-- W-1 still implemented/uncommitted (not touched this cycle).
-- Previous cycle: c-9edb821b · A-17 committed e338a072, W-0 done
-- Integration branch: agent/develop @ eea15a8 (board commit follows)
-- Verification: npm --prefix apps/web test 813/813, typecheck exit 0, lint exit 0. A-17 re-review APPROVE. Test fixture META_SECRET literal changed to generated value after a ventra-git secret-scan false positive. Full ventra-verify not run (cycle budget).
-- Running / implemented (needs reconciling next cycle): W-1 implemented, UNCOMMITTED in ~/Developer/VENTRA-WEBSITE (site/_ui/meta.ts, shell.tsx, sections.tsx, test/site-shell.test.ts; layout, page, privacy, terms, get-started, icons, chrome, site.css). Website tests 747/747. Needs ventra-review + 390/1440 browser check, then commit in the worktree. Open: SITE_DESIGN.md; chrome.tsx is now a pass-through (deletion needs owner OK); nav links 404 until W-3..W-8; W-3 path course vs courses; next.config domain mapping (W-13).
-- A-17 follow-ups (for A-21 and agent.ts): approval route must wrap createJobsExecutor(createSetterExecutor(x)); setter/agent.ts step-1 key has no conversation marker so an expired step-1 approval cannot be renewed (both fail safe).
+- Last cycle: c-90917b1a at 2026-11-11 00:12 AWST · 7 dispatched (A-21 review, A-22, A-23, A-23h, A-23b + review, W-1 QA + finish) · 5 verified and committed · 0 new owner blockers
+- Owner note 2026-11-10 07:35 handled: planned A-22, A-23 (server) + A-23b (UI), A-24..A-28, plus A-29 (Meta 24h window guard from research). A-9 priority raised to 2 (A-25 depends on it).
+- Committed on agent/develop: 58f4bc6b A-22 research (docs/agents/FRONT_OFFICE_RESEARCH.md) · 4ea05b17 A-21 modes + approval-queue routes · 0b5bd67b A-23 Live AI Test engine · af563b9c A-23h hardening · 6f905221 A-23b Setter Lab UI.
+- Integration branch: agent/develop @ 6f90522 (board commit follows)
+- Verification: npm --prefix apps/web test 851/851, typecheck 0, lint 0, next build OK. ventra-verify (after A-23): lint/typecheck/unit/build/workspace-integration PASSED; course-integration + launcher-integration FAILED (pre-existing, frozen features, P0-7). All five changes reviewed by ventra-review: approve with nits.
+- Setter Lab Live AI Test (milestone 1, partly): /tools/setter-lab → Live AI Test, signed in, real model through the same Setter agent, sandboxed, A$5/day cap (FRONT_OFFICE_LAB_DAILY_CAP_AUD). NOT YET TRIED with a real call or in a browser (no Playwright; local server fetch needs approval). Cap store is per process until A-25. Lab bookings are in-memory until A-25 (not in CRM yet).
+- Running / implemented (needs reconciling next cycle): W-1 implemented, UNCOMMITTED in ~/Developer/VENTRA-WEBSITE. This cycle: QA code PASS WITH NITS; --faint contrast fixed (#647176, ≥4.65:1); docs/agents/SITE_DESIGN.md written in the worktree; contrast test added (748/748). Only the 390/1440 browser check is missing → blocked on tooling (Playwright not installed; curl/npx denied to subagents). Then commit in the worktree (exclude next-env.d.ts, test-results/).
+- Review follow-ups not yet tasks: A-21 nits (fetch item by id RPC, revision int4 cap, Receptionist owner_approval items can never be approved yet); A-23b nits (per-user rate limit on Live, getLabUsage anonymous).
+- HANDOFF note "send mobile preview link to Dylan on Telegram" still open: no Telegram chat id available in coordinator cycles (only incoming messages carry it).
 - W-0: docs/agents/WEBSITE_AUDIT.md. Key risks: checkout is frozen (423) in shared scope-freeze.ts; /api/checkout takes the client price (must look up server-side); glass kit not on frontend/website-ui.
 - Blocked, needs the owner: unchanged from c-9286948e (A-14 transfer rule, A-2 local migration, M-1, M-2, M-4, P0-7, M-0 items, A-4 emergency wording, P1-6). New owner needs from W-0: Stripe test keys/products/prices, un-freeze checkout decision, domain + analytics account, legal read of privacy/terms.
 - Note: pending foreign changes left uncommitted and untouched (same list as before).
-- Next up: W-1 review + browser check + commit; A-16 (knowledge base, ventra-voice); A-21 (modes API, include the createJobsExecutor wrap); A-18; A-20; A-6 QA; full ventra-verify; W-2/W-8 after W-1.
+- Blocked, new this cycle: browser checks (W-1, A-23b) need Playwright installed as a dev dependency or the owner to run them.
+- Next up: A-16 knowledge base (voice) → A-24 presets; A-9 (backend) → A-25 lab persistence; A-26 Receptionist browser voice (voice, after A-16 or in parallel with backend); A-29 window guard; W-1 browser check + commit, then W-2/W-8.
 
 ## Current task (approved scope only)
 
@@ -110,10 +112,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-10 06:55 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-11 00:29 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `eea15a8 chore(coordinator): cycle c-9edb821b board, handoff and website audit`
-- Lock: coordinator (pid 75499, 6 min old)
+- HEAD: `6f90522 feat(setter-lab): Demo / Live AI Test / Connected mode switch; Live only for a server-verified Supabase user (no client user id); per-turn LIVE/DEMO badge, tokens, latency, AUD estimate; today's usage vs cap [A-23b]`
+- Lock: coordinator (pid 36804, 17 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -132,9 +134,9 @@ _Generated 2026-11-10 06:55 by `ventra-handoff snapshot`. Do not hand-edit this 
  D apps/web/app/lab/page.tsx
  M apps/web/package-lock.json
  M apps/web/package.json
- M docs/agents/API_CONTRACTS.md
  M docs/agents/TASKS.md
  M docs/agents/TASK_BOARD.json
+ M docs/agents/WEBSITE_BOARD.json
  D docs/design/LIQUID_GLASS_SPEC.md
  D docs/design/reference/dylan-home-dashboard.png
  D docs/design/reference/dylan-liquid-glass-kit.png
@@ -154,8 +156,8 @@ _Generated 2026-11-10 06:55 by `ventra-handoff snapshot`. Do not hand-edit this 
 ?? .claude/agents/ventra-store.md
 ?? .claude/agents/ventra-voice.md
 ?? .claude/agents/ventra-web-design.md
-?? "Claude outputs/"
-?? apps/web/app/api/front-office/modes/
+?? .codex/agents/ventra-marketing.toml
+?? .codex/agents/ventra-store.toml
 ```
 - Diff stat vs HEAD:
 ```text
@@ -173,15 +175,15 @@ _Generated 2026-11-10 06:55 by `ventra-handoff snapshot`. Do not hand-edit this 
  scripts/agents/install.sh                         |   2 +-
  scripts/agents/ventra-backup                      |   3 +
  scripts/agents/ventra-verify                      |  11 +-
- 33 files changed, 111 insertions(+), 1688 deletions(-)
+ 33 files changed, 205 insertions(+), 1688 deletions(-)
 ```
 - Recent commits:
 ```text
-eea15a8 chore(coordinator): cycle c-9edb821b board, handoff and website audit
-e338a07 feat(front-office): mode check in every live route; jobs runner gates reminders, no-show rescue and follow-ups through gate(), consent and DST-safe quiet hours; per-step approval keys with expiry; single reschedule [A-17]
-b8b156d chore(coordinator): cycle c-9286948e board and handoff
-0ae76c7 feat(front-office): fo_connections per-business channel identifiers (no secrets, unique per kind+id), owner writes not_connected/pending/disabled only, server-only connected/error and service-role resolve, generic cross-tenant errors; PGlite tests [A-15]
-bf91f1c chore(coordinator): cycle c-255a1537 board and handoff
+6f90522 feat(setter-lab): Demo / Live AI Test / Connected mode switch; Live only for a server-verified Supabase user (no client user id); per-turn LIVE/DEMO badge, tokens, latency, AUD estimate; today's usage vs cap [A-23b]
+af563b9 fix(setter-lab): harden Live AI Test: live model must be metered (private brand), anthropic-only fetch refuses userinfo and redirects, byte-based worst-case estimate, process-wide usage store; tests for concurrency, 500 reservation, no secrets in state [A-23h]
+0b5bd67 feat(setter-lab): Live AI Test engine on the real Setter agent with sandboxed side effects, per-turn tokens/latency/AUD estimate, server-side daily cap (FRONT_OFFICE_LAB_DAILY_CAP_AUD, default 5), caller required, anthropic-only fetch fence; demo unchanged [A-23]
+4ea05b1 feat(front-office): modes and approval-queue API routes (GET/PUT modes, list pending actions, approve/reject through createJobsExecutor(createSetterExecutor)), members-only, generic cross-tenant errors; route tests [A-21]
+58f4bc6 docs(front-office): A-22 research on Setter and Receptionist architecture, AUD costs, AU numbers, consent and Meta limits [A-22]
 ```
 <!-- git-state:end -->
 
