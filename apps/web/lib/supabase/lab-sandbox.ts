@@ -3,10 +3,16 @@
 // typed, validated wrapper around the fo_lab_* RPCs. It never reads env and never logs: the caller passes an RPC
 // function (signed-in user's Supabase client, see rpcFromClient) and, for the channel key, a server-side secret.
 //
-// The sandbox rule (enforced by the database, not by this file): a sandbox is workspaces.kind = 'lab', its only member is
-// its owner, its only channels are 'lab:sms:<id>' and 'lab:voice:<id>' (no provider can deliver to them), it can never
-// hold fo_connections, its contacts only take test email domains and never come from an import, and reset / scenario
-// load refuse every workspace that is not the caller's own sandbox.
+// The sandbox rule (enforced by the database, not by this file; hardened in 202611110002_front_office_lab_hardening.sql):
+// a sandbox is workspaces.kind = 'lab', its only member is its owner, its only channels are kind sms/voice on
+// 'lab:sms:<id>' and 'lab:voice:<id>' (no provider can deliver to them), it can never hold fo_connections, its contacts
+// only take test email domains and never come from an import, reset / scenario load refuse every workspace that is not
+// the caller's own sandbox, and deleting the user deletes the sandbox.
+//
+// What the channel key does NOT guarantee: fo_lab_ensure_sandbox accepts any 32 to 200 character key from any signed-in
+// user, so a user can pick their own key (instead of labChannelKey) and write any phone numbers into THEIR OWN sandbox.
+// The key never opens another workspace; the blast radius is the caller's own sandbox. Phone numbers in a sandbox are
+// therefore not proven to be test numbers.
 import { createHmac } from 'node:crypto';
 
 /** Same shape as lib/front-office/orchestrator.ts Rpc: resolves with data, throws on an error. */
@@ -99,7 +105,10 @@ export async function resetLabSandbox(rpc: LabRpc, workspaceId: string): Promise
   return counts(await rpc('fo_lab_reset', { w: uuid(workspaceId, 'Workspace id') }));
 }
 
-/** Save the lab state with a snapshot of the sandbox rows. expectedRevision 0 creates; otherwise it must match. */
+/** At most this many saved scenarios per lab (enforced by fo_lab_save_scenario). */
+export const LAB_SCENARIO_MAX = 20;
+
+/** Save the lab state with a snapshot of the sandbox rows. expectedRevision 0 creates; otherwise it must match (at most LAB_SCENARIO_MAX per lab). */
 export async function saveLabScenario(rpc: LabRpc, workspaceId: string, input: { product: LabProduct; name: string; state: unknown; expectedRevision: number }): Promise<LabScenarioSummary> {
   return summary(await rpc('fo_lab_save_scenario', {
     w: uuid(workspaceId, 'Workspace id'), product_name: product(input.product), scenario_name: scenarioName(input.name),

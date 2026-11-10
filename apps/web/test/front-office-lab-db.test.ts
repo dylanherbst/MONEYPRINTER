@@ -17,7 +17,7 @@ const SECRET = 's'.repeat(48), BIZ_KEY = 'b'.repeat(40);
 const BIZ_SMS = '+61800000030', SAM = '+61412345678', JO = '+61498765432';
 const migrations = ['202610160001_s01.sql', '202611060001_front_office.sql', '202611060002_front_office_appointments.sql', '202611060003_front_office_setter.sql',
   '202611060004_front_office_chat_email.sql', '202611060005_front_office_meta.sql', '202611080001_front_office_receptionist.sql',
-  '202611100001_front_office_modes.sql', '202611100002_front_office_connections.sql', '202611110001_front_office_lab.sql'];
+  '202611100001_front_office_modes.sql', '202611100002_front_office_connections.sql', '202611110001_front_office_lab.sql', '202611110002_front_office_lab_hardening.sql'];
 
 async function setup() {
   const db = new PGlite();
@@ -192,18 +192,26 @@ test('reset clears only the sandbox; named scenarios save and load the lab state
   await one('select public.fo_set_state($1,$2,$3,$4,$5,$6) as r', [env.bizSms, BIZ_KEY, real.contact, 'qualified', 'setter', 'x']);
   await one('select public.fo_book($1,$2,$3,$4,$5,$6,$7) as r', [env.bizSms, BIZ_KEY, real.contact, '2026-11-12T02:00:00Z', '2026-11-12T02:30:00Z', 'google', bookingEventId(real.contact, Date.parse('2026-11-12T02:00:00Z'))]);
   await one('select public.fo_schedule_job($1,$2,$3,$4,1,$5,null) as r', [env.bizSms, BIZ_KEY, real.contact, 'follow-up', '2026-11-13T00:00:00Z']);
+  // The other business tables fo_lab_clear empties for a sandbox: a call, a handoff, an outbox draft, a held action.
+  await env.db.exec('reset role');
+  await env.db.query("insert into public.fo_calls(workspace_id, channel_id, contact_id, provider_call_id, caller) values ($1,$2,$3,'CAbiz00000001',$4)", [biz, env.bizSms, real.contact, SAM]);
+  await env.db.query("insert into public.fo_handoffs(workspace_id, contact_id, from_agent, owner, channel, intent, summary, next_action) values ($1,$2,'setter','human','sms','trial','Real customer wants a trial','Call back')", [biz, real.contact]);
+  await env.db.query("insert into public.fo_outbox(workspace_id, contact_id, channel_id, body, prompt_version) values ($1,$2,$3,'See you Friday','setter-v1')", [biz, real.contact, env.bizSms]);
+  await env.db.query("insert into public.fo_pending_actions(workspace_id, product, kind, contact_id, channel_id, payload, summary, idempotency_key, expires_at) values ($1,'setter','book',$2,$3,$4,'Book the real customer','biz:book:00000001',now() + interval '1 hour')",
+    [biz, real.contact, env.bizSms, JSON.stringify({ kind: 'book', start: '2026-11-15T01:00:00.000Z', end: '2026-11-15T01:30:00.000Z' })]);
   const bizCounts = async () => {
-    await as(owner, so);
-    return {
-      contacts: await one<number>('select count(*)::int as r from public.fo_contacts where workspace_id = $1', [biz]),
-      messages: await one<number>('select count(*)::int as r from public.fo_messages where workspace_id = $1', [biz]),
-      events: await one<number>('select count(*)::int as r from public.fo_events where workspace_id = $1', [biz]),
-      appointments: await one<number>('select count(*)::int as r from public.fo_appointments where workspace_id = $1', [biz]),
-      jobs: await one<number>('select count(*)::int as r from public.fo_jobs where workspace_id = $1', [biz]),
+    // Counted as the database owner (no RLS in the way), then back to the signed-in owner.
+    await env.db.exec('reset role');
+    const n = (t: string) => one<number>(`select count(*)::int as r from public.${t} where workspace_id = $1`, [biz]);
+    const out = {
+      contacts: await n('fo_contacts'), messages: await n('fo_messages'), events: await n('fo_events'), appointments: await n('fo_appointments'),
+      jobs: await n('fo_jobs'), calls: await n('fo_calls'), handoffs: await n('fo_handoffs'), outbox: await n('fo_outbox'), pendingActions: await n('fo_pending_actions'),
     };
+    await as(owner, so);
+    return out;
   };
   const before = await bizCounts();
-  assert.deepEqual([before.contacts, before.messages, before.appointments, before.jobs], [1, 1, 1, 1]);
+  assert.deepEqual([before.contacts, before.messages, before.appointments, before.jobs, before.calls, before.handoffs, before.outbox, before.pendingActions], [1, 1, 1, 1, 1, 1, 1, 1]);
   assert.ok(before.events >= 4);
 
   await as(owner, so);
@@ -285,6 +293,89 @@ test('reset clears only the sandbox; named scenarios save and load the lab state
   assert.deepEqual(await lab.listLabScenarios(rpc, sb.workspaceId, 'setter'), []);
   assert.equal((await lab.listLabScenarios(rpc, sb.workspaceId, 'receptionist')).length, 1);
   await assert.rejects(lab.loadLabScenario(rpc, sb.workspaceId, 'setter', 'Booked lead'), /Scenario not found/);
+});
+
+test('hardening (A-33): grants, strangers, channel kinds, the scenario cap and user deletion', async () => {
+  const env = await setup();
+  const { db, as, one, rpc, owner, so, stranger, sx, biz } = env;
+  await as(owner, so);
+  const key = lab.labChannelKey(SECRET, owner);
+  const sb = await lab.ensureLabSandbox(rpc, key);
+  const w = sb.workspaceId;
+  await one('select public.fo_save_agent_settings($1,$2,0) as r', [w, JSON.stringify({ template: 'custom', businessName: 'Lab sandbox' })]);
+  await lab.saveLabScenario(rpc, w, { product: 'setter', name: 'Mine', state: {}, expectedRevision: 0 });
+
+  // Anonymous callers are refused on every public fo_lab_* RPC, before any check runs.
+  const publicCalls: Array<[string, string, unknown[]]> = [
+    ['fo_lab_ensure_sandbox', '$1', [key]],
+    ['fo_lab_reset', '$1', [w]],
+    ['fo_lab_save_scenario', '$1,$2,$3,$4,$5', [w, 'setter', 'Anon', '{}', 0]],
+    ['fo_lab_list_scenarios', '$1,$2', [w, 'setter']],
+    ['fo_lab_load_scenario', '$1,$2,$3', [w, 'setter', 'Mine']],
+    ['fo_lab_delete_scenario', '$1,$2,$3,$4', [w, 'setter', 'Mine', 1]],
+    ['fo_lab_set_modes', '$1,$2,$3', [w, 'automatic', 'automatic']],
+  ];
+  await as(null);
+  for (const [fn, args, params] of publicCalls) {
+    await assert.rejects(one(`select public.${fn}(${args}) as r`, params), /permission denied/, `anon is refused on ${fn}`);
+  }
+
+  // Signed-in users (even the sandbox owner) cannot call the internal helpers directly.
+  await as(owner, so);
+  const internal: Array<[string, string, unknown[]]> = [
+    ['fo_lab_clear', '$1', [w]],
+    ['fo_lab_restore', '$1,$2', [w, JSON.stringify({ v: 1 })]],
+    ['fo_lab_snapshot', '$1', [w]],
+    ['fo_lab_require', '$1', [w]],
+  ];
+  for (const [fn, args, params] of internal) {
+    await assert.rejects(one(`select public.${fn}(${args}) as r`, params), /permission denied/, `authenticated is refused on ${fn}`);
+  }
+
+  // A stranger cannot load, delete or switch modes on someone else's sandbox; nothing changes.
+  await as(stranger, sx);
+  await assert.rejects(lab.loadLabScenario(rpc, w, 'setter', 'Mine'), /Lab sandbox not found/);
+  await assert.rejects(lab.deleteLabScenario(rpc, w, 'setter', 'Mine', 1), /Lab sandbox not found/);
+  await assert.rejects(lab.setLabModes(rpc, w, { setter: 'automatic', receptionist: 'automatic' }), /Lab sandbox not found/);
+  await assert.rejects(lab.setLabModes(rpc, biz, { setter: 'automatic', receptionist: 'automatic' }), /Lab sandbox not found/);
+  await as(owner, so);
+  assert.deepEqual((await lab.listLabScenarios(rpc, w, 'setter')).map(s => [s.name, s.revision]), [['Mine', 1]]);
+  await db.exec('reset role');
+  assert.equal(await one<number>('select modes_revision as r from public.fo_agent_settings where workspace_id = $1', [w]), 0, 'modes untouched by the stranger');
+
+  // Lab channels: only sms and voice, even with a well-formed lab address, even for the database owner.
+  for (const kind of ['email', 'web-chat']) {
+    await assert.rejects(db.query('insert into public.fo_channels(workspace_id, kind, address, key_hash) values ($1,$2,$3,$4)', [w, kind, `lab:${kind}:${w}`, 'a'.repeat(64)]), /only has lab channels/, `no ${kind} channel on a sandbox`);
+  }
+  await assert.rejects(db.query("update public.fo_channels set kind = 'email', address = $2 where id = $1", [sb.channels.sms.id, `lab:email:${w}`]), /only has lab channels/);
+
+  // At most 20 scenarios per lab; the other lab has its own 20.
+  await as(owner, so);
+  for (let i = 2; i <= 20; i++) await lab.saveLabScenario(rpc, w, { product: 'setter', name: `S${i}`, state: {}, expectedRevision: 0 });
+  assert.equal(lab.LAB_SCENARIO_MAX, 20);
+  assert.equal((await lab.listLabScenarios(rpc, w, 'setter')).length, 20);
+  await assert.rejects(lab.saveLabScenario(rpc, w, { product: 'setter', name: 'S21', state: {}, expectedRevision: 0 }), /Too many saved scenarios/);
+  await lab.saveLabScenario(rpc, w, { product: 'setter', name: 'S20', state: { again: true }, expectedRevision: 1 });
+  await lab.saveLabScenario(rpc, w, { product: 'receptionist', name: 'R1', state: {}, expectedRevision: 0 });
+
+  // Deleting a user who only has a sandbox removes the sandbox workspace and everything in it.
+  await as(stranger, sx);
+  const theirKey = lab.labChannelKey(SECRET, stranger);
+  const theirs = await lab.ensureLabSandbox(rpc, theirKey);
+  await lab.saveLabScenario(rpc, theirs.workspaceId, { product: 'setter', name: 'Theirs', state: {}, expectedRevision: 0 });
+  await as(null);
+  await labBooking(env, theirs, theirKey, JO, '2026-11-12T03:00:00.000Z');
+  await db.exec('reset role');
+  await db.query('delete from auth.sessions where user_id = $1', [stranger]);
+  await db.query('delete from auth.users where id = $1', [stranger]);
+  const left = async (t: string, col = 'workspace_id') => one<number>(`select count(*)::int as r from public.${t} where ${col} = $1`, [theirs.workspaceId]);
+  assert.equal(await left('workspaces', 'id'), 0, 'the sandbox workspace is gone with its user');
+  for (const t of ['fo_lab_sandboxes', 'memberships', 'fo_channels', 'fo_contacts', 'fo_appointments', 'fo_events', 'fo_lab_scenarios']) assert.equal(await left(t), 0, `${t} cleaned`);
+  // A user who is still a member of a business cannot be deleted (memberships, unchanged), and the failed delete keeps
+  // their sandbox intact.
+  await assert.rejects(db.query('delete from auth.users where id = $1', [owner]), /foreign key/);
+  assert.equal(await one<number>('select count(*)::int as r from public.workspaces where id = $1', [w]), 1);
+  assert.equal(await one<number>('select count(*)::int as r from public.fo_lab_scenarios where workspace_id = $1', [w]), 21);
 });
 
 test('rpcFromClient passes data through and only shows the lab messages, never raw database errors', async () => {
