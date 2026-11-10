@@ -22,6 +22,20 @@ function sessionCookies(out: NextResponse, session: Session | null) {
   out.cookies.set('lp-refresh', session.refresh_token, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7 });
   return out;
 }
+/**
+ * Only business workspaces are listed: lab sandboxes (workspaces.kind = 'lab', migration 202611110001) never appear in a
+ * picker. Rows are read with `*` so this works whether or not the database has the kind column yet (without it, no lab
+ * can exist); any kind other than 'business' is left out (fails closed). Only id and name are returned.
+ */
+function businessWorkspaces(rows: unknown): { id: string; name: string }[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.flatMap(row => {
+    if (!row || typeof row !== 'object') return [];
+    const r = row as Record<string, unknown>;
+    if ('kind' in r && r.kind !== 'business') return [];
+    return typeof r.id === 'string' && typeof r.name === 'string' ? [{ id: r.id, name: r.name }] : [];
+  });
+}
 async function handle(req: NextRequest) {
   let renewed: Session | null = null;
   const finish = (body: unknown, status = 200) => {
@@ -81,11 +95,14 @@ async function handle(req: NextRequest) {
     if (active.error) return finish({ error: 'Account storage is unavailable. Please retry.', signedIn: true }, 503);
     if (!active.data) return sessionCookies(response({ error: 'Session revoked. Sign in again.', signedIn: false }, 401), null);
     if (req.method === 'GET') {
-      const workspaces = await db.from('workspaces').select('id,name');
-      if (workspaces.error) return finish({ error: 'Unable to load workspaces. Please retry.' }, 503);
+      const listed = await db.from('workspaces').select('*');
+      if (listed.error) return finish({ error: 'Unable to load workspaces. Please retry.' }, 503);
+      const workspaces = { data: businessWorkspaces(listed.data) };
       const w = req.nextUrl.searchParams.get('workspace');
       if (!w) return finish({ signedIn: true, workspaces: workspaces.data });
       uuid(w);
+      // A lab sandbox is never opened as a business workspace here (same answer as a non-member).
+      if (!workspaces.data.some(x => x.id === w)) return finish({ error: 'Workspace access is unavailable.' }, 403);
       const member = await db.from('memberships').select('role').eq('workspace_id', w).eq('user_id', actor.data.user.id).eq('active', true).maybeSingle();
       if (member.error || !member.data) return finish({ error: 'Workspace access is unavailable.' }, 403);
       const [profile, offers] = await Promise.all([db.from('business_profiles').select('data,revision').eq('workspace_id', w).maybeSingle(), db.from('offers').select('id,data,revision').eq('workspace_id', w).order('id')]);

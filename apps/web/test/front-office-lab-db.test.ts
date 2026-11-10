@@ -3,9 +3,10 @@
 // the CRM read path, reset touches only the sandbox, and named scenarios save and load (rows and lab state).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import './helpers/route-harness.ts';
+import { blankProfile } from '../lib/onboarding.ts';
 
 const lab = await import('../lib/supabase/lab-sandbox.ts');
 const { CONTACT_COLUMNS, contactFromRow } = await import('../lib/front-office/crm.ts');
@@ -15,9 +16,13 @@ const { bookingEventId } = await import('../lib/front-office/booking.ts');
 
 const SECRET = 's'.repeat(48), BIZ_KEY = 'b'.repeat(40);
 const BIZ_SMS = '+61800000030', SAM = '+61412345678', JO = '+61498765432';
-const migrations = ['202610160001_s01.sql', '202611060001_front_office.sql', '202611060002_front_office_appointments.sql', '202611060003_front_office_setter.sql',
-  '202611060004_front_office_chat_email.sql', '202611060005_front_office_meta.sql', '202611080001_front_office_receptionist.sql',
-  '202611100001_front_office_modes.sql', '202611100002_front_office_connections.sql', '202611110001_front_office_lab.sql', '202611110002_front_office_lab_hardening.sql'];
+// Every migration, in order (as `supabase db reset` applies them locally), so every table with a workspace_id exists.
+const migrations = (await readdir('../../supabase/migrations')).filter(f => f.endsWith('.sql')).sort();
+/** Tables the A-35 deletion checks must cover at least (the full list is read from the database itself). */
+const EXPECTED_WORKSPACE_TABLES = ['memberships', 'business_profiles', 'offers', 'draft_imports', 'launcher_drafts', 'course_drafts', 'orders',
+  'fo_lab_sandboxes', 'fo_lab_scenarios', 'fo_channels', 'fo_connections', 'fo_contacts', 'fo_messages', 'fo_events', 'fo_appointments', 'fo_jobs',
+  'fo_calls', 'fo_handoffs', 'fo_outbox', 'fo_pending_actions', 'fo_agent_settings'];
+const LAB_ONLY = /only holds front office lab data/;
 
 async function setup() {
   const db = new PGlite();
@@ -53,6 +58,27 @@ async function setup() {
 }
 
 type Env = Awaited<ReturnType<typeof setup>>;
+
+/** Every base table in public with a workspace_id column, read from the database (as the database owner). */
+async function workspaceTables(env: Env) {
+  await env.db.exec('reset role');
+  const tables = await env.rows<string>(`select c.table_name::text as r from information_schema.columns c
+    join information_schema.tables t on t.table_schema = c.table_schema and t.table_name = c.table_name and t.table_type = 'BASE TABLE'
+    where c.table_schema = 'public' and c.column_name = 'workspace_id' order by 1`);
+  for (const t of EXPECTED_WORKSPACE_TABLES) assert.ok(tables.includes(t), `${t} is one of the workspace tables`);
+  return tables;
+}
+/** Rows still held for workspace w, per table with a workspace_id (only the non-empty ones), plus the workspace row. */
+async function leftovers(env: Env, w: string) {
+  const out: Record<string, number> = {};
+  for (const t of await workspaceTables(env)) {
+    const n = await env.one<number>(`select count(*)::int as r from public.${t} where workspace_id = $1`, [w]);
+    if (n) out[t] = n;
+  }
+  const ws = await env.one<number>('select count(*)::int as r from public.workspaces where id = $1', [w]);
+  if (ws) out.workspaces = ws;
+  return out;
+}
 
 /** A lab conversation through the real RPCs with the lab channel key: inbound SMS, qualified, booked. */
 async function labBooking(env: Env, sandbox: { channels: { sms: { id: string; address: string } } }, key: string, phone: string, start: string) {
@@ -368,14 +394,83 @@ test('hardening (A-33): grants, strangers, channel kinds, the scenario cap and u
   await db.exec('reset role');
   await db.query('delete from auth.sessions where user_id = $1', [stranger]);
   await db.query('delete from auth.users where id = $1', [stranger]);
-  const left = async (t: string, col = 'workspace_id') => one<number>(`select count(*)::int as r from public.${t} where ${col} = $1`, [theirs.workspaceId]);
-  assert.equal(await left('workspaces', 'id'), 0, 'the sandbox workspace is gone with its user');
-  for (const t of ['fo_lab_sandboxes', 'memberships', 'fo_channels', 'fo_contacts', 'fo_appointments', 'fo_events', 'fo_lab_scenarios']) assert.equal(await left(t), 0, `${t} cleaned`);
+  // The sandbox workspace is gone with its user, and so is every row of every table with a workspace_id (A-35).
+  assert.deepEqual(await leftovers(env, theirs.workspaceId), {});
   // A user who is still a member of a business cannot be deleted (memberships, unchanged), and the failed delete keeps
   // their sandbox intact.
   await assert.rejects(db.query('delete from auth.users where id = $1', [owner]), /foreign key/);
   assert.equal(await one<number>('select count(*)::int as r from public.workspaces where id = $1', [w]), 1);
   assert.equal(await one<number>('select count(*)::int as r from public.fo_lab_scenarios where workspace_id = $1', [w]), 21);
+});
+
+test('hygiene (A-35): non-front-office tables refuse lab workspaces; deleting a sandbox leaves no row in any workspace table', async () => {
+  const env = await setup();
+  const { db, as, one, rows, rpc, owner, so, biz } = env;
+  const profile = { ...blankProfile(), name: 'Lab studio', audience: 'Testers', goal: 'Try', expertise: 'Testing', pathways: ['education', 'business'], industry: 'Training' };
+  const offer = { version: 1, id: 'lab-offer', profileId: 'local-business', name: 'Trial', audience: 'Testers', outcome: 'Try it', delivery: 'Online', amountMinor: 100, currency: 'AUD', kind: 'education' };
+  const course = { title: 'Lab course', summary: 'x', lessons: [{ id: 'one', title: 'Intro', content: 'Learn', durationMinutes: '10' }] };
+  const courseId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', offerId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  await as(owner, so);
+  const key = lab.labChannelKey(SECRET, owner);
+  const sb = await lab.ensureLabSandbox(rpc, key);
+  const w = sb.workspaceId;
+
+  // The sandbox owner (an active owner of it) is refused on every non-front-office writer, through the real RPCs.
+  await assert.rejects(one('select public.save_profile($1,$2,0) as r', [w, profile]), LAB_ONLY, 'business profile');
+  await assert.rejects(one('select public.import_drafts($1,$2) as r', [w, { profile, offers: [offer] }]), LAB_ONLY, 'draft import');
+  await assert.rejects(one("select public.save_launcher_draft($1,'business-plan',$2,0) as r", [w, { a: 1 }]), LAB_ONLY, 'launcher draft');
+  await assert.rejects(one('select public.save_course($1,$2,$3,0) as r', [w, courseId, course]), LAB_ONLY, 'course draft');
+  await assert.rejects(one('select public.save_offer($1,$2,$3,0) as r', [w, offerId, offer]), /Activate the offer pathway/, 'no offer without a profile');
+  // Even the database owner cannot put such rows into a sandbox, nor move a business row into one.
+  await db.exec('reset role');
+  await assert.rejects(db.query('insert into public.business_profiles(workspace_id, data) values ($1,$2)', [w, profile]), LAB_ONLY);
+  await assert.rejects(db.query('insert into public.draft_imports(workspace_id, payload) values ($1,$2)', [w, {}]), LAB_ONLY);
+  await assert.rejects(db.query("insert into public.launcher_drafts(workspace_id, kind, data) values ($1,'business-plan','{}')", [w]), LAB_ONLY);
+  await assert.rejects(db.query("insert into public.course_drafts(workspace_id, id, data) values ($1,$2,'{}')", [w, courseId]), LAB_ONLY);
+  await assert.rejects(db.query("insert into public.orders(workspace_id, stripe_event_id, stripe_session_id, amount_minor, currency, payment_status) values ($1,'evt_lab','cs_lab',100,'AUD','paid')", [w]), LAB_ONLY);
+  await assert.rejects(db.query('insert into public.offers(workspace_id, data) values ($1,$2)', [w, offer]), LAB_ONLY);
+
+  // A business workspace keeps every writer, and its rows cannot be moved into the sandbox.
+  await as(owner, so);
+  await one('select public.save_profile($1,$2,0) as r', [biz, profile]);
+  await one('select public.save_offer($1,$2,$3,0) as r', [biz, offerId, offer]);
+  assert.equal(await one<number>("select public.save_launcher_draft($1,'business-plan',$2,0) as r", [biz, { a: 1 }]), 1);
+  assert.equal(await one<number>('select public.save_course($1,$2,$3,0) as r', [biz, courseId, course]), 1);
+  await db.exec('reset role');
+  await assert.rejects(db.query('update public.launcher_drafts set workspace_id = $1 where workspace_id = $2', [w, biz]), LAB_ONLY);
+  await assert.rejects(db.query('update public.course_drafts set workspace_id = $1 where workspace_id = $2', [w, biz]), LAB_ONLY);
+
+  // Orders (server role only): a lab workspace is an audited rejection, not an error; a business still records.
+  await db.exec('set role service_role');
+  assert.equal(await one<string>("select public.record_test_order($1,'evt_lab_1','cs_lab_1',100,'AUD','paid',null) as r", [w]), 'rejected');
+  assert.equal(await one<string>("select public.record_test_order($1,'evt_biz_1','cs_biz_1',100,'AUD','paid',null) as r", [biz]), 'recorded');
+  await db.exec('reset role');
+  assert.deepEqual(await rows("select jsonb_build_object('outcome', outcome, 'reason', reason) as r from public.order_audit where stripe_event_id = 'evt_lab_1'"), [{ outcome: 'rejected', reason: 'lab workspace' }]);
+
+  // Fill the sandbox through the lab (conversation, booking, follow-up, settings, held action, scenario), then delete
+  // the sandbox workspace itself (no user deletion): nothing blocks it and no row of it is left in any workspace table.
+  await as(null);
+  const booked = await labBooking(env, sb, key, SAM, '2026-11-12T01:00:00.000Z');
+  await one('select public.fo_schedule_job($1,$2,$3,$4,1,$5,$6) as r', [sb.channels.sms.id, key, booked.contact, 'reminder-24h', '2026-11-11T01:00:00Z', booked.appointment]);
+  await as(owner, so);
+  await one('select public.fo_save_agent_settings($1,$2,0) as r', [w, JSON.stringify({ template: 'custom', businessName: 'Lab sandbox' })]);
+  await lab.setLabModes(rpc, w, { setter: 'owner_approval', receptionist: 'owner_approval' });
+  await as(null);
+  await one('select public.fo_request_action($1,$2,$3,$4,$5,$6,$7,$8,$9) as r', [sb.channels.sms.id, key, 'setter', booked.contact, null,
+    JSON.stringify({ kind: 'book', start: '2026-11-13T01:00:00.000Z', end: '2026-11-13T01:30:00.000Z', timeZone: 'Australia/Perth' }), 'Book Sam', 'lab:book:00000002', 60]);
+  await as(owner, so);
+  await lab.saveLabScenario(rpc, w, { product: 'receptionist', name: 'Full', state: {}, expectedRevision: 0 });
+  const before = await leftovers(env, w);
+  for (const t of ['workspaces', 'memberships', 'fo_lab_sandboxes', 'fo_lab_scenarios', 'fo_channels', 'fo_contacts', 'fo_messages', 'fo_events', 'fo_appointments', 'fo_jobs', 'fo_agent_settings', 'fo_pending_actions']) {
+    assert.ok(before[t], `the sandbox held ${t} rows before deletion`);
+  }
+  const bizBefore = await leftovers(env, biz);
+  await db.exec('reset role');
+  await db.query('delete from public.workspaces where id = $1', [w]);
+  assert.deepEqual(await leftovers(env, w), {}, 'every workspace table is empty for the deleted sandbox');
+  assert.deepEqual(await leftovers(env, biz), bizBefore, 'the business keeps every row');
+  // A business workspace that still holds a profile, drafts or orders stays undeletable, as before.
+  await assert.rejects(db.query('delete from public.workspaces where id = $1', [biz]), /foreign key/);
 });
 
 test('rpcFromClient passes data through and only shows the lab messages, never raw database errors', async () => {
