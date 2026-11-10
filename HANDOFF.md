@@ -15,6 +15,15 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
+- Last cycle: c-4a47e138 at 2026-11-11 01:45 AWST · 3 dispatched (A-37, A-35, A-36) + 3 reviews · 3 verified and committed · 0 new owner blockers
+- Integration branch: agent/develop @ eaec63a8 (db2d8a9c A-37 · 27ab48a5 A-35 · eaec63a8 A-36; board commit follows)
+- Verification: ventra-verify lint, typecheck, unit tests, build, workspace-integration PASSED; course/launcher integration FAILED as "paused" (known P0-7). Final npm test 934/934. Migration 202611110003 is local/PGlite only.
+- Running / implemented (needs reconciling next cycle): none. W-1 still uncommitted in VENTRA-WEBSITE (unchanged).
+- Blocked, needs the owner: W-1 browser check (localhost:3020 still refused this cycle), P0-10 backup script, A-34 lab key secret, A-14 transfer rule, P0-7 exec bit. Backup not run (P0-10). New owner question (non-blocking, A-37): follow-ups are never allowed on Instagram/Messenger (checkFollowUp), so held Meta follow-ups fail even in-window: intended?
+- Next up: A-24 presets or A-26 Receptionist browser voice (voice), A-38 consent records or A-31 (backend), A-39 review follow-ups, A-34 once the secret exists.
+
+### Previous cycle c-df526914
+
 - Last cycle: c-df526914 at 2026-11-11 01:14 AWST · 6 dispatched (A-30, A-25, A-32, A-33, W-1 QA, W-1 fixes) + 5 reviews · 4 verified and committed · 2 blocked (W-1 browser check, P0-10 backup)
 - Integration branch: agent/develop @ 0df39bdc (94019acd A-30 · 1cbd748f A-25 · e7ee82fb A-32 · 0df39bdc A-33)
 - Verification: ventra-verify lint, typecheck, unit tests (916), build, workspace-integration PASSED; course/launcher integration FAILED as "paused" (frozen, known P0-7: installed ventra-verify lacks the FROZEN status). New migrations 202611110001/0002 are local/PGlite only.
@@ -130,10 +139,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-11 01:36 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-11 01:58 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `0df39bd feat(front-office): lab sandbox hardening: lab channels sms/voice only, scenario cap 20, sandbox removed on user deletion (auth.users cleanup trigger, kind=lab only), honest channel-key comments, negative RLS/grant tests [A-33]`
-- Lock: coordinator (pid 55225, 21 min old)
+- HEAD: `eaec63a fix(front-office): settings save uses the shared 256 KB body cap (max knowledge base fits), over-cap gets 413 too_large with a plain message; tests for non-owner and stored-knowledge read failure on the omit-knowledge path; stale metaRunnerChannels comment updated [A-36]`
+- Lock: coordinator (pid 65263, 13 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -154,7 +163,6 @@ _Generated 2026-11-11 01:36 by `ventra-handoff snapshot`. Do not hand-edit this 
  M apps/web/package.json
  M docs/agents/TASKS.md
  M docs/agents/TASK_BOARD.json
- M docs/agents/WEBSITE_BOARD.json
  D docs/design/LIQUID_GLASS_SPEC.md
  D docs/design/reference/dylan-home-dashboard.png
  D docs/design/reference/dylan-liquid-glass-kit.png
@@ -176,32 +184,33 @@ _Generated 2026-11-11 01:36 by `ventra-handoff snapshot`. Do not hand-edit this 
 ?? .claude/agents/ventra-web-design.md
 ?? .codex/agents/ventra-marketing.toml
 ?? .codex/agents/ventra-store.toml
+?? .codex/agents/ventra-voice.toml
 ```
 - Diff stat vs HEAD:
 ```text
- docs/design/LIQUID_GLASS_SPEC.md                  |  188 ----
- docs/design/reference/dylan-home-dashboard.png    |  Bin 627700 -> 0 bytes
- docs/design/reference/dylan-liquid-glass-kit.png  |  Bin 630505 -> 0 bytes
- docs/design/reference/home-approved.png           |  Bin 2071965 -> 0 bytes
- docs/design/reference/kit-approved.png            |  Bin 1385351 -> 0 bytes
- docs/design/ventra-ui/components.d.ts             |   27 -
- docs/design/ventra-ui/components.js               |  225 ----
- docs/design/ventra-ui/glass.css                   |  249 -----
- docs/design/ventra-ui/tokens.css                  |   15 -
- docs/design/ventra-ui/tokens.json                 |  692 ------------
- package.json                                      |    7 +-
- scripts/agents/install.sh                         |    2 +-
- scripts/agents/ventra-backup                      |    3 +
- scripts/agents/ventra-verify                      |   11 +-
- 33 files changed, 1191 insertions(+), 1826 deletions(-)
+ docs/design/LIQUID_GLASS_SPEC.md                  | 188 ------
+ docs/design/reference/dylan-home-dashboard.png    | Bin 627700 -> 0 bytes
+ docs/design/reference/dylan-liquid-glass-kit.png  | Bin 630505 -> 0 bytes
+ docs/design/reference/home-approved.png           | Bin 2071965 -> 0 bytes
+ docs/design/reference/kit-approved.png            | Bin 1385351 -> 0 bytes
+ docs/design/ventra-ui/components.d.ts             |  27 -
+ docs/design/ventra-ui/components.js               | 225 -------
+ docs/design/ventra-ui/glass.css                   | 249 --------
+ docs/design/ventra-ui/tokens.css                  |  15 -
+ docs/design/ventra-ui/tokens.json                 | 692 ----------------------
+ package.json                                      |   7 +-
+ scripts/agents/install.sh                         |   2 +-
+ scripts/agents/ventra-backup                      |   3 +
+ scripts/agents/ventra-verify                      |  11 +-
+ 32 files changed, 216 insertions(+), 1695 deletions(-)
 ```
 - Recent commits:
 ```text
+eaec63a fix(front-office): settings save uses the shared 256 KB body cap (max knowledge base fits), over-cap gets 413 too_large with a plain message; tests for non-owner and stored-knowledge read failure on the omit-knowledge path; stale metaRunnerChannels comment updated [A-36]
+27ab48a feat(platform): lab sandbox hygiene: GET /api/workspace lists only kind=business (lab id 403), lab_workspace_write_guard trigger refuses lab writes on business_profiles/offers/draft_imports/launcher_drafts/course_drafts/orders, record_test_order logs lab as rejected, deletion tests cover every workspace_id table; migration local only [A-35]
+db2d8a9 feat(front-office): Meta approvals in the approval route: socialWindowCheck passed to approvePendingAction, Instagram/Messenger resolved by cannotPerform/approvalExecutor, owner-task failure recorded as fixed non-secret note (META_OWNER_TASK_FAILED), env pairs and codes documented [A-37]
+02e4853 chore(coordinator): cycle c-df526914 board and handoff
 0df39bd feat(front-office): lab sandbox hardening: lab channels sms/voice only, scenario cap 20, sandbox removed on user deletion (auth.users cleanup trigger, kind=lab only), honest channel-key comments, negative RLS/grant tests [A-33]
-e7ee82f feat(front-office): Meta window re-check at owner approval (held Instagram/Messenger items fail closed after 24h, optional owner task), future lastInbound refused, Meta channels in jobs runner behind FRONT_OFFICE_META_AUTOSEND (off) [A-32]
-1cbd748 feat(front-office): lab sandbox workspace (workspaces.kind lab, owner-only, unroutable lab: channels, test-domain emails, no connections), reset and save/load scenarios via fo_lab_* RPCs, lib/supabase/lab-sandbox helper, PGlite tests; local only [A-25]
-94019ac fix(front-office): settings save that omits knowledge keeps the stored knowledge base; present replaces, empty/null clears; knowledge shape documented in API_CONTRACTS [A-30]
-aaea4a2 chore(coordinator): cycle c-ef7fc367 board and handoff; API contracts for A-9 and A-10
 ```
 <!-- git-state:end -->
 

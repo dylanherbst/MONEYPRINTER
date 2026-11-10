@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-10T17:35:39.403Z",
+  "updatedAt": "2026-11-10T18:17:00Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-df526914",
-    "startedAt": "2026-11-10T17:14:09Z",
-    "endedAt": "2026-11-10T17:55:00Z",
-    "summary": "c-df526914: A-30, A-25, A-32, A-33 verified, reviewed and committed; W-1 fixes done but browser check blocked by localhost permission; backup create root cause found (P0-10)."
+    "id": "c-4a47e138",
+    "startedAt": "2026-11-10T17:45:09Z",
+    "endedAt": "2026-11-10T18:18:00Z",
+    "summary": "c-4a47e138: A-37 (Meta approvals in approval route), A-35 (lab sandbox hygiene, local migration 0003) and A-36 (settings 256 KB cap + tests) reviewed, verified (934/934) and committed; A-39 review follow-ups queued; W-1 still blocked on localhost permission, no W- task dispatched."
   },
   "tasks": [
     {
@@ -3081,16 +3081,39 @@
     },
     {
       "id": "A-35",
-      "commits": [],
+      "commits": [
+        "27ab48a5"
+      ],
       "evidence": [
         {
           "at": "2026-11-10T17:35:39.403Z",
           "kind": "note",
           "detail": "c-df526914: widened from A-33 review"
+        },
+        {
+          "at": "2026-11-10T18:00:00Z",
+          "kind": "diff",
+          "detail": "c-4a47e138: api/workspace/route.ts (lists only kind=business, lab id 403, select * so production without kind column still works), new migration 202611110003_lab_workspace_hygiene.sql (lab_workspace_write_guard trigger on business_profiles/offers/draft_imports/launcher_drafts/course_drafts/orders; record_test_order logs lab as rejected), new test/workspace-list.test.ts, front-office-lab-db.test.ts loads all migrations and asserts every workspace_id table empty after deletion"
+        },
+        {
+          "at": "2026-11-10T18:00:00Z",
+          "kind": "review",
+          "detail": "c-4a47e138 ventra-review: PASS WITH FIXES, no blocking or security issues. Low: migration not idempotent (no or replace / drop trigger if exists, same style as 0001/0002); record_test_order redefinition overrides 202611030011 (only diff is fo_is_lab line); test readdir path depends on cwd apps/web. Follow-ups queued as A-39."
+        },
+        {
+          "at": "2026-11-10T18:00:00Z",
+          "kind": "test",
+          "detail": "coordinator c-4a47e138 ventra-verify: lint PASSED, typecheck PASSED, unit-tests PASSED (930/930, was 916 before A-35+A-37), build PASSED, workspace-integration PASSED (local Supabase); course-integration and launcher-integration FAILED with the known scope-freeze 423 message (P0-7, unrelated)"
+        },
+        {
+          "at": "2026-11-10T18:00:00Z",
+          "kind": "commit",
+          "detail": "27ab48a5 on agent/develop (4 files). Migration local only; applying it to production needs the owner."
         }
       ],
       "runIds": [
-        "c-df526914"
+        "c-df526914",
+        "c-4a47e138"
       ],
       "dependsOn": [
         "A-25"
@@ -3099,7 +3122,7 @@
       "phase": "A",
       "module": "platform",
       "owner": "ventra-backend",
-      "state": "queued",
+      "state": "done",
       "priority": 3,
       "scope": [
         "apps/web/app/api/workspace/**",
@@ -3114,19 +3137,43 @@
       "plan": "A-25 open issue",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
+      "startedAt": "2026-11-10T17:50:00Z",
+      "finishedAt": "2026-11-10T18:00:00Z",
       "blocker": null,
-      "notes": "",
-      "lastRunId": "c-df526914",
-      "updatedAt": "2026-11-10T17:35:39.403Z"
+      "notes": "Chose refuse-writes (trigger) over cascade for all six tables: no FK changes, business-workspace deletion behaviour unchanged.",
+      "lastRunId": "c-4a47e138",
+      "updatedAt": "2026-11-10T18:00:00Z"
     },
     {
       "id": "A-36",
-      "commits": [],
-      "evidence": [],
+      "commits": [
+        "eaec63a8"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-10T18:15:00Z",
+          "kind": "diff",
+          "detail": "c-4a47e138: settings/route.ts (+10/-) cap = shared MAX_JSON_BODY_BYTES 256000, RequestBodyTooLarge -> 413 too_large plain message; knowledge-settings-route test +4 tests (non-owner 403 no write, read failure 503 storage_unavailable no write/no db text, max-size knowledge fits, over-cap 413); API_CONTRACTS.md limit/code; jobs.ts comment-only"
+        },
+        {
+          "at": "2026-11-10T18:15:00Z",
+          "kind": "review",
+          "detail": "c-4a47e138 ventra-review: PASS. Cap counts bytes, rejects early on content-length and cancels the stream; owner check before write; fail-closed on read failure; jobs.ts comment-only; docs match."
+        },
+        {
+          "at": "2026-11-10T18:15:00Z",
+          "kind": "test",
+          "detail": "coordinator c-4a47e138: npm test 934/934 (was 930), lint exit 0, typecheck exit 0"
+        },
+        {
+          "at": "2026-11-10T18:15:00Z",
+          "kind": "commit",
+          "detail": "eaec63a8 on agent/develop (4 files)"
+        }
+      ],
       "runIds": [
-        "c-df526914"
+        "c-df526914",
+        "c-4a47e138"
       ],
       "dependsOn": [
         "A-30"
@@ -3135,12 +3182,13 @@
       "phase": "A",
       "module": "shared",
       "owner": "ventra-voice",
-      "state": "queued",
+      "state": "done",
       "priority": 3,
       "scope": [
         "apps/web/app/api/front-office/settings/route.ts",
         "apps/web/test/front-office-knowledge-settings-route.test.ts",
-        "docs/agents/API_CONTRACTS.md"
+        "docs/agents/API_CONTRACTS.md",
+        "apps/web/lib/front-office/jobs.ts (metaRunnerChannels comment only, stale after A-37)"
       ],
       "acceptance": [
         "Oversized body gives a specific message",
@@ -3150,19 +3198,43 @@
       "plan": "A-30 review",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
+      "startedAt": "2026-11-10T18:02:00Z",
+      "finishedAt": "2026-11-10T18:15:00Z",
       "blocker": null,
-      "notes": "",
-      "lastRunId": "c-df526914",
-      "updatedAt": "2026-11-10T17:27:36.948Z"
+      "notes": "Raised the cap instead of keeping 40 KB: max knowledge + 40 max FAQs is about 150 KB. Emoji/non-Latin-heavy text could still exceed 256 KB and gets the clear 413.",
+      "lastRunId": "c-4a47e138",
+      "updatedAt": "2026-11-10T18:15:00Z"
     },
     {
       "id": "A-37",
-      "commits": [],
-      "evidence": [],
+      "commits": [
+        "db2d8a9c"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-10T18:00:00Z",
+          "kind": "diff",
+          "detail": "c-4a47e138: pending-actions/[id]/route.ts (+socialWindowCheck via approvalOptions), pending-actions/shared.ts (approvalChannel finds instagram/messenger, lazy service rpc), lib/front-office/pending-actions.ts (owner-task failure -> fixed note META_OWNER_TASK_FAILED, no error text stored), API_CONTRACTS.md (Instagram/Messenger env pairs, META_AUTOSEND, codes, 409); new test/front-office-meta-window-route.test.ts (9 tests). 65+/13- lines."
+        },
+        {
+          "at": "2026-11-10T18:00:00Z",
+          "kind": "review",
+          "detail": "c-4a47e138 ventra-review: PASS. Fail-closed confirmed for window unreadable, channel not configured (409, item stays pending), owner-task failure; no live send with autosend off (fetch hosts asserted), control case with autosend on. Low nits: duplicate doc comment in shared.ts ~55; no opted-out-contact or non-Meta regression case in the new file (A-39)."
+        },
+        {
+          "at": "2026-11-10T18:00:00Z",
+          "kind": "test",
+          "detail": "coordinator c-4a47e138: lint exit 0, typecheck exit 0, ventra-verify unit-tests 930/930, build PASSED, workspace-integration PASSED; course/launcher integration fail with known P0-7 freeze message"
+        },
+        {
+          "at": "2026-11-10T18:00:00Z",
+          "kind": "commit",
+          "detail": "db2d8a9c on agent/develop (5 files). Nothing live: FRONT_OFFICE_META_AUTOSEND stays off."
+        }
+      ],
       "runIds": [
-        "c-df526914"
+        "c-df526914",
+        "c-4a47e138"
       ],
       "dependsOn": [
         "A-32"
@@ -3171,7 +3243,7 @@
       "phase": "A",
       "module": "setter",
       "owner": "ventra-voice",
-      "state": "queued",
+      "state": "done",
       "priority": 2,
       "scope": [
         "apps/web/app/api/front-office/pending-actions/**",
@@ -3187,12 +3259,54 @@
       "plan": "A-32 review; blocks A-11",
       "branch": "agent/develop",
       "worktree": null,
+      "startedAt": "2026-11-10T17:50:00Z",
+      "finishedAt": "2026-11-10T18:00:00Z",
+      "blocker": null,
+      "notes": "Open (owner decision, not a bug): setter/actions.ts checkFollowUp never allows follow-ups on Instagram/Messenger, so a held step-1 Meta follow-up approved in-window still fails. Meta booking confirmations still go via the SMS sender (dry run unless FRONT_OFFICE_SEND_LIVE=1).",
+      "lastRunId": "c-4a47e138",
+      "updatedAt": "2026-11-10T18:00:00Z"
+    },
+    {
+      "id": "A-39",
+      "commits": [],
+      "evidence": [
+        {
+          "at": "2026-11-10T18:00:00Z",
+          "kind": "note",
+          "detail": "c-4a47e138: low findings from the A-35 and A-37 reviews"
+        }
+      ],
+      "runIds": [
+        "c-4a47e138"
+      ],
+      "dependsOn": [
+        "A-35",
+        "A-37"
+      ],
+      "title": "Review follow-ups: make 202611110003 re-apply safe (create or replace function, drop trigger if exists), anchor front-office-lab-db.test.ts migration readdir on import.meta.url; add opted-out-contact and sms/email/web approval regression cases to front-office-meta-window-route.test.ts and merge the duplicate doc comment in pending-actions/shared.ts",
+      "phase": "A",
+      "module": "platform",
+      "owner": "ventra-backend",
+      "state": "queued",
+      "priority": 4,
+      "scope": [
+        "supabase/migrations/202611110003_lab_workspace_hygiene.sql",
+        "apps/web/test/front-office-lab-db.test.ts"
+      ],
+      "acceptance": [
+        "Migration applies twice in PGlite without error (tested)",
+        "Lab db test passes when run from repo root and from apps/web",
+        "Meta-window part split to ventra-voice when dispatched (scope: apps/web/test/front-office-meta-window-route.test.ts, apps/web/app/api/front-office/pending-actions/shared.ts)"
+      ],
+      "plan": "A-35 / A-37 reviews",
+      "branch": "agent/develop",
+      "worktree": null,
       "startedAt": null,
       "finishedAt": null,
       "blocker": null,
-      "notes": "",
-      "lastRunId": "c-df526914",
-      "updatedAt": "2026-11-10T17:35:39.403Z"
+      "notes": "Migration 202611110003 is uncommitted to any remote; editing it is safe while it is local only.",
+      "lastRunId": "c-4a47e138",
+      "updatedAt": "2026-11-10T18:00:00Z"
     },
     {
       "id": "A-38",
