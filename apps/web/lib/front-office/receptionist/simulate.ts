@@ -50,14 +50,16 @@ export type SimSeed = { caller: string | null; contact?: { state: ContactState; 
 const E164 = /^\+[1-9][0-9]{6,14}$/, CALL_ID = /^[A-Za-z0-9_-]{8,100}$/;
 const OUTCOMES = ['faq', 'faq-miss', 'qualified', 'booked', 'rescheduled', 'cancelled', 'message', 'transfer', 'not-live'];
 
-export function simulationStore(settings: AgentSettings, seed: SimSeed, slotMinutes = settings.bookingMinutes) {
-  const t: SimTables = { fo_calls: [], fo_contacts: [], fo_messages: [], fo_appointments: [], fo_jobs: [], fo_events: [], handoffs: [] };
+/** `restore` (Receptionist Lab Live AI Test, lab-live.ts): carry on from tables and an id counter saved after an earlier
+ * turn, instead of starting empty. The seed is ignored when restoring. */
+export function simulationStore(settings: AgentSettings, seed: SimSeed, slotMinutes = settings.bookingMinutes, restore?: { tables: SimTables; seq: number }) {
+  const t: SimTables = restore ? structuredClone(restore.tables) : { fo_calls: [], fo_contacts: [], fo_messages: [], fo_appointments: [], fo_jobs: [], fo_events: [], handoffs: [] };
   const writes: SimWrite[] = [];
-  let n = 0;
+  let n = restore ? restore.seq : 0;
   const id = (p: string) => `${p}-${String(++n).padStart(4, '0')}`;
   const w = (rpc: string, table: string, op: SimWrite['op'], detail: string) => { writes.push({ rpc, table, op, detail }); };
 
-  if (seed.contact && seed.caller) {
+  if (!restore && seed.contact && seed.caller) {
     const c: SimContact = { id: 'contact-seed', phone: seed.caller, name: seed.contact.name ?? null, email: null, state: seed.contact.state, optedOut: false, answers: { ...seed.contact.answers } };
     t.fo_contacts.push(c);
     const b = seed.contact.booking;
@@ -220,15 +222,16 @@ export function simulationStore(settings: AgentSettings, seed: SimSeed, slotMinu
       default: throw new Error(`The simulation has no ${fn}.`);
     }
   };
-  return { tables: t, writes, rpc };
+  return { tables: t, writes, rpc, seq: () => n };
 }
 
 // ---------------------------------------------------------------------------------------------------------------
 // In-memory calendar and senders that only record.
 
-export function simulatedCalendar(seed: { id: string; start: number; end: number }[] = []) {
+export type SimCalendarEvent = { id: string; start: number; end: number; summary?: string; cancelled?: boolean };
+export function simulatedCalendar(seed: SimCalendarEvent[] = []) {
   const events = new Map<string, { start: number; end: number; summary: string; cancelled: boolean }>();
-  for (const e of seed) events.set(e.id, { start: e.start, end: e.end, summary: 'Existing booking', cancelled: false });
+  for (const e of seed) events.set(e.id, { start: e.start, end: e.end, summary: e.summary ?? 'Existing booking', cancelled: e.cancelled === true });
   const log: string[] = [];
   const iso = (x: number) => new Date(x).toISOString();
   const provider: CalendarProvider = {
@@ -238,7 +241,9 @@ export function simulatedCalendar(seed: { id: string; start: number; end: number
     async moveEvent(eventId, start, end) { const e = events.get(eventId); if (!e) throw new Error('Calendar event not found.'); e.start = start; e.end = end; log.push(`moved ${eventId} to ${iso(start)}`); },
     async cancelEvent(eventId) { const e = events.get(eventId); if (e) e.cancelled = true; log.push(`cancelled ${eventId}`); },
   };
-  return { provider, log };
+  /** Every event, cancelled ones included, so a later turn can carry on from them. */
+  const snapshot = (): Required<SimCalendarEvent>[] => [...events].map(([id, e]) => ({ id, ...e }));
+  return { provider, log, snapshot };
 }
 
 export type WouldSend = { channel: 'sms' | 'email'; to: string; body: string; sent: false };
@@ -582,7 +587,7 @@ export async function simulateCall(fixture: CallFixture, opts: SimOptions = {}):
 
 /** Wraps a model to record each tool call it makes and the result the pipeline passes back to it. Tool ids are made
  * unique per call so results can be matched. */
-function recordingModel(llm: Llm, turn: number, sink: SimToolCall[], onSystem: (system: string) => void): StreamLlm {
+export function recordingModel(llm: Llm, turn: number, sink: SimToolCall[], onSystem: (system: string) => void): StreamLlm {
   let n = 0;
   return streamOf(async (req) => {
     onSystem(req.system);
