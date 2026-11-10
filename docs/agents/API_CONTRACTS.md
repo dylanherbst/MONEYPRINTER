@@ -136,6 +136,22 @@ business: the same generic `403 no_workspace_access` (nothing about the other bu
   past its expiry returns `200 expired` and is never performed. `409 conflict` (item stays pending) when it cannot be
   performed here yet: a Receptionist item (no Receptionist approval executor yet), or the item's channel is not
   configured on this server (`FRONT_OFFICE_*_CHANNEL_ID/KEY`).
+- Instagram and Messenger items (A-37; tests `apps/web/test/front-office-meta-window-route.test.ts`). Channels are
+  found from the env pairs `FRONT_OFFICE_INSTAGRAM_CHANNEL_ID` / `FRONT_OFFICE_INSTAGRAM_CHANNEL_KEY` and
+  `FRONT_OFFICE_MESSENGER_CHANNEL_ID` / `FRONT_OFFICE_MESSENGER_CHANNEL_KEY` (id a UUID, key at least 32 characters; a
+  channel already listed as SMS/chat/email/voice is not listed again), the same pairs the jobs runner uses. A `send` or
+  `follow_up` payload on `instagram` or `messenger` is checked again against Meta's 24-hour reply window at approval
+  (`fo_social_window` on the item's channel; an opted-out contact, no Meta id, an unreadable window or a future time
+  count as closed):
+  - Inside the window: `outcome: "performed"`, note "Approved. It goes out at its next scheduled check ...". Nothing is
+    sent from the route; the jobs runner sends it, through Meta only while the window is open and only when
+    `FRONT_OFFICE_META_AUTOSEND=1` and Meta is configured (otherwise a logged dry run, `sent: false`).
+  - Closed: `outcome: "failed"`, `item.note` is the `META_WINDOW_CLOSED_AT_APPROVAL` text (`pending-actions.ts`), the
+    executor never runs, and exactly one owner task is queued (`fo_queue_outbound` with the held text; none for an
+    opted-out contact). A repeat approve is `already_decided` and queues nothing. If the owner task cannot be saved,
+    the note is `META_WINDOW_CLOSED_AT_APPROVAL` followed by `META_OWNER_TASK_FAILED` ("The reminder to reply could not
+    be saved either."); the database error is never stored or returned.
+  - Channel not configured here: `409 conflict`, the item stays pending.
 
 ### Receptionist actions (A-7)
 - Existing Vapi endpoints enforce the mode: `owner_approval` holds book, reschedule, cancel and transfer and the caller is

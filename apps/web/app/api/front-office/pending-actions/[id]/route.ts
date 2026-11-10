@@ -6,7 +6,7 @@ import { isPlainObject, isSameOriginJson } from '../../../../../lib/api-errors';
 import { apiReply, isResponse, openWorkspace, preflight, privateHeaders } from '../../../../../lib/workspace-route';
 import { approvePendingAction, rejectPendingAction } from '../../../../../lib/front-office/pending-actions';
 import type { PendingActionRecord } from '../../../../../lib/front-office/pending-actions';
-import { approvalExecutor, cannotPerform, memberStore, publicItem, queueError } from '../shared';
+import { approvalExecutor, approvalOptions, cannotPerform, memberStore, publicItem, queueError } from '../shared';
 export const dynamic = 'force-dynamic';
 
 // The owner decides one held action (task A-21).
@@ -14,6 +14,8 @@ export const dynamic = 'force-dynamic';
 // -> {outcome: performed|failed|rejected|expired|already_decided, item}
 // Approve performs the original action exactly once (approvePendingAction); a repeat, or an item past its expiry, changes
 // nothing. The item must belong to the workspace in the URL; anything else is the same generic 403.
+// Instagram / Messenger items (A-37): Meta's 24-hour window is checked again at approval (approvalOptions). Inside it the
+// send is queued for the jobs runner; outside it the item fails with META_WINDOW_CLOSED_AT_APPROVAL and one owner task.
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -41,7 +43,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       if (why) return apiReply('conflict', why, { item: publicItem(item) });
     }
     const r = input.decision === 'approve'
-      ? await approvePendingAction(store, id, ws.userId, approvalExecutor(process.env), note)
+      ? await approvePendingAction(store, id, ws.userId, approvalExecutor(process.env), note, approvalOptions(process.env, item.channelId))
       : await rejectPendingAction(store, id, ws.userId, note);
     return NextResponse.json({ outcome: r.outcome, item: publicItem(r.item) }, { headers: privateHeaders });
   } catch (e) { return queueError(e); }

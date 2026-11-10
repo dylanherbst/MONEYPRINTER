@@ -198,6 +198,8 @@ function outcomeOf(item: PendingActionRecord, changed: boolean): DecideResult {
 
 /** Why an approved Instagram or Messenger item was closed without sending (A-32). */
 export const META_WINDOW_CLOSED_AT_APPROVAL = 'Meta’s 24-hour reply window had closed by the time this was approved (or it could not be confirmed), so nothing was sent. Reply from the Instagram or Facebook app.';
+/** Added to META_WINDOW_CLOSED_AT_APPROVAL when the owner task for a closed window could not be saved (A-37). */
+export const META_OWNER_TASK_FAILED = 'The reminder to reply could not be saved either.';
 
 /** True for an automated send or follow-up on Instagram or Messenger: these are bound by Meta's 24-hour reply window. */
 export function isMetaMessage(p: PendingActionPayload | null | undefined): boolean {
@@ -208,7 +210,8 @@ export type ApproveOptions = {
   /** Meta's 24-hour reply window, checked again when the owner approves (A-32). lastInbound: when the contact last
    * messaged the business on Instagram or Messenger (jobs.ts socialWindowCheck reads fo_social_window). Without it, or
    * when it fails, an Instagram or Messenger item is treated as outside the window: closed as failed, never performed.
-   * onClosed: the owner task for a closed window (for example fo_queue_outbound); its failure is ignored. */
+   * onClosed: the owner task for a closed window (for example fo_queue_outbound); if it fails, the item still closes as failed and
+   * the note adds META_OWNER_TASK_FAILED (no error details are stored). */
   replyWindow?: { lastInbound: (item: PendingActionRecord) => Promise<string | number | null>; now?: () => number; onClosed?: (item: PendingActionRecord) => Promise<void> };
 };
 
@@ -227,8 +230,11 @@ export async function approvePendingAction(store: PendingActionStore, id: string
     let last: string | number | null;
     try { last = w ? await w.lastInbound(a) : null; } catch { last = null; }
     if (!inReplyWindow(last, w?.now ? w.now() : Date.now())) {
-      if (w?.onClosed) await w.onClosed(a).catch(() => undefined);
-      return outcomeOf((await store.finish(a.id, false, META_WINDOW_CLOSED_AT_APPROVAL)).item, true);
+      // The owner task may fail (storage down); the item still closes as failed, and the note says so (A-37). The
+      // error itself is never stored: it could carry database details.
+      let taskFailed = false;
+      if (w?.onClosed) { try { await w.onClosed(a); } catch { taskFailed = true; } }
+      return outcomeOf((await store.finish(a.id, false, taskFailed ? `${META_WINDOW_CLOSED_AT_APPROVAL} ${META_OWNER_TASK_FAILED}` : META_WINDOW_CLOSED_AT_APPROVAL)).item, true);
     }
   }
   const result = await runExecutor(execute, { product: a.product, payload: a.payload, contactId: a.contactId, callId: a.callId, channelId: a.channelId, pendingActionId: a.id });
