@@ -10,7 +10,8 @@ export const dynamic = 'force-dynamic';
 
 // The AI Setter and Receptionist settings for one business (workspace owners only: fo_get/save_agent_settings).
 //   GET  /api/front-office/settings?workspace=<id>[&template=gym]   saved settings, or the template to start from
-//   POST /api/front-office/settings?workspace=<id>  {settings, revision}   save (revision 0 = first save)
+//   POST /api/front-office/settings?workspace=<id>  {settings, revision}   save (revision 0 = first save);
+//        settings.knowledge omitted: the stored knowledge base is kept
 export async function GET(req: NextRequest) {
   const pre = preflight(req, { signedOut: 'Sign in to edit your AI team.' });
   if (isResponse(pre)) return pre;
@@ -36,8 +37,17 @@ export async function POST(req: NextRequest) {
   let input: unknown;
   try { input = JSON.parse(await readBoundedRequestBody(req, 40_000)); } catch { return apiReply('invalid_request', 'Invalid request.'); }
   if (!isPlainObject(input) || !Number.isInteger(input.revision) || (input.revision as number) < 0) return apiReply('invalid_request', 'Invalid request.');
+  let body = input.settings;
+  // A-30: settings without a `knowledge` key keep the stored knowledge base (a form that does not edit it must not wipe
+  // it). A `knowledge` key present replaces it; empty lists or null clear it. Nothing stored yet: empty lists.
+  if (isPlainObject(body) && !Object.hasOwn(body, 'knowledge')) {
+    const cur = await ws.db.rpc('fo_get_agent_settings', { w: ws.workspace });
+    if (cur.error) return /Owner access/.test(cur.error.message) ? apiReply('no_workspace_access', 'Only the workspace owner can edit the AI team.') : apiReply('storage_unavailable', 'Unable to load settings. Check that the database is up to date.');
+    const stored = (cur.data as { data?: unknown } | null)?.data;
+    body = { ...body, knowledge: isPlainObject(stored) ? stored.knowledge ?? null : null };
+  }
   let settings;
-  try { settings = checkedAgentSettings(input.settings); } catch (e) { return apiReply('invalid_request', e instanceof Error ? e.message : 'Check the settings.'); }
+  try { settings = checkedAgentSettings(body); } catch (e) { return apiReply('invalid_request', e instanceof Error ? e.message : 'Check the settings.'); }
   const r = await ws.db.rpc('fo_save_agent_settings', { w: ws.workspace, payload: settings, expected_revision: input.revision });
   if (r.error) {
     if (/Owner access/.test(r.error.message)) return apiReply('no_workspace_access', 'Only the workspace owner can edit the AI team.');

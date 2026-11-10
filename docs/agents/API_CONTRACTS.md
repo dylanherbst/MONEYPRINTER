@@ -56,8 +56,33 @@ EXISTS: `apps/web/app/api/front-office/settings/route.ts`
 - GET response: `{ settings: AgentSettings, revision: number, saved: boolean, updatedAt?: string }`. Not saved yet:
   the template, `revision: 0`. (`AgentSettings` is defined and validated in `lib/front-office/settings.ts`.)
 - POST request: `{ settings: AgentSettings, revision: number }`; response `{ settings, revision, saved: true }`.
+  Body max 40 KB.
+- `settings.knowledge` on POST (A-30): key **omitted** = the stored knowledge base is kept unchanged (nothing stored
+  yet: empty lists). Key **present** = it replaces the stored one; `null` or empty lists clear it. The response
+  `settings` always carries the knowledge that was saved.
 - Errors: `no_workspace_access` (not owner), `invalid_request` (first bad field named), `conflict` (revision),
   `storage_unavailable`.
+
+#### Knowledge base shape (`settings.knowledge`, type `KnowledgeBase` in `lib/front-office/settings.ts`, A-16)
+`{ services: Service[], offers: KnowledgeOffer[], policies: Policy[], objections: ObjectionRule[] }`. Each list
+optional (missing or `null` = empty). Settings saved before A-16 read as empty lists. FAQs stay in `settings.faqs`.
+Text is trimmed. `id` (every item): optional, lower case `[a-z][a-z0-9_-]{0,39}`, unique within its list; default
+`service_1`, `offer_1`, `policy_1`, `objection_1` by position.
+- `Service` (max 50): `name` text 1-120 required, `description` text max 400, `priceAud` number or `null`,
+  `priceUnit` text max 40 (e.g. `per session`), `durationMinutes` integer 5-1440 or `null`.
+- `KnowledgeOffer` (max 20): `name` 1-120 required, `details` 1-600 required, `priceAud` number or `null`,
+  `validUntil` `"YYYY-MM-DD"` or `null`.
+- `Policy` (max 30): `topic` 1-80 required, `text` 1-800 required.
+- `ObjectionRule` (max 20): `triggers` 1-10 phrases, each 4-60 chars (stored lower case, spaces collapsed);
+  `response` 1-500 required; `escalate` boolean (only `true` counts; a person follows up).
+- Prices (`priceAud`): AUD, 0 to 1,000,000, at most 2 decimals; a number or a string like `"29.50"` / `"$29"`.
+  Blank or `null` = no price on file: the AI never states, ranges or estimates one, it says the team will check.
+  `0` reads as "free".
+- Offer expiry: `validUntil` is inclusive, in the business `timeZone`. An offer is active through the end of that
+  day; after it, the offer stays stored (the owner sees it) but is filtered out in code (`activeOffers`) before the
+  Setter prompt and the Receptionist `answer_faq` see it. `null` = no end date.
+- One source: the Setter prompt (`setterConfigFor` -> `knowledgeLines`) and the Receptionist `answer_faq`
+  (`knowledgeAnswer`) both read this stored `settings.knowledge`; no copy is kept anywhere else.
 
 ### GET /api/front-office/summary?workspace=<id>&tz=<IANA zone>
 EXISTS: `apps/web/app/api/front-office/summary/route.ts`
