@@ -10,6 +10,7 @@ const { templateSettings, emptyKnowledge } = await import('../lib/front-office/s
 type KnowledgeBase = import('../lib/front-office/settings.ts').KnowledgeBase;
 
 const ORIGIN = { origin: BASE, 'content-type': 'application/json' };
+const INTERNAL = 'relation "fo_agent_settings" does not exist (internal pg detail)';
 const STORED: KnowledgeBase = {
   services: [{ id: 'pt', name: 'Personal training', description: 'One on one', priceAud: 80, priceUnit: 'per session', durationMinutes: 60 }],
   offers: [{ id: 'trial', name: 'Free week', details: 'First week free', priceAud: 0, validUntil: '2099-12-31' }],
@@ -17,7 +18,7 @@ const STORED: KnowledgeBase = {
   objections: [{ id: 'price', triggers: ['too expensive'], response: 'We have a free week to try first.', escalate: false }],
 };
 
-function world(saved: { data: unknown; revision: number } | null) {
+function world(saved: { data: unknown; revision: number } | null, opts: { owner?: boolean; getFails?: boolean } = {}) {
   const db = { saved, payloads: [] as Record<string, unknown>[], rpc: [] as string[] };
   const real = globalThis.fetch;
   const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -32,10 +33,11 @@ function world(saved: { data: unknown; revision: number } | null) {
     switch (fn) {
       case 'session_active': return json(200, true);
       case 'fo_get_agent_settings':
-        if (a.w !== W) return json(400, { message: 'Owner access required.', code: 'P0001' });
+        if (opts.getFails) return json(500, { message: INTERNAL, code: 'XX000' });
+        if (a.w !== W || opts.owner === false) return json(400, { message: 'Owner access required.', code: 'P0001' });
         return json(200, db.saved ? { ...db.saved, updatedAt: '2026-11-10T00:00:00.000Z' } : null);
       case 'fo_save_agent_settings': {
-        if (a.w !== W) return json(400, { message: 'Owner access required.', code: 'P0001' });
+        if (a.w !== W || opts.owner === false) return json(400, { message: 'Owner access required.', code: 'P0001' });
         if ((db.saved?.revision ?? 0) !== a.expected_revision) return json(400, { message: 'Settings changed elsewhere.', code: 'P0001' });
         db.payloads.push(a.payload as Record<string, unknown>);
         db.saved = { data: a.payload, revision: (db.saved?.revision ?? 0) + 1 };
@@ -134,5 +136,70 @@ test('A-30: a stale revision without knowledge is still a conflict, and nothing 
     const r = await save(withoutKnowledge(), 4);
     assert.equal(r.status, 409, JSON.stringify(r.body));
     assert.equal(w.db.payloads.length, 0);
+  } finally { w.restore(); env(); }
+});
+
+test('A-36: a non-owner save that omits knowledge is refused and stored knowledge is unchanged', async () => {
+  const env = setEnv(configuredEnv), w = world({ data: storedSettings(), revision: 2 }, { owner: false });
+  try {
+    const r = await save(withoutKnowledge({ greeting: 'Not mine.' }), 2);
+    assert.equal(r.status, 403, JSON.stringify(r.body));
+    assert.equal(r.body.code, 'no_workspace_access');
+    assert.equal(r.body.error, 'Only the workspace owner can edit the AI team.');
+    assert.ok(!w.db.rpc.includes('fo_save_agent_settings'), 'no save attempted');
+    assert.equal(w.db.payloads.length, 0);
+    assert.deepEqual((w.db.saved!.data as { knowledge: unknown }).knowledge, STORED);
+    assert.equal(w.db.saved!.revision, 2);
+  } finally { w.restore(); env(); }
+});
+
+test('A-36: reading the stored knowledge fails: the save fails closed (no wipe, plain error, no internal text)', async () => {
+  const env = setEnv(configuredEnv), w = world({ data: storedSettings(), revision: 2 }, { getFails: true });
+  try {
+    const r = await save(withoutKnowledge({ greeting: 'Hello.' }), 2);
+    assert.equal(r.status, 503, JSON.stringify(r.body));
+    assert.equal(r.body.code, 'storage_unavailable');
+    assert.equal(r.body.error, 'Unable to load settings. Check that the database is up to date.');
+    const text = JSON.stringify(r.body);
+    assert.ok(!text.includes('relation') && !text.includes('internal') && !text.includes('XX000'), text);
+    assert.ok(!w.db.rpc.includes('fo_save_agent_settings'), 'nothing written');
+    assert.deepEqual((w.db.saved!.data as { knowledge: unknown }).knowledge, STORED);
+    assert.equal(w.db.saved!.revision, 2);
+  } finally { w.restore(); env(); }
+});
+
+const pad = (prefix: string, n: number) => (prefix + 'x'.repeat(n)).slice(0, n);
+function maxKnowledge(): KnowledgeBase {
+  const id = (p: string, i: number) => pad(`${p}${i}_`, 40);
+  return {
+    services: Array.from({ length: 50 }, (_, i) => ({ id: id('s', i), name: pad(`Service ${i} `, 120), description: pad('d', 400), priceAud: 999999.99, priceUnit: pad('per ', 40), durationMinutes: 1440 })),
+    offers: Array.from({ length: 20 }, (_, i) => ({ id: id('o', i), name: pad(`Offer ${i} `, 120), details: pad('d', 600), priceAud: 999999.99, validUntil: '2099-12-31' })),
+    policies: Array.from({ length: 30 }, (_, i) => ({ id: id('p', i), topic: pad(`Topic ${i} `, 80), text: pad('t', 800) })),
+    objections: Array.from({ length: 20 }, (_, i) => ({ id: id('r', i), triggers: Array.from({ length: 10 }, (_, j) => pad(`trigger ${i} ${j} `, 60)), response: pad('r', 500), escalate: true })),
+  };
+}
+
+test('A-36: a maximum-size knowledge base (with 40 maximum FAQs) fits the body cap and saves', async () => {
+  const env = setEnv(configuredEnv), w = world(null);
+  try {
+    const faqs = Array.from({ length: 40 }, (_, i) => ({ q: pad(`Question ${i} `, 200), a: pad('a', 600) }));
+    const settings = { ...base(), faqs, knowledge: maxKnowledge() };
+    const bytes = new TextEncoder().encode(JSON.stringify({ settings, revision: 0 })).byteLength;
+    assert.ok(bytes > 100_000 && bytes < 256_000, `body is ${bytes} bytes`);
+    const r = await save(settings, 0);
+    assert.equal(r.status, 200, JSON.stringify(r.body).slice(0, 300));
+    assert.deepEqual(r.body.settings.knowledge, maxKnowledge());
+  } finally { w.restore(); env(); }
+});
+
+test('A-36: a body over the cap gets 413 too_large with a plain message, and nothing is read or written', async () => {
+  const env = setEnv(configuredEnv), w = world({ data: storedSettings(), revision: 1 });
+  try {
+    const r = await save({ ...base(), offer: 'x'.repeat(260_000) }, 1);
+    assert.equal(r.status, 413, JSON.stringify(r.body));
+    assert.equal(r.body.code, 'too_large');
+    assert.match(r.body.error, /too large to save \(over 256 KB\)/);
+    assert.ok(!w.db.rpc.includes('fo_get_agent_settings') && !w.db.rpc.includes('fo_save_agent_settings'));
+    assert.equal(w.db.saved!.revision, 1);
   } finally { w.restore(); env(); }
 });

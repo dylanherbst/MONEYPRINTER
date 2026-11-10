@@ -56,12 +56,16 @@ EXISTS: `apps/web/app/api/front-office/settings/route.ts`
 - GET response: `{ settings: AgentSettings, revision: number, saved: boolean, updatedAt?: string }`. Not saved yet:
   the template, `revision: 0`. (`AgentSettings` is defined and validated in `lib/front-office/settings.ts`.)
 - POST request: `{ settings: AgentSettings, revision: number }`; response `{ settings, revision, saved: true }`.
-  Body max 40 KB.
+  Body max 256,000 bytes (A-36; the shared JSON cap). A maximum-size knowledge base plus 40 maximum FAQs is about
+  150 KB, so it fits. Over the cap: **413** `too_large`, "These settings are too large to save (over 256 KB). Shorten
+  some service, offer, policy or FAQ text and try again."; nothing is read or written.
 - `settings.knowledge` on POST (A-30): key **omitted** = the stored knowledge base is kept unchanged (nothing stored
   yet: empty lists). Key **present** = it replaces the stored one; `null` or empty lists clear it. The response
-  `settings` always carries the knowledge that was saved.
+  `settings` always carries the knowledge that was saved. Omitted and the stored row cannot be read: fails closed
+  (403 `no_workspace_access` for a non-owner, otherwise 503 `storage_unavailable`, "Unable to load settings. Check
+  that the database is up to date."); no save is attempted and no database text is returned.
 - Errors: `no_workspace_access` (not owner), `invalid_request` (first bad field named), `conflict` (revision),
-  `storage_unavailable`.
+  `too_large` (413, body over the cap), `storage_unavailable`.
 
 #### Knowledge base shape (`settings.knowledge`, type `KnowledgeBase` in `lib/front-office/settings.ts`, A-16)
 `{ services: Service[], offers: KnowledgeOffer[], policies: Policy[], objections: ObjectionRule[] }`. Each list

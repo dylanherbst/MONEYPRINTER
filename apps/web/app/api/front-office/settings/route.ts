@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { workspaceLimits } from '../../../../lib/rate-limit';
 import { sameOrigin } from '../../../../lib/request-security';
-import { readBoundedRequestBody } from '../../../../lib/request-body';
+import { MAX_JSON_BODY_BYTES, RequestBodyTooLarge, readBoundedRequestBody } from '../../../../lib/request-body';
 import { isPlainObject, isSameOriginJson } from '../../../../lib/api-errors';
 import { apiReply, isResponse, openWorkspace, preflight, privateHeaders } from '../../../../lib/workspace-route';
 import { checkedAgentSettings, templateSettings, templates } from '../../../../lib/front-office/settings';
 import type { TemplateId } from '../../../../lib/front-office/settings';
 export const dynamic = 'force-dynamic';
+/** Largest settings save body, in bytes (256,000: the shared JSON cap). */
+const SETTINGS_MAX_BYTES = MAX_JSON_BODY_BYTES;
 
 // The AI Setter and Receptionist settings for one business (workspace owners only: fo_get/save_agent_settings).
 //   GET  /api/front-office/settings?workspace=<id>[&template=gym]   saved settings, or the template to start from
@@ -35,7 +37,11 @@ export async function POST(req: NextRequest) {
   const ws = await openWorkspace(req, pre.token, workspaceLimits.settings);
   if (isResponse(ws)) return ws;
   let input: unknown;
-  try { input = JSON.parse(await readBoundedRequestBody(req, 40_000)); } catch { return apiReply('invalid_request', 'Invalid request.'); }
+  // A-36: the cap fits a maximum-size knowledge base (checkedKnowledge limits) plus every other field, about 150 KB.
+  // Over it: 413 too_large with a plain message, never a vague "Invalid request".
+  try { input = JSON.parse(await readBoundedRequestBody(req, SETTINGS_MAX_BYTES)); } catch (e) {
+    return e instanceof RequestBodyTooLarge ? apiReply('too_large', 'These settings are too large to save (over 256 KB). Shorten some service, offer, policy or FAQ text and try again.') : apiReply('invalid_request', 'Invalid request.');
+  }
   if (!isPlainObject(input) || !Number.isInteger(input.revision) || (input.revision as number) < 0) return apiReply('invalid_request', 'Invalid request.');
   let body = input.settings;
   // A-30: settings without a `knowledge` key keep the stored knowledge base (a form that does not edit it must not wipe

@@ -329,7 +329,7 @@ export function runnerChannels(env: Record<string, string | undefined>): { name:
 /** Instagram and Messenger channels for the runner (A-32): FRONT_OFFICE_INSTAGRAM_CHANNEL_ID/_KEY and
  * FRONT_OFFICE_MESSENGER_CHANNEL_ID/_KEY. Each is run with meta set, so every job goes through metaRoute() and the
  * 24-hour window. A channel already listed by runnerChannels(), invalid pairs and duplicates are skipped. These are
- * deliberately not part of runnerChannels(): the approval route cannot check Meta's window yet (see socialWindowCheck). */
+ * deliberately not part of runnerChannels(): every Meta job must go through metaRoute(). The approval route re-checks Meta's window itself since A-37 (socialWindowCheck). */
 export function metaRunnerChannels(env: Record<string, string | undefined>): { name: MetaKind; auth: ChannelAuth }[] {
   const taken = new Set(runnerChannels(env).map(c => c.auth.channel));
   const out: { name: MetaKind; auth: ChannelAuth }[] = [];
