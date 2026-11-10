@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-10T18:25:46.857Z",
+  "updatedAt": "2026-11-10T18:48:50.914Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-4d146e6b",
-    "startedAt": "2026-11-10T18:15:09Z",
-    "endedAt": "2026-11-10T18:25:46.857Z",
-    "summary": "2 dispatched (A-26, A-39), 2 verified and committed (dd2efdfc, 8737522c), 1 review round-trip on A-26. New: A-40, A-41."
+    "id": "c-0b02c781",
+    "startedAt": "2026-11-10T18:46:09Z",
+    "endedAt": "2026-11-10T18:48:50.914Z",
+    "summary": "1 dispatched (A-24), implemented and tested locally; review and commit pending (budget)."
   },
   "tasks": [
     {
@@ -2596,7 +2596,7 @@
       "phase": "A",
       "module": "setter",
       "owner": "ventra-voice",
-      "state": "queued",
+      "state": "implemented",
       "priority": 2,
       "dependsOn": [
         "A-16"
@@ -2612,15 +2612,38 @@
       "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
+      "startedAt": "2026-11-10T18:46:38.072Z",
       "finishedAt": null,
-      "lastRunId": null,
-      "runIds": [],
+      "lastRunId": "c-0b02c781",
+      "runIds": [
+        "c-0b02c781"
+      ],
       "commits": [],
-      "evidence": [],
+      "evidence": [
+        {
+          "at": "2026-11-10T18:48:50.914Z",
+          "kind": "diff",
+          "detail": "New files only: apps/web/lib/front-office/templates/presets.ts (275 lines), apps/web/test/front-office-presets.test.ts (69 lines). Nothing outside scope."
+        },
+        {
+          "at": "2026-11-10T18:48:50.914Z",
+          "kind": "test",
+          "detail": "node --experimental-strip-types --test apps/web/test/front-office-presets.test.ts: exit 0, 6 tests, 6 pass (0 before)."
+        },
+        {
+          "at": "2026-11-10T18:48:50.914Z",
+          "kind": "typecheck",
+          "detail": "npm --prefix apps/web run typecheck: exit 0."
+        },
+        {
+          "at": "2026-11-10T18:48:50.914Z",
+          "kind": "note",
+          "detail": "Uncommitted. Needs ventra-review (diff over 150 lines) and a full ventra-verify run before commit. Cycle budget ran out. Example conversations mention prices in plain text and are covered only by the preset-level exampleValues flag; the reviewer should check this."
+        }
+      ],
       "blocker": null,
       "notes": "Owner note 2026-11-10 07:35.",
-      "updatedAt": "2026-11-10T16:20:00Z"
+      "updatedAt": "2026-11-10T18:48:50.914Z"
     },
     {
       "id": "A-25",

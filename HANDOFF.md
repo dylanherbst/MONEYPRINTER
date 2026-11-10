@@ -15,12 +15,12 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
-- Last cycle: c-4d146e6b at 2026-11-11 02:15 AWST · 2 dispatched (A-26, A-39) + 2 reviews · 2 verified and committed · 0 new owner blockers
-- Integration branch: agent/develop @ dd2efdfc (8737522c A-39 · dd2efdfc A-26; board commit follows)
-- Verification: npm test 952/952 (was 934), lint 0, typecheck 0; lab-db test 7/7 run from the repo root. ventra-verify/build not run this cycle (no route or persistence change; migration edit is idempotency only, PGlite-tested). Website: W-1 still blocked, no W- task dispatched.
-- Running / implemented (needs reconciling next cycle): none. W-1 still uncommitted in VENTRA-WEBSITE (unchanged).
+- Last cycle: c-0b02c781 at 2026-11-11 02:46 AWST · 1 dispatched (A-24) · 0 verified · 0 new owner blockers (small spend cap of 1.38 USD, so one task only)
+- Integration branch: agent/develop @ 371f84e (no code commit this cycle; board commit follows)
+- Verification: A-24 preset test 6/6 pass, typecheck 0 (subagent also reports lint 0). Full npm test, ventra-verify and ventra-review not run (budget). Website: W-1 still blocked, no W- task dispatched.
+- Running / implemented (needs reconciling next cycle): A-24 implemented, uncommitted: new files apps/web/lib/front-office/templates/presets.ts and apps/web/test/front-office-presets.test.ts. Next cycle: run ventra-review (344 lines), then the full npm test, then commit. W-1 still uncommitted in VENTRA-WEBSITE (unchanged).
 - Blocked, needs the owner: W-1 browser check, P0-10 backup script, A-34 lab key secret, A-14 transfer rule (also blocks A-7 operating-mode enforcement on the phone path, which A-26 review confirmed is not enforced yet), P0-7 exec bit. Real Live AI in either lab needs ANTHROPIC_API_KEY + FRONT_OFFICE_MODEL on the server and the owner’s OK.
-- Next up: A-41 Receptionist Lab page voice (feature), A-24 presets (voice), A-38 or A-31 (backend), A-40 meta-window cases (voice).
+- Next up: A-24 review + commit, A-41 Receptionist Lab page voice (feature), A-38 or A-31 (backend), A-40 meta-window cases (voice).
 
 ### Previous cycle c-df526914
 
@@ -139,10 +139,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-11 02:25 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-11 02:49 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `dd2efdf feat(receptionist): Receptionist Lab Live AI Test engine (server side): real model through the existing runReceptionistTurn with sandboxed store/calendar/senders, shared lab daily cap checked before each call, authorised caller required, per-turn transcript/tools/tokens/latency/AUD, post-call summary, client state shape- and size-checked (turn limit from conversation) [A-26]`
-- Lock: coordinator (pid 72824, 10 min old)
+- HEAD: `371f84e chore(coordinator): cycle c-4d146e6b board and handoff`
+- Lock: coordinator (pid 79618, 2 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -202,15 +202,15 @@ _Generated 2026-11-11 02:25 by `ventra-handoff snapshot`. Do not hand-edit this 
  scripts/agents/install.sh                         |   2 +-
  scripts/agents/ventra-backup                      |   3 +
  scripts/agents/ventra-verify                      |  11 +-
- 32 files changed, 207 insertions(+), 1684 deletions(-)
+ 32 files changed, 100 insertions(+), 1681 deletions(-)
 ```
 - Recent commits:
 ```text
+371f84e chore(coordinator): cycle c-4d146e6b board and handoff
 dd2efdf feat(receptionist): Receptionist Lab Live AI Test engine (server side): real model through the existing runReceptionistTurn with sandboxed store/calendar/senders, shared lab daily cap checked before each call, authorised caller required, per-turn transcript/tools/tokens/latency/AUD, post-call summary, client state shape- and size-checked (turn limit from conversation) [A-26]
 8737522 fix(platform): migration 202611110003 re-apply safe (create or replace guard function, drop trigger if exists before each trigger); lab db test anchors migrations on import.meta.url and proves double re-apply keeps one enforced guard per table [A-39]
 9550a20 chore(coordinator): cycle c-4a47e138 board and handoff
 eaec63a fix(front-office): settings save uses the shared 256 KB body cap (max knowledge base fits), over-cap gets 413 too_large with a plain message; tests for non-owner and stored-knowledge read failure on the omit-knowledge path; stale metaRunnerChannels comment updated [A-36]
-27ab48a feat(platform): lab sandbox hygiene: GET /api/workspace lists only kind=business (lab id 403), lab_workspace_write_guard trigger refuses lab writes on business_profiles/offers/draft_imports/launcher_drafts/course_drafts/orders, record_test_order logs lab as rejected, deletion tests cover every workspace_id table; migration local only [A-35]
 ```
 <!-- git-state:end -->
 
