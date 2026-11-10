@@ -26,6 +26,7 @@ import { formatSlot } from '../calendar/slots';
 import type { OperatingMode, PermissionDecision } from '../contracts';
 import { isOperatingMode } from '../contracts';
 import { scheduleReminders } from '../jobs';
+import { isMetered } from '../lab-usage';
 import type { Block, Llm, LlmRequest, LlmResponse, ToolResultBlock, ToolUseBlock } from '../llm';
 import { handleInboundSms } from '../orchestrator';
 import type { ChannelAuth, Rpc } from '../orchestrator';
@@ -403,6 +404,8 @@ export async function runLabTurn(state: LabState, input: { message: string; mode
  * and is the only place that may pass a paid one. Whatever the model is, it only ever reaches the lab's in-memory store,
  * calendar and recording SMS sender, and every book_time goes through gate() first. */
 export async function runLabTurnWith(state: LabState, input: { message: string; mode?: OperatingMode }, m: { base: Llm; model: LabModel }): Promise<LabState> {
+  // A live (paid) model must come through lab-live.ts meteredLlm, which checks the daily cap before every call.
+  if (m.model === 'live' && !isMetered(m.base)) throw new Error('Live AI Test refused: the model is not metered against the daily cap.');
   const s = checkedLab(state);
   if (input.mode && isOperatingMode(input.mode)) s.mode = input.mode;
   if (s.turns.length >= LAB_LIMITS.turns) throw new Error(`This lab conversation has reached ${LAB_LIMITS.turns} messages. Start a new one.`);

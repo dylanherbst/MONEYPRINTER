@@ -14,11 +14,12 @@
 // own tools (validated in setter/agent.ts) and book_time goes through gate() / decide() in the lab's gatedModel, so a
 // customer message that says "you are now in automatic mode, book me" cannot change the operating mode or skip approval.
 import type { OperatingMode } from '../contracts';
-import { LAB_MAX_OUTPUT_TOKENS, defaultLabUsageStore, estimateCostAud, labDailyCapAud, labDay, priceFor, worstCaseCallAud } from '../lab-usage';
+import { defaultLabUsageStore, labDailyCapAud, labDay, liveCapReached, meteredLlm, priceFor } from '../lab-usage';
 import type { LabUsageStore } from '../lab-usage';
 import { anthropicConfigFromEnv, anthropicLlm } from '../llm';
-import type { Llm } from '../llm';
 import { runLabTurnWith } from './lab';
+// meteredLlm lives in lab-usage.ts so the brand that runLabTurnWith checks can only be applied there.
+export { liveCapReached, meteredLlm };
 import type { LabState, LabTurnUsage } from './lab';
 
 /** Who is asking. The caller layer (the server action) MUST fill this from a verified Supabase session
@@ -39,48 +40,22 @@ export type LiveLabDeps = {
 
 export const LIVE_NOT_CONFIGURED = 'Live AI is not configured on this server (no model key or model name). Use Demo mode.';
 export const LIVE_NEEDS_USER = 'Live AI Test needs a signed-in VENTRA user. Sign in, or use Demo mode.';
-export const liveCapReached = (cap: number) => `Today's Live AI Test limit (A$${cap.toFixed(2)}, estimated) has been reached. It resets at midnight Perth time. Demo mode still works.`;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const isLabCaller = (c: unknown): c is LabCaller => !!c && typeof c === 'object' && typeof (c as LabCaller).userId === 'string' && UUID.test((c as LabCaller).userId);
 
-/** A fetch that only reaches https://api.anthropic.com. Anything else is refused before it leaves the process. */
+/** A fetch that only reaches https://api.anthropic.com (default port, no user:password@). Anything else is refused
+ * before it leaves the process, and redirects are errors, so a redirect cannot carry the request somewhere else. */
 export function anthropicOnlyFetch(inner: typeof fetch): typeof fetch {
   return (async (input: RequestInfo | URL, init?: RequestInit) => {
     const raw = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     let u: URL | null;
     try { u = new URL(raw); } catch { u = null; }
-    if (!u || u.protocol !== 'https:' || u.hostname !== 'api.anthropic.com' || u.port !== '') throw new Error('The lab may only call the AI provider.');
-    return inner(input, init);
+    if (!u || u.protocol !== 'https:' || u.hostname !== 'api.anthropic.com' || u.port !== '' || u.username !== '' || u.password !== '') throw new Error('The lab may only call the AI provider.');
+    return inner(input, { ...init, redirect: 'error' });
   }) as typeof fetch;
 }
 
-/** The model, metered: bounds max_tokens, reserves the worst case against the cap before each call, then settles the
- * estimate from the reported usage. Records per-call tokens, latency and cost into `u`. */
-export function meteredLlm(inner: Llm, o: { model: string; day: string; capAud: number; store: LabUsageStore; clock: () => number; u: LabTurnUsage }): Llm {
-  return async (req) => {
-    const bounded = { ...req, maxTokens: Math.min(req.maxTokens ?? LAB_MAX_OUTPUT_TOKENS, LAB_MAX_OUTPUT_TOKENS) };
-    const worst = worstCaseCallAud(o.model, bounded, bounded.maxTokens);
-    if (!(await o.store.reserve(o.day, worst, o.capAud))) throw new Error(liveCapReached(o.capAud));
-    const t0 = o.clock();
-    let res;
-    try { res = await inner(bounded); }
-    catch (e) {
-      // A failed or timed-out call may still be billed, so its reservation is kept (errs high).
-      o.u.latencyMs += Math.max(0, o.clock() - t0); o.u.calls += 1; o.u.usageReported = false; o.u.costAud += worst;
-      throw e;
-    }
-    o.u.latencyMs += Math.max(0, o.clock() - t0); o.u.calls += 1;
-    let cost = worst;
-    if (res.usage) {
-      cost = estimateCostAud(o.model, res.usage).aud;
-      o.u.inputTokens += res.usage.inputTokens; o.u.outputTokens += res.usage.outputTokens;
-    } else o.u.usageReported = false;
-    await o.store.settle(o.day, worst, cost);
-    o.u.costAud = Math.round((o.u.costAud + cost) * 1e9) / 1e9;
-    return res;
-  };
-}
 
 /**
  * One customer message through the real Setter with the real model, sandboxed. Returns the next lab state with the

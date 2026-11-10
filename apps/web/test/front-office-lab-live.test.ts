@@ -6,7 +6,8 @@ import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import './helpers/route-harness.ts';
 
-const { newLab, runLabTurn, detectAnswers, LAB_PHONE } = await import('../lib/front-office/setter/lab.ts');
+const { newLab, runLabTurn, runLabTurnWith, scriptedSetterModel, detectAnswers, LAB_PHONE } = await import('../lib/front-office/setter/lab.ts');
+const { anthropicLlm } = await import('../lib/front-office/llm.ts');
 const { runLiveLabTurn, anthropicOnlyFetch, LIVE_NEEDS_USER } = await import('../lib/front-office/setter/lab-live.ts');
 const usage = await import('../lib/front-office/lab-usage.ts');
 type LabState = import('../lib/front-office/setter/lab.ts').LabState;
@@ -223,12 +224,22 @@ test('sandbox: with every live switch on, only api.anthropic.com is reached and 
 
 test('the model fetch is fenced to api.anthropic.com', async () => {
   const seen: string[] = [];
-  const f = anthropicOnlyFetch((async (u: RequestInfo | URL) => { seen.push(String(u)); return new Response('{}'); }) as typeof fetch);
-  for (const bad of ['https://api.twilio.com/2010-04-01/Messages.json', 'http://api.anthropic.com/v1/messages', 'https://api.anthropic.com.evil.example/v1', 'https://api.anthropic.com:8443/v1/messages', 'https://graph.facebook.com/v1', 'not a url']) {
+  const redirects: (string | undefined)[] = [];
+  const f = anthropicOnlyFetch((async (u: RequestInfo | URL, init?: RequestInit) => { seen.push(u instanceof Request ? u.url : String(u)); redirects.push(init?.redirect); return new Response('{}'); }) as typeof fetch);
+  for (const bad of [
+    'https://api.twilio.com/2010-04-01/Messages.json', 'http://api.anthropic.com/v1/messages', 'https://api.anthropic.com.evil.example/v1', 'https://api.anthropic.com:8443/v1/messages',
+    'https://graph.facebook.com/v1', 'not a url', 'https://API.ANTHROPIC.COM.evil.example/v1', 'https://api.anthropic.com./v1/messages',
+    'https://user:pass@api.anthropic.com/v1/messages', 'https://evil.example@api.anthropic.com/v1/messages', 'https://api.anthropic.com@evil.example/v1/messages',
+  ]) {
     await assert.rejects(f(bad), /may only call the AI provider/, bad);
   }
+  await assert.rejects(f(new Request('https://api.twilio.com/2010-04-01/Messages.json')), /may only call the AI provider/, 'Request object to another host');
+  await assert.rejects(f(new URL('https://graph.facebook.com/v1')), /may only call the AI provider/, 'URL object to another host');
   await f('https://api.anthropic.com/v1/messages');
-  assert.deepEqual(seen, ['https://api.anthropic.com/v1/messages']);
+  await f('https://API.Anthropic.COM/v1/messages');
+  await f(new Request('https://api.anthropic.com/v1/messages', { method: 'POST', body: '{}', redirect: 'follow' }));
+  assert.deepEqual(seen, ['https://api.anthropic.com/v1/messages', 'https://API.Anthropic.COM/v1/messages', 'https://api.anthropic.com/v1/messages'], 'uppercase host is the same host (URL lower-cases it)');
+  assert.deepEqual(redirects, ['error', 'error', 'error'], 'redirects are errors, even if the caller asked to follow');
 });
 
 test('prompt injection: model text and made-up tools change nothing; mode and approval hold', async () => {
@@ -251,4 +262,102 @@ test('prompt injection: model text and made-up tools change nothing; mode and ap
   assert.equal(s.tables.appointments.length, 0); assert.equal(s.calendar.length, 0);
   assert.notEqual(s.tables.contacts[0].state, 'booked');
   assert.equal(t.reply, t.booking?.say, 'the held line, not the model\'s "You are booked!"');
+});
+
+// ---- A-23h hardening ----
+
+type Store = import('../lib/front-office/lab-usage.ts').LabUsageStore;
+/** Wraps a memory store and records each successful reservation and each settle. */
+function recordingStore() {
+  const inner = usage.createMemoryLabUsageStore();
+  const reserves: number[] = [], settles: { reserved: number; actual: number }[] = [];
+  const store: Store = {
+    persistent: false,
+    async reserve(d, a, c) { const ok = await inner.reserve(d, a, c); if (ok) reserves.push(a); return ok; },
+    async settle(d, r, a) { settles.push({ reserved: r, actual: a }); await inner.settle(d, r, a); },
+    spent: d => inner.spent(d),
+  };
+  return { store, reserves, settles };
+}
+
+test('runLabTurnWith refuses a live model that is not metered, before any call', async () => {
+  const f = fakeAnthropic([() => [text('Hi')]]);
+  const raw = anthropicLlm({ apiKey: ENV.ANTHROPIC_API_KEY, model: ENV.FRONT_OFFICE_MODEL }, f.fetchImpl);
+  await assert.rejects(runLabTurnWith(newLab(), { message: 'hello' }, { base: raw, model: 'live' }), /not metered/);
+  await assert.rejects(runLabTurnWith(newLab(), { message: 'hello' }, { base: scriptedSetterModel(), model: 'live' }), /not metered/);
+  const copy: typeof raw = async r => raw(r);
+  await assert.rejects(runLabTurnWith(newLab(), { message: 'hello' }, { base: copy, model: 'live' }), /not metered/, 'a wrapper does not inherit a brand');
+  assert.equal(f.calls.length, 0);
+  assert.equal(usage.isMetered(raw), false);
+});
+
+test('worst-case input estimate is a byte bound: a long emoji message cannot overshoot its reservation', async () => {
+  const emoji = '\u{1F600}'.repeat(500); // 1000 UTF-16 units (the lab's message limit), 2000 UTF-8 bytes
+  const req = { system: '', messages: [{ role: 'user' as const, content: emoji }], tools: [] };
+  assert.ok(usage.estimateInputTokens(req) >= 2000 + 1000, String(usage.estimateInputTokens(req)));
+  // A provider that bills one token per byte of the whole request (worse than any real tokeniser) still fits.
+  const calls: string[] = [];
+  const perByte = (async (u: RequestInfo | URL, init?: RequestInit) => {
+    calls.push(String(u));
+    const bytes = new TextEncoder().encode(String(init?.body)).length;
+    return new Response(JSON.stringify({ content: [{ type: 'text', text: 'Thanks! What kind of business do you run?' }], stop_reason: 'end_turn', usage: { input_tokens: bytes, output_tokens: usage.LAB_MAX_OUTPUT_TOKENS } }), { status: 200 });
+  }) as typeof fetch;
+  for (const model of ['claude-sonnet-4-5', 'some-future-model']) {
+    const r = recordingStore();
+    const s = await runLiveLabTurn(newLab(), { message: emoji }, USER, { fetch: perByte, env: { ...ENV, FRONT_OFFICE_MODEL: model }, usage: r.store });
+    assert.equal(s.turns[0].error, null);
+    assert.ok(r.settles.length >= 1);
+    for (const x of r.settles) assert.ok(x.actual <= x.reserved, `${model}: actual ${x.actual} <= reserved ${x.reserved}`);
+  }
+  assert.ok(calls.length >= 2);
+});
+
+test('two concurrent turns against a cap that allows one call: only one call is made', async () => {
+  // Learn the exact worst case of the first call (same new lab, same message, so the same request).
+  const probe = recordingStore();
+  await runLiveLabTurn(newLab(), { message: 'hello' }, USER, { fetch: fakeAnthropic([() => [text('Hi')]]).fetchImpl, env: ENV, usage: probe.store });
+  const W = probe.reserves[0];
+  assert.ok(W > 0);
+  const f = fakeAnthropic([() => [text('Hi')], () => [text('Hi')]]);
+  const slow = (async (u: RequestInfo | URL, i?: RequestInit) => { await new Promise(r => setTimeout(r, 30)); return f.fetchImpl(u, i); }) as typeof fetch;
+  const r = recordingStore();
+  const env = { ...ENV, FRONT_OFFICE_LAB_DAILY_CAP_AUD: String(W * 1.5) };
+  const out = await Promise.allSettled([0, 1].map(() => runLiveLabTurn(newLab(), { message: 'hello' }, USER, { fetch: slow, env, usage: r.store })));
+  assert.equal(f.calls.length, 1, 'only one model call');
+  const refused = out.filter(o => o.status === 'rejected' ? /has been reached/.test(String(o.reason)) : /has been reached/.test(o.value.turns[0].error ?? ''));
+  assert.equal(refused.length, 1, 'the other turn is refused by the cap');
+  assert.equal(r.reserves.length, 1);
+  assert.ok(await r.store.spent(usage.labDay(Date.now())) <= W * 1.5);
+});
+
+test('a 500 from the provider keeps its reservation; the state holds no key or env value', async () => {
+  const key = ENV.ANTHROPIC_API_KEY;
+  const failing = (async () => new Response(JSON.stringify({ type: 'error', error: { message: `invalid x-api-key ${key}` } }), { status: 500 })) as typeof fetch;
+  const r = recordingStore();
+  const env = { ...ENV, FRONT_OFFICE_LAB_DAILY_CAP_AUD: '4.321' };
+  const s = await runLiveLabTurn(newLab(), { message: 'hello' }, USER, { fetch: failing, env, usage: r.store });
+  const t = s.turns[0];
+  assert.match(t.error ?? '', /AI provider error \(500\)/);
+  assert.equal(r.reserves.length, 1); assert.equal(r.settles.length, 0, 'not settled: the reservation is kept');
+  assert.ok(Math.abs((await r.store.spent(usage.labDay(Date.now()))) - r.reserves[0]) < 1e-9);
+  assert.ok(Math.abs(t.usage!.costAud - r.reserves[0]) < 1e-9);
+  assert.equal(t.usage!.usageReported, false); assert.equal(t.usage!.calls, 1);
+  const json = JSON.stringify(s);
+  assert.ok(!json.includes(key), 'no API key in the state');
+  assert.ok(!json.includes('x-api-key'), 'no provider error body in the state');
+  assert.ok(!json.includes('4.321'), 'no cap env value in the state');
+  // The model id is shown on purpose (the UI labels which model answered); it is not a secret.
+  assert.equal(t.usage!.model, ENV.FRONT_OFFICE_MODEL);
+});
+
+test('the default usage store is one per process, shared through globalThis', async () => {
+  const g = (globalThis as unknown as Record<symbol, unknown>)[Symbol.for('ventra.labUsage')];
+  assert.equal(g, usage.defaultLabUsageStore);
+  // A second, separate copy of the module (as a second server bundle would load) gets the same store.
+  const spec = '../lib/front-office/lab-usage.ts?second-copy=1';
+  const copy = await import(spec) as typeof usage;
+  assert.notEqual(copy.createMemoryLabUsageStore, usage.createMemoryLabUsageStore, 'really a separate module instance');
+  assert.equal(copy.defaultLabUsageStore, usage.defaultLabUsageStore);
+  const today = await usage.labUsageToday({ env: {} });
+  assert.equal(today.capAud, 5); assert.equal(today.persistent, false);
 });

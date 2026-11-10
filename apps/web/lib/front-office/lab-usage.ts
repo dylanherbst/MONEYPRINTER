@@ -12,7 +12,8 @@
 // Persistence: the default store is in-process memory. It resets when the server restarts and is not shared between
 // server instances, so on a multi-instance deploy each instance has its own cap. A persistent store (Supabase) is task
 // A-25; it implements the same LabUsageStore interface.
-import type { LlmRequest, LlmUsage } from './llm';
+import type { Llm, LlmRequest, LlmUsage } from './llm';
+import type { LabTurnUsage } from './setter/lab';
 
 export const LAB_TIME_ZONE = 'Australia/Perth';
 export const DEFAULT_LAB_DAILY_CAP_AUD = 5;
@@ -51,10 +52,48 @@ export function estimateCostAud(model: string, usage: LlmUsage): { aud: number; 
   return { usd: round(usd), aud: round(usd * USD_TO_AUD), priceKnown: known };
 }
 
-/** A high guess at the input tokens of a request: about 3 characters per token (real text is nearer 4) plus a fixed
- * allowance for the provider's tool-use overhead. */
+/** An upper bound on the input tokens of a request: its UTF-8 byte length (a byte-level tokeniser never makes more
+ * tokens than bytes, so CJK, emoji and odd scripts cannot push the real count past it) plus a fixed allowance for the
+ * provider's tool-use overhead. English is about 4 bytes per token, so this errs roughly 4x high for normal text. */
 export function estimateInputTokens(req: Pick<LlmRequest, 'system' | 'messages' | 'tools'>): number {
-  return Math.ceil(JSON.stringify({ s: req.system, m: req.messages, t: req.tools }).length / 3) + 1000;
+  return new TextEncoder().encode(JSON.stringify({ s: req.system, m: req.messages, t: req.tools })).length + 1000;
+}
+
+// The metered-model brand. Only meteredLlm below applies it, and setter/lab.ts runLabTurnWith refuses a 'live' model
+// without it, so a paid model cannot reach the lab without going through the cap. The Symbol is private to this module.
+const METERED = Symbol('ventra.lab.metered');
+export const isMetered = (fn: unknown): boolean => typeof fn === 'function' && (fn as unknown as Record<symbol, unknown>)[METERED] === true;
+
+export const liveCapReached = (cap: number) => `Today's Live AI Test limit (A$${cap.toFixed(2)}, estimated) has been reached. It resets at midnight Perth time. Demo mode still works.`;
+
+/** The model, metered: bounds max_tokens, reserves the worst case against the cap before each call (refused, and not
+ * made, if that would cross the cap), then settles the estimate from the reported usage. Records per-call tokens,
+ * latency and cost into `o.u`. Re-exported from setter/lab-live.ts. */
+export function meteredLlm(inner: Llm, o: { model: string; day: string; capAud: number; store: LabUsageStore; clock: () => number; u: LabTurnUsage }): Llm {
+  const llm: Llm = async (req) => {
+    const bounded = { ...req, maxTokens: Math.min(req.maxTokens ?? LAB_MAX_OUTPUT_TOKENS, LAB_MAX_OUTPUT_TOKENS) };
+    const worst = worstCaseCallAud(o.model, bounded, bounded.maxTokens);
+    if (!(await o.store.reserve(o.day, worst, o.capAud))) throw new Error(liveCapReached(o.capAud));
+    const t0 = o.clock();
+    let res;
+    try { res = await inner(bounded); }
+    catch (e) {
+      // A failed or timed-out call may still be billed, so its reservation is kept (errs high).
+      o.u.latencyMs += Math.max(0, o.clock() - t0); o.u.calls += 1; o.u.usageReported = false; o.u.costAud = round(o.u.costAud + worst);
+      throw e;
+    }
+    o.u.latencyMs += Math.max(0, o.clock() - t0); o.u.calls += 1;
+    let cost = worst;
+    if (res.usage) {
+      cost = estimateCostAud(o.model, res.usage).aud;
+      o.u.inputTokens += res.usage.inputTokens; o.u.outputTokens += res.usage.outputTokens;
+    } else o.u.usageReported = false;
+    await o.store.settle(o.day, worst, cost);
+    o.u.costAud = round(o.u.costAud + cost);
+    return res;
+  };
+  Object.defineProperty(llm, METERED, { value: true });
+  return llm;
 }
 
 /** The most one call can cost, before it is made. */
@@ -106,8 +145,11 @@ export function createMemoryLabUsageStore(): LabUsageStore & { days: Map<string,
   };
 }
 
-/** The process-wide default store (see the persistence note at the top). */
-export const defaultLabUsageStore = createMemoryLabUsageStore();
+/** The process-wide default store (see the persistence note at the top). Held on globalThis under a registered Symbol,
+ * so separate copies of this module in one process (Next.js server bundles, dev reloads) share one cap. */
+const STORE_KEY = Symbol.for('ventra.labUsage');
+const holder = globalThis as unknown as Record<symbol, LabUsageStore | undefined>;
+export const defaultLabUsageStore: LabUsageStore = holder[STORE_KEY] ??= createMemoryLabUsageStore();
 
 export type LabUsageToday = {
   day: string; timeZone: typeof LAB_TIME_ZONE; spentAud: number; capAud: number; remainingAud: number;
