@@ -89,16 +89,28 @@ EXISTS. Shown so the UI knows where data comes from.
 
 All planned endpoints: signed-in, `?workspace=<id>`, common errors above, lists capped and newest first unless stated.
 
-### Operating modes and the approval queue (A-2)
-- `GET /api/front-office/modes` -> `{ modes: OperatingModes, revision: number }`. Member reads. Never saved:
-  both `enquiry_only`, `revision: 0`.
-- `POST /api/front-office/modes` `{ modes: OperatingModes, revision }` -> `{ modes, revision }`. Owner only; `conflict` on
-  a stale revision. Switching to `automatic` changes nothing already held.
-- `GET /api/front-office/pending-actions?status=pending` -> `{ items: PendingAction[] }`. Member reads.
-- `POST /api/front-office/pending-actions` `{ id, decision: "approve" | "reject", note?: string (max 500) }` ->
-  `{ item: PendingAction }`. **Owner only.** Approve performs the action exactly once and returns `status: "performed"`
-  or `"failed"` with a `note`; a second decision is `409 conflict`; an expired item is `409 conflict`. In DEMO the action
-  is performed against the sandbox calendar and nothing is sent.
+### Operating modes and the approval queue (A-2 logic, routes A-21)
+EXISTS: `apps/web/app/api/front-office/modes/route.ts`, `.../pending-actions/route.ts`, `.../pending-actions/[id]/route.ts`
+(shared helpers in `.../pending-actions/shared.ts`). Tests: `apps/web/test/front-office-modes-api.test.ts`.
+All take `?workspace=<id>`. Not signed in: `401`. Not a member, not the owner where required, or an item of another
+business: the same generic `403 no_workspace_access` (nothing about the other business is returned).
+- `GET /api/front-office/modes` -> `{ modes: OperatingModes, revision: number, updatedAt: string | null }`. Member reads.
+  Never saved: both `enquiry_only`, `revision: 0`. A stored value the app does not know reads as `enquiry_only`.
+- `PUT /api/front-office/modes` `{ modes: { setter, receptionist }, revision }` (same-origin JSON) -> `{ modes, revision,
+  saved: true }`. Owner only. Each mode must be `automatic`, `owner_approval` or `enquiry_only` (else `400`).
+  `409 conflict` on a stale revision or when the business settings were never saved. Items already held stay held.
+- `GET /api/front-office/pending-actions[?status=<PendingActionStatus>][&limit=1..500]` -> `{ items: PendingActionView[] }`.
+  Member reads, newest first, default 100. Overdue items are expired before listing. `PendingActionView` is the
+  `PendingAction` contract plus `committedAt` and `invalid` (payload `null` when invalid); the idempotency key and
+  channel id stay on the server.
+- `POST /api/front-office/pending-actions/<id>` `{ decision: "approve" | "reject", note?: string (max 500) }` (same-origin
+  JSON) -> `{ outcome: "performed" | "failed" | "rejected" | "expired" | "already_decided", item: PendingActionView }`.
+  **Owner only.** Approve performs the held Setter action exactly once through `approvePendingAction` with the same
+  executor as a direct action (`createJobsExecutor(createSetterExecutor(...))`) on the channel it came from; texts are a
+  dry run unless `FRONT_OFFICE_SEND_LIVE=1`. A repeat decision returns `200 already_decided` and changes nothing; an item
+  past its expiry returns `200 expired` and is never performed. `409 conflict` (item stays pending) when it cannot be
+  performed here yet: a Receptionist item (no Receptionist approval executor yet), or the item's channel is not
+  configured on this server (`FRONT_OFFICE_*_CHANNEL_ID/KEY`).
 
 ### Receptionist actions (A-7)
 - Existing Vapi endpoints enforce the mode: `owner_approval` holds book, reschedule, cancel and transfer and the caller is
