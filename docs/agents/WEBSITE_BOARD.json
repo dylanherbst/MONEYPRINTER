@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-09T22:26:32.358Z",
+  "updatedAt": "2026-11-10T17:28:06.836Z",
   "project": "website",
   "integrationBranch": "frontend/website-ui",
   "worktree": "~/Developer/VENTRA-WEBSITE",
@@ -47,7 +47,7 @@
       "phase": 4,
       "module": "website",
       "owner": "ventra-web-design",
-      "state": "implemented",
+      "state": "blocked",
       "priority": 1,
       "dependsOn": [],
       "scope": [
@@ -67,16 +67,29 @@
       "worktree": "~/Developer/VENTRA-WEBSITE",
       "startedAt": null,
       "finishedAt": "2026-11-09T22:26:32.358Z",
-      "lastRunId": "c-90917b1a",
+      "lastRunId": "c-df526914",
       "runIds": [
         "c-9edb821b",
-        "c-90917b1a"
+        "c-90917b1a",
+        "c-df526914"
       ],
       "commits": [],
       "evidence": [
-        {"at": "2026-11-10T16:16:00Z", "kind": "review", "detail": "c-90917b1a ventra-qa: code PASS WITH NITS (menu aria-expanded/controls, Escape + focus return, overflow-x clip, no secrets, scope clean); acceptance FAIL: SITE_DESIGN.md missing, no screenshots, browser check blocked. Findings: --faint #8A979C ~3:1 on white used for small text (medium); nav links 404 until W-3..W-8 (medium); home page does not yet use the new Hero/Section/PlanCard components; chrome.tsx dead stub (deletion needs owner OK)."},
-        {"at": "2026-11-10T16:19:00Z", "kind": "diff", "detail": "c-90917b1a ventra-web-design: --faint changed to #647176 (5.04:1 white, 4.65:1 on #F4F6F7, lowest background); new docs/agents/SITE_DESIGN.md (~120 lines) in the worktree; new contrast test in site-shell.test.ts. Specialist reports typecheck 0, lint 0, tests 748/748."},
-        {"at": "2026-11-10T16:20:00Z", "kind": "note", "detail": "c-90917b1a: browser check at 390/1440 BLOCKED: curl to localhost:3020 and npx playwright denied for subagents; Playwright not installed in either worktree. Next cycle: coordinator installs Playwright as a dev dependency through a main-project task (package.json is shared) or the owner runs the check; then commit W-1 in the worktree (exclude next-env.d.ts and test-results/)."},
+        {
+          "at": "2026-11-10T16:16:00Z",
+          "kind": "review",
+          "detail": "c-90917b1a ventra-qa: code PASS WITH NITS (menu aria-expanded/controls, Escape + focus return, overflow-x clip, no secrets, scope clean); acceptance FAIL: SITE_DESIGN.md missing, no screenshots, browser check blocked. Findings: --faint #8A979C ~3:1 on white used for small text (medium); nav links 404 until W-3..W-8 (medium); home page does not yet use the new Hero/Section/PlanCard components; chrome.tsx dead stub (deletion needs owner OK)."
+        },
+        {
+          "at": "2026-11-10T16:19:00Z",
+          "kind": "diff",
+          "detail": "c-90917b1a ventra-web-design: --faint changed to #647176 (5.04:1 white, 4.65:1 on #F4F6F7, lowest background); new docs/agents/SITE_DESIGN.md (~120 lines) in the worktree; new contrast test in site-shell.test.ts. Specialist reports typecheck 0, lint 0, tests 748/748."
+        },
+        {
+          "at": "2026-11-10T16:20:00Z",
+          "kind": "note",
+          "detail": "c-90917b1a: browser check at 390/1440 BLOCKED: curl to localhost:3020 and npx playwright denied for subagents; Playwright not installed in either worktree. Next cycle: coordinator installs Playwright as a dev dependency through a main-project task (package.json is shared) or the owner runs the check; then commit W-1 in the worktree (exclude next-env.d.ts and test-results/)."
+        },
         {
           "at": "2026-11-09T22:26:32.358Z",
           "kind": "diff",
@@ -91,11 +104,36 @@
           "at": "2026-11-09T22:26:32.358Z",
           "kind": "note",
           "detail": "NOT committed: needs ventra-review (diff >150 lines) and 390/1440 browser check next cycle. Open: SITE_DESIGN.md not written; chrome.tsx deletion needs owner OK; nav links 404 until W-3..W-8; W-3 path course vs courses mismatch; next.config domain mapping for new pages (W-13); home OG title changed."
+        },
+        {
+          "at": "2026-11-10T17:28:06.836Z",
+          "kind": "review",
+          "detail": "c-df526914 ventra-review: PASS WITH FIXES. Fixed by ventra-web-design this cycle: canonicalPath now returns reachable paths (/, /privacy, /terms rewritten; /site/<slug> otherwise, ROOT_REWRITES tested against next.config.mjs), mobile menu closes on focus-out (disclosure pattern, no trap, documented), home OG title restored via ogTitle. Low/accepted: chrome.tsx unused pass-through (deletion needs owner OK), nav links 404 until W-3..W-8."
+        },
+        {
+          "at": "2026-11-10T17:28:06.836Z",
+          "kind": "diff",
+          "detail": "uncommitted in VENTRA-WEBSITE: _ui/{chrome,get-started,icons}.tsx, new _ui/{meta.ts,sections.tsx,shell.tsx}, site/{layout,page,site.css,privacy/page,terms/page}, test/site-shell.test.ts, docs/agents/SITE_DESIGN.md. Exclude from commit: apps/web/next-env.d.ts (generated), apps/web/test-results/."
+        },
+        {
+          "at": "2026-11-10T17:28:06.836Z",
+          "kind": "test",
+          "detail": "coordinator c-df526914: VENTRA-WEBSITE apps/web test 751/751 pass (was 748), lint exit 0, typecheck exit 0"
+        },
+        {
+          "at": "2026-11-10T17:28:06.836Z",
+          "kind": "browser",
+          "detail": "c-df526914: NOT RUN. curl/Playwright against localhost:3020 is refused by the permission system in coordinator sessions (ventra-qa and coordinator both refused). Not committed: acceptance requires 390/1440 screenshots."
         }
       ],
-      "blocker": null,
+      "blocker": {
+        "reason": "Browser check blocked: coordinator sessions may not reach localhost:3020 (curl/Playwright refused). Owner: either allow 'curl http://localhost:3020/*' and 'node /tmp/w1-qa.mjs' for coordinator sessions, or open the site at 390px and 1440px yourself and test the mobile menu (Tab, Enter, Escape). Then the coordinator commits W-1 (paths listed in evidence).",
+        "needsApproval": true,
+        "approvalId": null,
+        "since": "2026-11-10T17:30:00Z"
+      },
       "notes": "Workstream D. Work only inside ~/Developer/VENTRA-WEBSITE on branch frontend/website-ui. Shared design system, auth and Stripe code are reused, never copied; changes to shared code go through a main-project task.",
-      "updatedAt": "2026-11-09T22:26:32.358Z"
+      "updatedAt": "2026-11-10T17:28:06.836Z"
     },
     {
       "id": "W-2",

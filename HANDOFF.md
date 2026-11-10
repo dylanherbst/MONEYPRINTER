@@ -15,6 +15,15 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
+- Last cycle: c-df526914 at 2026-11-11 01:14 AWST · 6 dispatched (A-30, A-25, A-32, A-33, W-1 QA, W-1 fixes) + 5 reviews · 4 verified and committed · 2 blocked (W-1 browser check, P0-10 backup)
+- Integration branch: agent/develop @ 0df39bdc (94019acd A-30 · 1cbd748f A-25 · e7ee82fb A-32 · 0df39bdc A-33)
+- Verification: ventra-verify lint, typecheck, unit tests (916), build, workspace-integration PASSED; course/launcher integration FAILED as "paused" (frozen, known P0-7: installed ventra-verify lacks the FROZEN status). New migrations 202611110001/0002 are local/PGlite only.
+- Running / implemented (needs reconciling next cycle): none. W-1 website shell is uncommitted in VENTRA-WEBSITE (review fixes done, 751/751, lint 0, typecheck 0); commit after the browser check, excluding apps/web/next-env.d.ts and apps/web/test-results/.
+- Blocked, needs the owner: W-1: coordinator sessions may not reach localhost:3020 (curl/Playwright refused); allow it or check 390/1440 + mobile menu yourself. P0-10: ventra-backup create aborts because git ls-files lists the 18 tracked-but-deleted files and tar fails under pipefail (no .head, verify exit 1); script has foreign edits, so the owner applies the fix. A-34: needs a server-only lab key secret (32+ chars) in apps/web/.env.local. P0-7 unchanged.
+- Proposed UI step (Workstream B, not done): hide kind='lab' workspaces in any workspace picker once A-35 lands.
+- Next up: A-37 (voice, Meta approvals in approval route, before A-11), A-35 (backend, sandbox hygiene), A-34 (voice, wire labs to sandbox, after the secret), A-31, A-36, A-38, A-24, A-26.
+
+### Previous cycle c-ef7fc367
 - Last cycle: c-ef7fc367 at 2026-11-11 00:43 AWST · 4 dispatched (A-9, A-10, A-16, A-29) + 4 reviews · 4 verified and committed · 0 new owner blockers
 - Committed on agent/develop: c9bd2c8e A-10 GET /api/front-office/performance · 85405836 A-9 GET contacts + activity, AU phone/email normalisation · bc7cfbe7 A-16 knowledge base (Setter prompt setter/qualify@2, Receptionist answer_faq) · 8deb3478 A-29 Meta 24h window guard (ladder step 3 now 20h). API_CONTRACTS.md A-9/A-10 sections updated (board commit).
 - Verification: npm --prefix apps/web test 890/890 (baseline 851), typecheck 0, lint 0. ventra-verify not run this cycle (no migrations or routes outside front-office API; next cycle should run it).
@@ -121,10 +130,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-11 01:02 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-11 01:36 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `8deb347 feat(front-office): Meta 24-hour window guard: gate() and the jobs runner refuse automated Instagram/Messenger sends outside 24h of the last inbound; reroute only with explicit SMS/email consent, else one owner task; never HUMAN_AGENT; ladder step 3 at 20h [A-29]`
-- Lock: coordinator (pid 45489, 19 min old)
+- HEAD: `0df39bd feat(front-office): lab sandbox hardening: lab channels sms/voice only, scenario cap 20, sandbox removed on user deletion (auth.users cleanup trigger, kind=lab only), honest channel-key comments, negative RLS/grant tests [A-33]`
+- Lock: coordinator (pid 55225, 21 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -143,9 +152,9 @@ _Generated 2026-11-11 01:02 by `ventra-handoff snapshot`. Do not hand-edit this 
  D apps/web/app/lab/page.tsx
  M apps/web/package-lock.json
  M apps/web/package.json
- M docs/agents/API_CONTRACTS.md
  M docs/agents/TASKS.md
  M docs/agents/TASK_BOARD.json
+ M docs/agents/WEBSITE_BOARD.json
  D docs/design/LIQUID_GLASS_SPEC.md
  D docs/design/reference/dylan-home-dashboard.png
  D docs/design/reference/dylan-liquid-glass-kit.png
@@ -170,29 +179,29 @@ _Generated 2026-11-11 01:02 by `ventra-handoff snapshot`. Do not hand-edit this 
 ```
 - Diff stat vs HEAD:
 ```text
- docs/design/LIQUID_GLASS_SPEC.md                  | 188 ------
- docs/design/reference/dylan-home-dashboard.png    | Bin 627700 -> 0 bytes
- docs/design/reference/dylan-liquid-glass-kit.png  | Bin 630505 -> 0 bytes
- docs/design/reference/home-approved.png           | Bin 2071965 -> 0 bytes
- docs/design/reference/kit-approved.png            | Bin 1385351 -> 0 bytes
- docs/design/ventra-ui/components.d.ts             |  27 -
- docs/design/ventra-ui/components.js               | 225 -------
- docs/design/ventra-ui/glass.css                   | 249 --------
- docs/design/ventra-ui/tokens.css                  |  15 -
- docs/design/ventra-ui/tokens.json                 | 692 ----------------------
- package.json                                      |   7 +-
- scripts/agents/install.sh                         |   2 +-
- scripts/agents/ventra-backup                      |   3 +
- scripts/agents/ventra-verify                      |  11 +-
- 33 files changed, 184 insertions(+), 1705 deletions(-)
+ docs/design/LIQUID_GLASS_SPEC.md                  |  188 ----
+ docs/design/reference/dylan-home-dashboard.png    |  Bin 627700 -> 0 bytes
+ docs/design/reference/dylan-liquid-glass-kit.png  |  Bin 630505 -> 0 bytes
+ docs/design/reference/home-approved.png           |  Bin 2071965 -> 0 bytes
+ docs/design/reference/kit-approved.png            |  Bin 1385351 -> 0 bytes
+ docs/design/ventra-ui/components.d.ts             |   27 -
+ docs/design/ventra-ui/components.js               |  225 ----
+ docs/design/ventra-ui/glass.css                   |  249 -----
+ docs/design/ventra-ui/tokens.css                  |   15 -
+ docs/design/ventra-ui/tokens.json                 |  692 ------------
+ package.json                                      |    7 +-
+ scripts/agents/install.sh                         |    2 +-
+ scripts/agents/ventra-backup                      |    3 +
+ scripts/agents/ventra-verify                      |   11 +-
+ 33 files changed, 1191 insertions(+), 1826 deletions(-)
 ```
 - Recent commits:
 ```text
-8deb347 feat(front-office): Meta 24-hour window guard: gate() and the jobs runner refuse automated Instagram/Messenger sends outside 24h of the last inbound; reroute only with explicit SMS/email consent, else one owner task; never HUMAN_AGENT; ladder step 3 at 20h [A-29]
-bc7cfbe feat(front-office): business knowledge base (services, prices, offers, policies, objection rules) in agent settings; Setter prompt and Receptionist answer_faq answer listed prices and refuse unlisted ones; expired offers filtered in code; template seeds only state what templates say [A-16]
-8540583 feat(front-office): one customer record read path: GET /api/front-office/contacts and /activity, AU phone and email normalisation, read-side dedupe, local-crm import plan (no writes), PGlite RLS tests [A-9]
-c9bd2c8 feat(front-office): lead-to-booking performance from fo_* rows at GET /api/front-office/performance; paged reads, cohort-scoped events/appointments, attended null with reason, null ratios on zero denominators [A-10]
-7ad03ae chore(coordinator): cycle c-90917b1a backup failure note
+0df39bd feat(front-office): lab sandbox hardening: lab channels sms/voice only, scenario cap 20, sandbox removed on user deletion (auth.users cleanup trigger, kind=lab only), honest channel-key comments, negative RLS/grant tests [A-33]
+e7ee82f feat(front-office): Meta window re-check at owner approval (held Instagram/Messenger items fail closed after 24h, optional owner task), future lastInbound refused, Meta channels in jobs runner behind FRONT_OFFICE_META_AUTOSEND (off) [A-32]
+1cbd748 feat(front-office): lab sandbox workspace (workspaces.kind lab, owner-only, unroutable lab: channels, test-domain emails, no connections), reset and save/load scenarios via fo_lab_* RPCs, lib/supabase/lab-sandbox helper, PGlite tests; local only [A-25]
+94019ac fix(front-office): settings save that omits knowledge keeps the stored knowledge base; present replaces, empty/null clears; knowledge shape documented in API_CONTRACTS [A-30]
+aaea4a2 chore(coordinator): cycle c-ef7fc367 board and handoff; API contracts for A-9 and A-10
 ```
 <!-- git-state:end -->
 

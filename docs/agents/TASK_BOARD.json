@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-10T17:10:00Z",
+  "updatedAt": "2026-11-10T17:35:39.403Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-ef7fc367",
-    "startedAt": "2026-11-10T16:43:09Z",
-    "endedAt": "2026-11-10T17:12:00Z",
-    "summary": "Committed A-10 performance API, A-9 contacts/activity read path, A-16 knowledge base, A-29 Meta 24h guard; each reviewed (pass with nits, A-10/A-16 after one fix round); 890/890 tests, typecheck, lint. Follow-ups A-30, A-31, A-32 queued. Backup create failed again. W-1 still blocked on Playwright."
+    "id": "c-df526914",
+    "startedAt": "2026-11-10T17:14:09Z",
+    "endedAt": "2026-11-10T17:55:00Z",
+    "summary": "c-df526914: A-30, A-25, A-32, A-33 verified, reviewed and committed; W-1 fixes done but browser check blocked by localhost permission; backup create root cause found (P0-10)."
   },
   "tasks": [
     {
@@ -335,7 +335,7 @@
       "worktree": null,
       "startedAt": null,
       "finishedAt": null,
-      "lastRunId": "c-e9ebba59",
+      "lastRunId": "c-df526914",
       "commits": [],
       "evidence": [
         {
@@ -367,6 +367,11 @@
           "at": "2026-11-09T16:57:01.416Z",
           "kind": "test",
           "detail": "c-e9ebba59: bash scripts/agents/ventra-verify exit 0 at 16:55Z: lint, typecheck, unit-tests (668 pass), build, workspace-integration PASSED; course/launcher FROZEN; last-verify.json passed=true."
+        },
+        {
+          "at": "2026-11-10T17:35:39.403Z",
+          "kind": "test",
+          "detail": "c-df526914: ventra-verify (installed copy) still FAILS course-integration and launcher-integration with 'paused' (frozen); the FROZEN fix is still uncommitted in scripts/agents/ventra-verify awaiting the owner (mode 755 + commit + install)."
         }
       ],
       "blocker": {
@@ -377,9 +382,10 @@
       },
       "notes": "Owner decision (2026-11-09, via the master session): frozen features are SKIPPED with a reason, not FAILED and not run un-frozen. ventra-verify is not a guard control file, so the coordinator may edit it.",
       "runIds": [
-        "c-e9ebba59"
+        "c-e9ebba59",
+        "c-df526914"
       ],
-      "updatedAt": "2026-11-09T16:57:01.416Z"
+      "updatedAt": "2026-11-10T17:35:39.403Z"
     },
     {
       "id": "P0-8",
@@ -1361,13 +1367,33 @@
       "startedAt": "2026-11-10T16:45:00Z",
       "finishedAt": "2026-11-10T16:56:00Z",
       "lastRunId": "c-ef7fc367",
-      "runIds": ["c-ef7fc367"],
-      "commits": ["85405836"],
+      "runIds": [
+        "c-ef7fc367"
+      ],
+      "commits": [
+        "85405836"
+      ],
       "evidence": [
-        {"at": "2026-11-10T16:55:00Z", "kind": "diff", "detail": "6 new files: lib/front-office/crm.ts, activity.ts, api/front-office/contacts/route.ts, activity/route.ts, test/front-office-crm.test.ts, front-office-crm-db.test.ts. No migration needed (named file would clash with 202611100002_front_office_connections.sql)."},
-        {"at": "2026-11-10T16:55:00Z", "kind": "review", "detail": "ventra-review PASS WITH NITS: auth+membership before fo_* reads, caller token (RLS), workspace filter, no filter injection, keyset paging correct, PGlite RLS test real. Lows queued as A-31."},
-        {"at": "2026-11-10T16:55:00Z", "kind": "test", "detail": "coordinator: npm --prefix apps/web test 879/879 pass, 0 fail (baseline 851); typecheck exit 0; eslint on A-9 files exit 0"},
-        {"at": "2026-11-10T16:56:00Z", "kind": "commit", "detail": "85405836 on agent/develop; API_CONTRACTS.md A-9 section updated by coordinator"}
+        {
+          "at": "2026-11-10T16:55:00Z",
+          "kind": "diff",
+          "detail": "6 new files: lib/front-office/crm.ts, activity.ts, api/front-office/contacts/route.ts, activity/route.ts, test/front-office-crm.test.ts, front-office-crm-db.test.ts. No migration needed (named file would clash with 202611100002_front_office_connections.sql)."
+        },
+        {
+          "at": "2026-11-10T16:55:00Z",
+          "kind": "review",
+          "detail": "ventra-review PASS WITH NITS: auth+membership before fo_* reads, caller token (RLS), workspace filter, no filter injection, keyset paging correct, PGlite RLS test real. Lows queued as A-31."
+        },
+        {
+          "at": "2026-11-10T16:55:00Z",
+          "kind": "test",
+          "detail": "coordinator: npm --prefix apps/web test 879/879 pass, 0 fail (baseline 851); typecheck exit 0; eslint on A-9 files exit 0"
+        },
+        {
+          "at": "2026-11-10T16:56:00Z",
+          "kind": "commit",
+          "detail": "85405836 on agent/develop; API_CONTRACTS.md A-9 section updated by coordinator"
+        }
       ],
       "blocker": null,
       "updatedAt": "2026-11-10T16:56:00Z",
@@ -1398,12 +1424,28 @@
       "startedAt": "2026-11-10T16:45:00Z",
       "finishedAt": "2026-11-10T16:52:00Z",
       "lastRunId": "c-ef7fc367",
-      "runIds": ["c-ef7fc367"],
-      "commits": ["c9bd2c8e"],
+      "runIds": [
+        "c-ef7fc367"
+      ],
+      "commits": [
+        "c9bd2c8e"
+      ],
       "evidence": [
-        {"at": "2026-11-10T16:50:00Z", "kind": "review", "detail": "ventra-review PASS WITH NITS; medium: limit(5001) under PostgREST default max_rows would silently undercount; events/appointments not cohort-scoped. Sent back once; fixed with 1000-row paging and 200-id cohort chunks, too_large at caps."},
-        {"at": "2026-11-10T16:52:00Z", "kind": "test", "detail": "coordinator: node --test apps/web/test/front-office-performance.test.ts 8/8 pass (incl. >1000-row paging test); typecheck exit 0; lint exit 0; full suite later 879/879"},
-        {"at": "2026-11-10T16:52:00Z", "kind": "commit", "detail": "c9bd2c8e on agent/develop (3 new files); API_CONTRACTS.md A-10 section replaced by coordinator"}
+        {
+          "at": "2026-11-10T16:50:00Z",
+          "kind": "review",
+          "detail": "ventra-review PASS WITH NITS; medium: limit(5001) under PostgREST default max_rows would silently undercount; events/appointments not cohort-scoped. Sent back once; fixed with 1000-row paging and 200-id cohort chunks, too_large at caps."
+        },
+        {
+          "at": "2026-11-10T16:52:00Z",
+          "kind": "test",
+          "detail": "coordinator: node --test apps/web/test/front-office-performance.test.ts 8/8 pass (incl. >1000-row paging test); typecheck exit 0; lint exit 0; full suite later 879/879"
+        },
+        {
+          "at": "2026-11-10T16:52:00Z",
+          "kind": "commit",
+          "detail": "c9bd2c8e on agent/develop (3 new files); API_CONTRACTS.md A-10 section replaced by coordinator"
+        }
       ],
       "blocker": null,
       "updatedAt": "2026-11-10T16:56:00Z",
@@ -1936,11 +1978,25 @@
         "c-255a1537",
         "c-ef7fc367"
       ],
-      "commits": ["bc7cfbe7"],
+      "commits": [
+        "bc7cfbe7"
+      ],
       "evidence": [
-        {"at": "2026-11-10T16:53:00Z", "kind": "review", "detail": "ventra-review PASS WITH NITS; mediums: one shared word ('session') gave another service's price; template seeds stated unapproved 'free'; Setter prompt listed expired offers. Sent back once; fixed (all/>=2 name words, seeds $0 only when template text says free, expired offers filtered in code, trigger min 4 chars, whitespace collapsed in prompt lines)."},
-        {"at": "2026-11-10T16:55:00Z", "kind": "test", "detail": "coordinator: node --test apps/web/test/front-office-knowledge.test.ts 9/9 pass; npm --prefix apps/web test 879/879 pass 0 fail; typecheck exit 0; eslint on A-16 files exit 0"},
-        {"at": "2026-11-10T16:56:00Z", "kind": "commit", "detail": "bc7cfbe7 on agent/develop (settings.ts, setter/prompt.ts, receptionist/agent.ts, test/front-office-knowledge.test.ts). Setter prompt version setter/qualify@2."}
+        {
+          "at": "2026-11-10T16:53:00Z",
+          "kind": "review",
+          "detail": "ventra-review PASS WITH NITS; mediums: one shared word ('session') gave another service's price; template seeds stated unapproved 'free'; Setter prompt listed expired offers. Sent back once; fixed (all/>=2 name words, seeds $0 only when template text says free, expired offers filtered in code, trigger min 4 chars, whitespace collapsed in prompt lines)."
+        },
+        {
+          "at": "2026-11-10T16:55:00Z",
+          "kind": "test",
+          "detail": "coordinator: node --test apps/web/test/front-office-knowledge.test.ts 9/9 pass; npm --prefix apps/web test 879/879 pass 0 fail; typecheck exit 0; eslint on A-16 files exit 0"
+        },
+        {
+          "at": "2026-11-10T16:56:00Z",
+          "kind": "commit",
+          "detail": "bc7cfbe7 on agent/develop (settings.ts, setter/prompt.ts, receptionist/agent.ts, test/front-office-knowledge.test.ts). Setter prompt version setter/qualify@2."
+        }
       ],
       "blocker": null,
       "notes": "Follow-ups queued: A-30 (settings PUT without knowledge wipes it; contracts.ts + API_CONTRACTS knowledge shape; receptionist prompt mentions objections via answer_faq, bump receptionist/voice@2). Owner to approve seeded objection replies; no knowledge editor in app/ui yet (Workstream B).",
@@ -2196,11 +2252,25 @@
         "c-2f01e5b4",
         "c-90917b1a"
       ],
-      "commits": ["4ea05b17"],
+      "commits": [
+        "4ea05b17"
+      ],
       "evidence": [
-        {"at": "2026-11-10T16:18:00Z", "kind": "review", "detail": "c-90917b1a: ventra-review APPROVE WITH NITS, no blockers/majors. Access via owner-only RPCs, approve wraps createJobsExecutor(createSetterExecutor) (shared.ts:59), double/expired approval safe (row lock), Receptionist 409 fails safe, env channel ids safe. Nits: lookup by listing 500 rows ([id]/route.ts:35), revision not capped at int4 (modes/route.ts:41), Receptionist owner_approval items can never be approved yet, missing tests (concurrent approve, executor failure, invalid payload, mismatched env channel)."},
-        {"at": "2026-11-10T16:19:00Z", "kind": "test", "detail": "c-90917b1a: coordinator ran node --test front-office-modes-api.test.ts 10/10 pass; npm --prefix apps/web test 836/836 pass; typecheck exit 0; lint exit 0."},
-        {"at": "2026-11-10T16:24:00Z", "kind": "commit", "detail": "4ea05b17 (6 files incl. API_CONTRACTS.md, single A-21 hunk confirmed by review)."},
+        {
+          "at": "2026-11-10T16:18:00Z",
+          "kind": "review",
+          "detail": "c-90917b1a: ventra-review APPROVE WITH NITS, no blockers/majors. Access via owner-only RPCs, approve wraps createJobsExecutor(createSetterExecutor) (shared.ts:59), double/expired approval safe (row lock), Receptionist 409 fails safe, env channel ids safe. Nits: lookup by listing 500 rows ([id]/route.ts:35), revision not capped at int4 (modes/route.ts:41), Receptionist owner_approval items can never be approved yet, missing tests (concurrent approve, executor failure, invalid payload, mismatched env channel)."
+        },
+        {
+          "at": "2026-11-10T16:19:00Z",
+          "kind": "test",
+          "detail": "c-90917b1a: coordinator ran node --test front-office-modes-api.test.ts 10/10 pass; npm --prefix apps/web test 836/836 pass; typecheck exit 0; lint exit 0."
+        },
+        {
+          "at": "2026-11-10T16:24:00Z",
+          "kind": "commit",
+          "detail": "4ea05b17 (6 files incl. API_CONTRACTS.md, single A-21 hunk confirmed by review)."
+        },
         {
           "at": "2026-11-09T22:55:12.977Z",
           "kind": "test",
@@ -2217,141 +2287,989 @@
       "updatedAt": "2026-11-10T16:24:00Z"
     },
     {
-      "id": "A-22", "title": "Front-office research: docs/agents/FRONT_OFFICE_RESEARCH.md (ten brief sections; Vapi Web SDK vs Twilio ConversationRelay + own STT/LLM/TTS vs OpenAI Realtime / LiveKit + SIP; AUD costs, AU numbers, latency, recording consent, Meta 24h window / tags / private replies)",
-      "phase": "A", "module": "shared", "owner": "ventra-research", "state": "done", "priority": 1, "dependsOn": [],
-      "scope": ["docs/agents/FRONT_OFFICE_RESEARCH.md (coordinator writes)"],
-      "acceptance": ["All ten output sections of the brief", "At least three voice architectures compared with AUD per-minute costs and sources", "Concrete backend instructions; never blocks A-23..A-28"],
-      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
-      "startedAt": "2026-11-10T16:13:00Z", "finishedAt": "2026-11-10T16:17:00Z", "lastRunId": "c-90917b1a", "runIds": ["c-90917b1a"], "commits": ["58f4bc6b"],
-      "evidence": [{"at": "2026-11-10T16:13:00Z", "kind": "note", "detail": "c-90917b1a: planned from owner note 2026-11-10 07:35 and dispatched."},
-        {"at": "2026-11-10T16:17:00Z", "kind": "diff", "detail": "Coordinator wrote docs/agents/FRONT_OFFICE_RESEARCH.md: all ten sections, three voice architectures with AUD/min and sources; recommendation keep Vapi (Web SDK step 2), Twilio AU number import needs owner approval + regulatory bundle; many prices marked unverified."},
-        {"at": "2026-11-10T16:17:00Z", "kind": "note", "detail": "Coordinator checked the research's 'ladder breaks Meta 24h window' claim: runner follow-ups go only by SMS/email (jobs.ts:233); webhook and outbox routes already call inReplyWindow. Not a live bug; guard queued as A-29 for when Meta follow-ups are added. Correction added to the doc."},
-        {"at": "2026-11-10T16:18:00Z", "kind": "commit", "detail": "58f4bc6b"}],
-      "blocker": null, "notes": "Owner note 2026-11-10 07:35. One cycle max.", "updatedAt": "2026-11-10T16:20:00Z"
+      "id": "A-22",
+      "title": "Front-office research: docs/agents/FRONT_OFFICE_RESEARCH.md (ten brief sections; Vapi Web SDK vs Twilio ConversationRelay + own STT/LLM/TTS vs OpenAI Realtime / LiveKit + SIP; AUD costs, AU numbers, latency, recording consent, Meta 24h window / tags / private replies)",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-research",
+      "state": "done",
+      "priority": 1,
+      "dependsOn": [],
+      "scope": [
+        "docs/agents/FRONT_OFFICE_RESEARCH.md (coordinator writes)"
+      ],
+      "acceptance": [
+        "All ten output sections of the brief",
+        "At least three voice architectures compared with AUD per-minute costs and sources",
+        "Concrete backend instructions; never blocks A-23..A-28"
+      ],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": "2026-11-10T16:13:00Z",
+      "finishedAt": "2026-11-10T16:17:00Z",
+      "lastRunId": "c-90917b1a",
+      "runIds": [
+        "c-90917b1a"
+      ],
+      "commits": [
+        "58f4bc6b"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-10T16:13:00Z",
+          "kind": "note",
+          "detail": "c-90917b1a: planned from owner note 2026-11-10 07:35 and dispatched."
+        },
+        {
+          "at": "2026-11-10T16:17:00Z",
+          "kind": "diff",
+          "detail": "Coordinator wrote docs/agents/FRONT_OFFICE_RESEARCH.md: all ten sections, three voice architectures with AUD/min and sources; recommendation keep Vapi (Web SDK step 2), Twilio AU number import needs owner approval + regulatory bundle; many prices marked unverified."
+        },
+        {
+          "at": "2026-11-10T16:17:00Z",
+          "kind": "note",
+          "detail": "Coordinator checked the research's 'ladder breaks Meta 24h window' claim: runner follow-ups go only by SMS/email (jobs.ts:233); webhook and outbox routes already call inReplyWindow. Not a live bug; guard queued as A-29 for when Meta follow-ups are added. Correction added to the doc."
+        },
+        {
+          "at": "2026-11-10T16:18:00Z",
+          "kind": "commit",
+          "detail": "58f4bc6b"
+        }
+      ],
+      "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35. One cycle max.",
+      "updatedAt": "2026-11-10T16:20:00Z"
     },
     {
-      "id": "A-23", "title": "Setter Lab Live AI Test engine (server side): real Anthropic model through the same Setter agent, sandboxed side effects, per-turn tokens / latency / AUD cost, server-side daily lab cap FRONT_OFFICE_LAB_DAILY_CAP_AUD (default 5), never honours FRONT_OFFICE_SEND_LIVE",
-      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "done", "priority": 1, "dependsOn": ["A-3"],
-      "scope": ["apps/web/lib/front-office/setter/lab.ts", "apps/web/lib/front-office/setter/lab-live.ts", "apps/web/lib/front-office/lab-usage.ts", "apps/web/lib/front-office/llm.ts (additive usage field only)", "apps/web/test/front-office-lab-live*.test.ts"],
-      "acceptance": ["Demo mode unchanged and still scripted; existing setter-lab tests pass", "Live mode uses anthropicLlm via anthropicConfigFromEnv; tests use a fake fetch, no network", "Input/output tokens, latency ms and AUD estimate per turn in LabState", "Cap enforced server-side before the call; over cap = clear refusal and no model call", "Lab stays sandboxed regardless of FRONT_OFFICE_SEND_LIVE (test proves it)", "Live entry point requires an authorised caller argument (no anonymous paid calls)"],
-      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md (Test Playground, Modes)", "branch": "agent/develop", "worktree": null,
-      "startedAt": "2026-11-10T16:13:00Z", "finishedAt": "2026-11-10T16:26:00Z", "lastRunId": "c-90917b1a", "runIds": ["c-90917b1a"], "commits": ["0b5bd67b"],
-      "evidence": [{"at": "2026-11-10T16:13:00Z", "kind": "note", "detail": "c-90917b1a: planned from owner note 2026-11-10 07:35 and dispatched. Owner authorised real model calls from the labs within the cap."},
-        {"at": "2026-11-10T16:21:00Z", "kind": "test", "detail": "Coordinator: npm --prefix apps/web test 836/836 pass (823 before + 13 new in front-office-lab-live.test.ts); typecheck exit 0; lint exit 0. ventra-verify: lint/typecheck/unit/build/workspace-integration PASSED; course-integration and launcher-integration FAILED (pre-existing, frozen features, P0-7)."},
-        {"at": "2026-11-10T16:23:00Z", "kind": "review", "detail": "ventra-review APPROVE WITH NITS: no blockers/majors. Hardening nits (runLabTurnWith unbranded live Llm, fetch redirect, worst-case token estimate for CJK/emoji, per-process store, missing concurrency/500/no-secret tests) sent to A-23h."},
-        {"at": "2026-11-10T16:25:00Z", "kind": "note", "detail": "Secret-scan false positive on test fixture key literal; coordinator replaced with fixture-${crypto.randomUUID()}; lab-live tests 13/13 after change."},
-        {"at": "2026-11-10T16:26:00Z", "kind": "commit", "detail": "0b5bd67b (5 files). No real model call made; first real Live AI turn will be the owner's."}],
-      "blocker": null, "notes": "Owner note 2026-11-10 07:35. Server half of the note's A-23; UI half is A-23b. Cap store is per process until A-25.", "updatedAt": "2026-11-10T16:26:00Z"
+      "id": "A-23",
+      "title": "Setter Lab Live AI Test engine (server side): real Anthropic model through the same Setter agent, sandboxed side effects, per-turn tokens / latency / AUD cost, server-side daily lab cap FRONT_OFFICE_LAB_DAILY_CAP_AUD (default 5), never honours FRONT_OFFICE_SEND_LIVE",
+      "phase": "A",
+      "module": "setter",
+      "owner": "ventra-voice",
+      "state": "done",
+      "priority": 1,
+      "dependsOn": [
+        "A-3"
+      ],
+      "scope": [
+        "apps/web/lib/front-office/setter/lab.ts",
+        "apps/web/lib/front-office/setter/lab-live.ts",
+        "apps/web/lib/front-office/lab-usage.ts",
+        "apps/web/lib/front-office/llm.ts (additive usage field only)",
+        "apps/web/test/front-office-lab-live*.test.ts"
+      ],
+      "acceptance": [
+        "Demo mode unchanged and still scripted; existing setter-lab tests pass",
+        "Live mode uses anthropicLlm via anthropicConfigFromEnv; tests use a fake fetch, no network",
+        "Input/output tokens, latency ms and AUD estimate per turn in LabState",
+        "Cap enforced server-side before the call; over cap = clear refusal and no model call",
+        "Lab stays sandboxed regardless of FRONT_OFFICE_SEND_LIVE (test proves it)",
+        "Live entry point requires an authorised caller argument (no anonymous paid calls)"
+      ],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md (Test Playground, Modes)",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": "2026-11-10T16:13:00Z",
+      "finishedAt": "2026-11-10T16:26:00Z",
+      "lastRunId": "c-90917b1a",
+      "runIds": [
+        "c-90917b1a"
+      ],
+      "commits": [
+        "0b5bd67b"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-10T16:13:00Z",
+          "kind": "note",
+          "detail": "c-90917b1a: planned from owner note 2026-11-10 07:35 and dispatched. Owner authorised real model calls from the labs within the cap."
+        },
+        {
+          "at": "2026-11-10T16:21:00Z",
+          "kind": "test",
+          "detail": "Coordinator: npm --prefix apps/web test 836/836 pass (823 before + 13 new in front-office-lab-live.test.ts); typecheck exit 0; lint exit 0. ventra-verify: lint/typecheck/unit/build/workspace-integration PASSED; course-integration and launcher-integration FAILED (pre-existing, frozen features, P0-7)."
+        },
+        {
+          "at": "2026-11-10T16:23:00Z",
+          "kind": "review",
+          "detail": "ventra-review APPROVE WITH NITS: no blockers/majors. Hardening nits (runLabTurnWith unbranded live Llm, fetch redirect, worst-case token estimate for CJK/emoji, per-process store, missing concurrency/500/no-secret tests) sent to A-23h."
+        },
+        {
+          "at": "2026-11-10T16:25:00Z",
+          "kind": "note",
+          "detail": "Secret-scan false positive on test fixture key literal; coordinator replaced with fixture-${crypto.randomUUID()}; lab-live tests 13/13 after change."
+        },
+        {
+          "at": "2026-11-10T16:26:00Z",
+          "kind": "commit",
+          "detail": "0b5bd67b (5 files). No real model call made; first real Live AI turn will be the owner's."
+        }
+      ],
+      "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35. Server half of the note's A-23; UI half is A-23b. Cap store is per process until A-25.",
+      "updatedAt": "2026-11-10T16:26:00Z"
     },
     {
-      "id": "A-23h", "title": "Live lab hardening from A-23 review: brand metered Llm so runLabTurnWith refuses unmetered live calls, fetch redirect:'error', stricter worst-case token estimate, globalThis usage store, tests for concurrency / 500 reservation / no secrets in state",
-      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "done", "priority": 1, "dependsOn": ["A-23"],
-      "scope": ["apps/web/lib/front-office/setter/lab.ts", "apps/web/lib/front-office/setter/lab-live.ts", "apps/web/lib/front-office/lab-usage.ts", "apps/web/lib/front-office/llm.ts (additive)", "apps/web/test/front-office-lab-live*.test.ts"],
-      "acceptance": ["Exported signatures unchanged (A-23b binds to them)", "New tests pass; full suite, typecheck, lint pass"],
-      "plan": "A-23 review findings 1, 3, 4, 5, 9", "branch": "agent/develop", "worktree": null,
-      "startedAt": "2026-11-10T16:27:00Z", "finishedAt": "2026-11-10T16:36:00Z", "lastRunId": "c-90917b1a", "runIds": ["c-90917b1a"], "commits": ["af563b9c"],
-      "evidence": [{"at": "2026-11-10T16:27:00Z", "kind": "note", "detail": "c-90917b1a: dispatched to ventra-voice."},
-        {"at": "2026-11-10T16:35:00Z", "kind": "diff", "detail": "Coordinator read diff: lab.ts runLabTurnWith refuses unmetered 'live' (isMetered brand from lab-usage.ts); anthropicOnlyFetch refuses username/password and forces redirect:'error'; meteredLlm moved to lab-usage.ts, re-exported unchanged. 4 files +171/-42."},
-        {"at": "2026-11-10T16:35:00Z", "kind": "test", "detail": "Coordinator: lab-live + setter-lab tests 28/28 (lab-live 18, was 13); typecheck exit 0; lint exit 0. Specialist full suite 851/851 (includes A-23b in-progress tests)."},
-        {"at": "2026-11-10T16:36:00Z", "kind": "commit", "detail": "af563b9c"}],
-      "blocker": null, "notes": "", "updatedAt": "2026-11-10T16:27:00Z"
+      "id": "A-23h",
+      "title": "Live lab hardening from A-23 review: brand metered Llm so runLabTurnWith refuses unmetered live calls, fetch redirect:'error', stricter worst-case token estimate, globalThis usage store, tests for concurrency / 500 reservation / no secrets in state",
+      "phase": "A",
+      "module": "setter",
+      "owner": "ventra-voice",
+      "state": "done",
+      "priority": 1,
+      "dependsOn": [
+        "A-23"
+      ],
+      "scope": [
+        "apps/web/lib/front-office/setter/lab.ts",
+        "apps/web/lib/front-office/setter/lab-live.ts",
+        "apps/web/lib/front-office/lab-usage.ts",
+        "apps/web/lib/front-office/llm.ts (additive)",
+        "apps/web/test/front-office-lab-live*.test.ts"
+      ],
+      "acceptance": [
+        "Exported signatures unchanged (A-23b binds to them)",
+        "New tests pass; full suite, typecheck, lint pass"
+      ],
+      "plan": "A-23 review findings 1, 3, 4, 5, 9",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": "2026-11-10T16:27:00Z",
+      "finishedAt": "2026-11-10T16:36:00Z",
+      "lastRunId": "c-90917b1a",
+      "runIds": [
+        "c-90917b1a"
+      ],
+      "commits": [
+        "af563b9c"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-10T16:27:00Z",
+          "kind": "note",
+          "detail": "c-90917b1a: dispatched to ventra-voice."
+        },
+        {
+          "at": "2026-11-10T16:35:00Z",
+          "kind": "diff",
+          "detail": "Coordinator read diff: lab.ts runLabTurnWith refuses unmetered 'live' (isMetered brand from lab-usage.ts); anthropicOnlyFetch refuses username/password and forces redirect:'error'; meteredLlm moved to lab-usage.ts, re-exported unchanged. 4 files +171/-42."
+        },
+        {
+          "at": "2026-11-10T16:35:00Z",
+          "kind": "test",
+          "detail": "Coordinator: lab-live + setter-lab tests 28/28 (lab-live 18, was 13); typecheck exit 0; lint exit 0. Specialist full suite 851/851 (includes A-23b in-progress tests)."
+        },
+        {
+          "at": "2026-11-10T16:36:00Z",
+          "kind": "commit",
+          "detail": "af563b9c"
+        }
+      ],
+      "blocker": null,
+      "notes": "",
+      "updatedAt": "2026-11-10T16:27:00Z"
     },
     {
-      "id": "A-29", "title": "Meta 24-hour window guard for automated follow-ups: before any automated Instagram/Messenger send from the jobs runner or gate(), require inReplyWindow; outside it reroute to consented SMS/email or create an owner task; never HUMAN_AGENT from automation; third ladder gap 23h to 20h; boundary tests 23/24/25h",
-      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "done", "priority": 2, "dependsOn": [],
-      "scope": ["apps/web/lib/front-office/jobs.ts", "apps/web/lib/front-office/pending-actions.ts", "apps/web/test/front-office-meta-window*.test.ts"],
-      "acceptance": ["No automated Meta send outside 24h of last inbound (tested)", "Ladder step 3 at 20h", "Existing tests pass"],
-      "plan": "docs/agents/FRONT_OFFICE_RESEARCH.md section 8 risk 1, section 10 item 1", "branch": "agent/develop", "worktree": null,
-      "startedAt": "2026-11-10T16:57:00Z", "finishedAt": "2026-11-10T17:08:00Z", "lastRunId": "c-ef7fc367", "runIds": ["c-ef7fc367"], "commits": ["8deb3478"], "evidence": [{"at": "2026-11-10T16:27:00Z", "kind": "note", "detail": "c-90917b1a: planned from A-22. Today runner follow-ups go only by SMS/email, so this is a guard to ship with any Meta follow-up path, not a live bug."},
-        {"at": "2026-11-10T17:06:00Z", "kind": "test", "detail": "coordinator: updated test/front-office-setter.test.ts:108 ladder expectation 82_800_000 -> 72_000_000 (step 3 now 20h, per acceptance); npm --prefix apps/web test 890/890 pass 0 fail (11 new meta-window tests: 23h sends, 24h and 25h refused); specialist typecheck 0, lint 0"},
-        {"at": "2026-11-10T17:07:00Z", "kind": "review", "detail": "ventra-review PASS WITH NITS: 24h boundary refused (now - t < 24h), gate refuses Meta without window, reroute needs explicit consent and goes through checkJob, no HUMAN_AGENT, Meta runner path not wired in jobs/run route. Medium: window not re-checked at owner approval -> A-32."},
-        {"at": "2026-11-10T17:08:00Z", "kind": "commit", "detail": "8deb3478 on agent/develop"}], "blocker": null,
-      "notes": "Must land before A-11 enables Meta follow-ups. Out-of-window jobs become one owner task and the sequence stops (owner to confirm). SMS/email reroute never fires today: fo_contact_context returns no per-channel consent.", "updatedAt": "2026-11-10T17:08:00Z"
+      "id": "A-29",
+      "title": "Meta 24-hour window guard for automated follow-ups: before any automated Instagram/Messenger send from the jobs runner or gate(), require inReplyWindow; outside it reroute to consented SMS/email or create an owner task; never HUMAN_AGENT from automation; third ladder gap 23h to 20h; boundary tests 23/24/25h",
+      "phase": "A",
+      "module": "setter",
+      "owner": "ventra-voice",
+      "state": "done",
+      "priority": 2,
+      "dependsOn": [],
+      "scope": [
+        "apps/web/lib/front-office/jobs.ts",
+        "apps/web/lib/front-office/pending-actions.ts",
+        "apps/web/test/front-office-meta-window*.test.ts"
+      ],
+      "acceptance": [
+        "No automated Meta send outside 24h of last inbound (tested)",
+        "Ladder step 3 at 20h",
+        "Existing tests pass"
+      ],
+      "plan": "docs/agents/FRONT_OFFICE_RESEARCH.md section 8 risk 1, section 10 item 1",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": "2026-11-10T16:57:00Z",
+      "finishedAt": "2026-11-10T17:08:00Z",
+      "lastRunId": "c-ef7fc367",
+      "runIds": [
+        "c-ef7fc367"
+      ],
+      "commits": [
+        "8deb3478"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-10T16:27:00Z",
+          "kind": "note",
+          "detail": "c-90917b1a: planned from A-22. Today runner follow-ups go only by SMS/email, so this is a guard to ship with any Meta follow-up path, not a live bug."
+        },
+        {
+          "at": "2026-11-10T17:06:00Z",
+          "kind": "test",
+          "detail": "coordinator: updated test/front-office-setter.test.ts:108 ladder expectation 82_800_000 -> 72_000_000 (step 3 now 20h, per acceptance); npm --prefix apps/web test 890/890 pass 0 fail (11 new meta-window tests: 23h sends, 24h and 25h refused); specialist typecheck 0, lint 0"
+        },
+        {
+          "at": "2026-11-10T17:07:00Z",
+          "kind": "review",
+          "detail": "ventra-review PASS WITH NITS: 24h boundary refused (now - t < 24h), gate refuses Meta without window, reroute needs explicit consent and goes through checkJob, no HUMAN_AGENT, Meta runner path not wired in jobs/run route. Medium: window not re-checked at owner approval -> A-32."
+        },
+        {
+          "at": "2026-11-10T17:08:00Z",
+          "kind": "commit",
+          "detail": "8deb3478 on agent/develop"
+        }
+      ],
+      "blocker": null,
+      "notes": "Must land before A-11 enables Meta follow-ups. Out-of-window jobs become one owner task and the sequence stops (owner to confirm). SMS/email reroute never fires today: fo_contact_context returns no per-channel consent.",
+      "updatedAt": "2026-11-10T17:08:00Z"
     },
     {
-      "id": "A-23b", "title": "Setter Lab UI: Demo / Live AI Test / Connected (disabled with reason) mode switch, per-turn tokens, latency, AUD cost and remaining daily cap; Live only for a signed-in user",
-      "phase": "A", "module": "setter", "owner": "ventra-feature", "state": "done", "priority": 1, "dependsOn": ["A-23"],
-      "scope": ["apps/web/app/tools/setter-lab/**", "apps/web/test/setter-lab*.test.ts"],
-      "acceptance": ["Plain functional markup; may import glass components read-only", "Anonymous visitors get Demo only", "Mocked results never labelled live"],
-      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
-      "startedAt": "2026-11-10T16:27:00Z", "finishedAt": "2026-11-10T16:42:00Z", "lastRunId": "c-90917b1a", "runIds": ["c-90917b1a"], "commits": ["6f905221"], "evidence": [{"at": "2026-11-10T16:27:00Z", "kind": "note", "detail": "c-90917b1a: dispatched to ventra-feature; caller only from server-verified Supabase user."},
-        {"at": "2026-11-10T16:39:00Z", "kind": "test", "detail": "Coordinator: npm --prefix apps/web test 851/851 (10 new in setter-lab-live-ui.test.ts); next build succeeded (/tools/setter-lab dynamic); typecheck and lint exit 0 (run after A-23h with these files present)."},
-        {"at": "2026-11-10T16:40:00Z", "kind": "review", "detail": "ventra-review APPROVE WITH NITS: caller only via auth.getUser(token)+session_active (live-auth.ts:33-45), cookies() awaited, no 'use server' leaks, generic errors, LIVE badge only for model=live with usage, anonymous spend impossible. Nits: getLabUsage anonymous (figures only), no per-user rate limit (one user can use the whole daily cap), 'unknown' liveAi state never reverts label."},
-        {"at": "2026-11-10T16:41:00Z", "kind": "browser", "detail": "NOT DONE: no Playwright installed; local server fetch needs approval in this session. Page not opened in a browser; no real Live AI call made."},
-        {"at": "2026-11-10T16:42:00Z", "kind": "commit", "detail": "6f905221 (6 files)."}], "blocker": null,
-      "notes": "Owner note 2026-11-10 07:35.", "updatedAt": "2026-11-10T16:20:00Z"
+      "id": "A-23b",
+      "title": "Setter Lab UI: Demo / Live AI Test / Connected (disabled with reason) mode switch, per-turn tokens, latency, AUD cost and remaining daily cap; Live only for a signed-in user",
+      "phase": "A",
+      "module": "setter",
+      "owner": "ventra-feature",
+      "state": "done",
+      "priority": 1,
+      "dependsOn": [
+        "A-23"
+      ],
+      "scope": [
+        "apps/web/app/tools/setter-lab/**",
+        "apps/web/test/setter-lab*.test.ts"
+      ],
+      "acceptance": [
+        "Plain functional markup; may import glass components read-only",
+        "Anonymous visitors get Demo only",
+        "Mocked results never labelled live"
+      ],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": "2026-11-10T16:27:00Z",
+      "finishedAt": "2026-11-10T16:42:00Z",
+      "lastRunId": "c-90917b1a",
+      "runIds": [
+        "c-90917b1a"
+      ],
+      "commits": [
+        "6f905221"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-10T16:27:00Z",
+          "kind": "note",
+          "detail": "c-90917b1a: dispatched to ventra-feature; caller only from server-verified Supabase user."
+        },
+        {
+          "at": "2026-11-10T16:39:00Z",
+          "kind": "test",
+          "detail": "Coordinator: npm --prefix apps/web test 851/851 (10 new in setter-lab-live-ui.test.ts); next build succeeded (/tools/setter-lab dynamic); typecheck and lint exit 0 (run after A-23h with these files present)."
+        },
+        {
+          "at": "2026-11-10T16:40:00Z",
+          "kind": "review",
+          "detail": "ventra-review APPROVE WITH NITS: caller only via auth.getUser(token)+session_active (live-auth.ts:33-45), cookies() awaited, no 'use server' leaks, generic errors, LIVE badge only for model=live with usage, anonymous spend impossible. Nits: getLabUsage anonymous (figures only), no per-user rate limit (one user can use the whole daily cap), 'unknown' liveAi state never reverts label."
+        },
+        {
+          "at": "2026-11-10T16:41:00Z",
+          "kind": "browser",
+          "detail": "NOT DONE: no Playwright installed; local server fetch needs approval in this session. Page not opened in a browser; no real Live AI call made."
+        },
+        {
+          "at": "2026-11-10T16:42:00Z",
+          "kind": "commit",
+          "detail": "6f905221 (6 files)."
+        }
+      ],
+      "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35.",
+      "updatedAt": "2026-11-10T16:20:00Z"
     },
     {
-      "id": "A-24", "title": "Industry presets: Beauty (nails/lashes), Fitness (PT/coach), Trades (electrician/plumber/cleaner): services + prices, policies, qualification rules, booking types, example conversations; preset selector + knowledge editor data for the Setter Lab",
-      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["A-16"],
-      "scope": ["apps/web/lib/front-office/templates/**", "apps/web/test/front-office-presets*.test.ts"],
-      "acceptance": ["Three presets complete", "Prices labelled as example values the business edits; never presented as real"],
-      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [], "blocker": null,
-      "notes": "Owner note 2026-11-10 07:35.", "updatedAt": "2026-11-10T16:20:00Z"
+      "id": "A-24",
+      "title": "Industry presets: Beauty (nails/lashes), Fitness (PT/coach), Trades (electrician/plumber/cleaner): services + prices, policies, qualification rules, booking types, example conversations; preset selector + knowledge editor data for the Setter Lab",
+      "phase": "A",
+      "module": "setter",
+      "owner": "ventra-voice",
+      "state": "queued",
+      "priority": 2,
+      "dependsOn": [
+        "A-16"
+      ],
+      "scope": [
+        "apps/web/lib/front-office/templates/**",
+        "apps/web/test/front-office-presets*.test.ts"
+      ],
+      "acceptance": [
+        "Three presets complete",
+        "Prices labelled as example values the business edits; never presented as real"
+      ],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "lastRunId": null,
+      "runIds": [],
+      "commits": [],
+      "evidence": [],
+      "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35.",
+      "updatedAt": "2026-11-10T16:20:00Z"
     },
     {
-      "id": "A-25", "title": "Lab persistence: lab bookings, contacts and action log write to a dedicated sandbox workspace in local Supabase through the real booking/CRM services; reset + save/reload scenarios",
-      "phase": "A", "module": "shared", "owner": "ventra-backend", "state": "queued", "priority": 2, "dependsOn": ["A-9"],
-      "scope": ["supabase/migrations/*_front_office_lab.sql", "apps/web/lib/supabase/**", "apps/web/test/front-office-lab-db*.test.ts"],
-      "acceptance": ["A lab booking is verifiable in the CRM of the sandbox workspace", "Reset clears only the sandbox workspace; PGlite tests; migration local only"],
-      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [], "blocker": null,
-      "notes": "Owner note 2026-11-10 07:35.", "updatedAt": "2026-11-10T16:20:00Z"
+      "id": "A-25",
+      "title": "Lab persistence: lab bookings, contacts and action log write to a dedicated sandbox workspace in local Supabase through the real booking/CRM services; reset + save/reload scenarios",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-backend",
+      "state": "done",
+      "priority": 2,
+      "dependsOn": [
+        "A-9"
+      ],
+      "scope": [
+        "supabase/migrations/*_front_office_lab.sql",
+        "apps/web/lib/supabase/**",
+        "apps/web/test/front-office-lab-db*.test.ts"
+      ],
+      "acceptance": [
+        "A lab booking is verifiable in the CRM of the sandbox workspace",
+        "Reset clears only the sandbox workspace; PGlite tests; migration local only"
+      ],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": "2026-11-10T17:14:59.647Z",
+      "finishedAt": "2026-11-10T17:27:36.948Z",
+      "lastRunId": "c-df526914",
+      "runIds": [
+        "c-df526914"
+      ],
+      "commits": [
+        "1cbd748f"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-10T17:14:59.647Z",
+          "kind": "note",
+          "detail": "c-df526914: dispatched to ventra-backend"
+        },
+        {
+          "at": "2026-11-10T17:27:36.948Z",
+          "kind": "diff",
+          "detail": "c-df526914: new supabase/migrations/202611110001_front_office_lab.sql, apps/web/lib/supabase/lab-sandbox.ts, test/front-office-lab-db.test.ts (4 tests). Migration applied only in PGlite."
+        },
+        {
+          "at": "2026-11-10T17:27:36.948Z",
+          "kind": "review",
+          "detail": "c-df526914 ventra-review: PASS WITH FIXES, nothing can touch a business workspace; low: channel key not server-bound (any user key accepted, own sandbox only), owner_id FK no on delete, 50x2.5 MB scenario storage, guard allows other lab channel kinds, restore uses select * (versioned). Test gaps: business calls/handoffs/outbox/pending not seeded for reset; stranger load/delete/set_modes; direct-call denial of internal fns; anon on other RPCs. Queued as A-33."
+        },
+        {
+          "at": "2026-11-10T17:27:36.948Z",
+          "kind": "test",
+          "detail": "coordinator: npm --prefix apps/web test 901/901; ventra-verify build + workspace-integration PASSED"
+        },
+        {
+          "at": "2026-11-10T17:27:36.948Z",
+          "kind": "commit",
+          "detail": "1cbd748f on agent/develop"
+        }
+      ],
+      "blocker": null,
+      "notes": "Labs are NOT wired yet (A-34). Wiring needs a server-only lab key secret in env (owner/setup). GET /api/workspace will list the sandbox until filtered (A-35).",
+      "updatedAt": "2026-11-10T17:27:36.948Z"
     },
     {
-      "id": "A-26", "title": "Receptionist Lab browser voice, step 1 (no new account): browser speech-to-text + en-AU speech synthesis driving the existing Receptionist turn in Live AI Test mode; live transcript, tool actions, latency, post-call summary. Step 2 (provider swap) needs the owner's key",
-      "phase": "A", "module": "receptionist", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["A-23"],
-      "scope": ["apps/web/lib/front-office/receptionist/**", "apps/web/test/front-office-receptionist-lab*.test.ts"],
-      "acceptance": ["Same knowledge, tools and booking pipeline as phone calls", "Live AI inside the same lab cap as A-23"],
-      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [], "blocker": null,
-      "notes": "Owner note 2026-11-10 07:35. Page part (app/tools/receptionist-lab) is a ventra-feature follow-up.", "updatedAt": "2026-11-10T16:20:00Z"
+      "id": "A-26",
+      "title": "Receptionist Lab browser voice, step 1 (no new account): browser speech-to-text + en-AU speech synthesis driving the existing Receptionist turn in Live AI Test mode; live transcript, tool actions, latency, post-call summary. Step 2 (provider swap) needs the owner's key",
+      "phase": "A",
+      "module": "receptionist",
+      "owner": "ventra-voice",
+      "state": "queued",
+      "priority": 2,
+      "dependsOn": [
+        "A-23"
+      ],
+      "scope": [
+        "apps/web/lib/front-office/receptionist/**",
+        "apps/web/test/front-office-receptionist-lab*.test.ts"
+      ],
+      "acceptance": [
+        "Same knowledge, tools and booking pipeline as phone calls",
+        "Live AI inside the same lab cap as A-23"
+      ],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "lastRunId": null,
+      "runIds": [],
+      "commits": [],
+      "evidence": [],
+      "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35. Page part (app/tools/receptionist-lab) is a ventra-feature follow-up.",
+      "updatedAt": "2026-11-10T16:20:00Z"
     },
     {
-      "id": "A-27", "title": "/tools/front-office-lab overview: links both labs, current mode and usage, cross-channel check (contact qualified in the Setter Lab recognised in the Receptionist Lab after the A-20 identity check)",
-      "phase": "A", "module": "shared", "owner": "ventra-feature", "state": "queued", "priority": 3, "dependsOn": ["A-23b", "A-26", "A-20"],
-      "scope": ["apps/web/app/tools/front-office-lab/**", "apps/web/test/front-office-lab-page*.test.ts"],
-      "acceptance": ["DEMO/LIVE and connection-state indicators", "Cross-channel recognition only after identity check"],
-      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [], "blocker": null,
-      "notes": "Owner note 2026-11-10 07:35.", "updatedAt": "2026-11-10T16:20:00Z"
+      "id": "A-27",
+      "title": "/tools/front-office-lab overview: links both labs, current mode and usage, cross-channel check (contact qualified in the Setter Lab recognised in the Receptionist Lab after the A-20 identity check)",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-feature",
+      "state": "queued",
+      "priority": 3,
+      "dependsOn": [
+        "A-23b",
+        "A-26",
+        "A-20"
+      ],
+      "scope": [
+        "apps/web/app/tools/front-office-lab/**",
+        "apps/web/test/front-office-lab-page*.test.ts"
+      ],
+      "acceptance": [
+        "DEMO/LIVE and connection-state indicators",
+        "Cross-channel recognition only after identity check"
+      ],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "lastRunId": null,
+      "runIds": [],
+      "commits": [],
+      "evidence": [],
+      "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35.",
+      "updatedAt": "2026-11-10T16:20:00Z"
     },
     {
-      "id": "A-28", "title": "QA scenario suites: 12 Setter + 13 Receptionist scenarios from the brief plus prompt injection, unauthorised tool calls and cross-tenant access; each records inputs, outputs, tool calls, DB state, latency, cost, pass/fail; Demo mode in CI, Live AI on demand",
-      "phase": "A", "module": "shared", "owner": "ventra-qa", "state": "queued", "priority": 3, "dependsOn": ["A-23", "A-26"],
-      "scope": ["apps/web/test/front-office-scenarios*.test.ts (written by ventra-voice from the QA spec)"],
-      "acceptance": ["Scenario list matches the brief", "Runs in Demo mode in npm test"],
-      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": null, "runIds": [], "commits": [], "evidence": [], "blocker": null,
-      "notes": "Owner note 2026-11-10 07:35.", "updatedAt": "2026-11-10T16:20:00Z"
+      "id": "A-28",
+      "title": "QA scenario suites: 12 Setter + 13 Receptionist scenarios from the brief plus prompt injection, unauthorised tool calls and cross-tenant access; each records inputs, outputs, tool calls, DB state, latency, cost, pass/fail; Demo mode in CI, Live AI on demand",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-qa",
+      "state": "queued",
+      "priority": 3,
+      "dependsOn": [
+        "A-23",
+        "A-26"
+      ],
+      "scope": [
+        "apps/web/test/front-office-scenarios*.test.ts (written by ventra-voice from the QA spec)"
+      ],
+      "acceptance": [
+        "Scenario list matches the brief",
+        "Runs in Demo mode in npm test"
+      ],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "lastRunId": null,
+      "runIds": [],
+      "commits": [],
+      "evidence": [],
+      "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35.",
+      "updatedAt": "2026-11-10T16:20:00Z"
     },
     {
-      "id": "A-30", "title": "Knowledge base follow-ups: settings PUT keeps stored knowledge when the body omits it; knowledge shape in contracts.ts and API_CONTRACTS.md; Receptionist prompt says objections go through answer_faq (bump receptionist/voice@2 and its lab test line)",
-      "phase": "A", "module": "shared", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["A-16"],
-      "scope": ["apps/web/app/api/front-office/settings/route.ts", "apps/web/lib/front-office/contracts.ts", "apps/web/lib/front-office/receptionist/prompt.ts", "apps/web/test/front-office-receptionist-lab.test.ts", "apps/web/test/front-office-knowledge*.test.ts", "docs/agents/API_CONTRACTS.md"],
-      "acceptance": ["PUT without knowledge leaves the saved knowledge unchanged (tested)", "Contract documents the knowledge shape", "lint, typecheck, tests pass"],
-      "plan": "A-16 review finding 5 and specialist proposals", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": "c-ef7fc367", "runIds": ["c-ef7fc367"], "commits": [], "evidence": [{"at": "2026-11-10T16:56:00Z", "kind": "note", "detail": "c-ef7fc367: planned from A-16 review (PUT omitting knowledge overwrites it with empty lists)."}], "blocker": null,
-      "notes": "", "updatedAt": "2026-11-10T16:56:00Z"
+      "id": "A-30",
+      "title": "Knowledge base follow-ups: settings PUT keeps stored knowledge when the body omits it; knowledge shape in contracts.ts and API_CONTRACTS.md; Receptionist prompt says objections go through answer_faq (bump receptionist/voice@2 and its lab test line)",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-voice",
+      "state": "done",
+      "priority": 2,
+      "dependsOn": [
+        "A-16"
+      ],
+      "scope": [
+        "apps/web/app/api/front-office/settings/route.ts",
+        "apps/web/lib/front-office/contracts.ts",
+        "apps/web/lib/front-office/receptionist/prompt.ts",
+        "apps/web/test/front-office-receptionist-lab.test.ts",
+        "apps/web/test/front-office-knowledge*.test.ts",
+        "docs/agents/API_CONTRACTS.md"
+      ],
+      "acceptance": [
+        "PUT without knowledge leaves the saved knowledge unchanged (tested)",
+        "Contract documents the knowledge shape",
+        "lint, typecheck, tests pass"
+      ],
+      "plan": "A-16 review finding 5 and specialist proposals",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": "2026-11-10T17:14:59.647Z",
+      "finishedAt": "2026-11-10T17:27:36.948Z",
+      "lastRunId": "c-df526914",
+      "runIds": [
+        "c-ef7fc367",
+        "c-df526914"
+      ],
+      "commits": [
+        "94019acd"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-10T16:56:00Z",
+          "kind": "note",
+          "detail": "c-ef7fc367: planned from A-16 review (PUT omitting knowledge overwrites it with empty lists)."
+        },
+        {
+          "at": "2026-11-10T17:14:59.647Z",
+          "kind": "note",
+          "detail": "c-df526914: dispatched to ventra-voice"
+        },
+        {
+          "at": "2026-11-10T17:27:36.948Z",
+          "kind": "diff",
+          "detail": "c-df526914: settings/route.ts +12/-2 (POST without knowledge reads fo_get_agent_settings and keeps stored knowledge), API_CONTRACTS.md +25, new test/front-office-knowledge-settings-route.test.ts (7 tests). No PUT handler exists; POST is the save path."
+        },
+        {
+          "at": "2026-11-10T17:27:36.948Z",
+          "kind": "review",
+          "detail": "c-df526914 ventra-review: PASS WITH FIXES, low only: 40 KB body cap smaller than a max-size knowledge base (~90 KB); invalid stored knowledge fails unrelated saves; tests missing non-owner and read-RPC-failure on omit path. Queued as A-36."
+        },
+        {
+          "at": "2026-11-10T17:27:36.948Z",
+          "kind": "test",
+          "detail": "coordinator: npm --prefix apps/web test 901/901 pass (baseline 890; +7 A-30, +4 A-25)"
+        },
+        {
+          "at": "2026-11-10T17:27:36.948Z",
+          "kind": "test",
+          "detail": "coordinator: ventra-verify lint/typecheck/unit-tests/build/workspace-integration PASSED; course/launcher integration FAILED with 'paused' (frozen features, known P0-7, installed ventra-verify lacks FROZEN status)"
+        },
+        {
+          "at": "2026-11-10T17:27:36.948Z",
+          "kind": "commit",
+          "detail": "94019acd on agent/develop"
+        }
+      ],
+      "blocker": null,
+      "notes": "",
+      "updatedAt": "2026-11-10T17:27:36.948Z"
     },
     {
-      "id": "A-31", "title": "CRM follow-ups: stricter AU phone validation (valid area codes, 04 mobiles exactly 9 digits after +61, 13xxxx numbers supported or documented), email search tolerant of legacy mixed-case rows, PGlite test for created_at ties in keyset paging; Setter accepts local AU phone formats via normalisePhone",
-      "phase": "A", "module": "platform", "owner": "ventra-backend", "state": "queued", "priority": 3, "dependsOn": ["A-9"],
-      "scope": ["apps/web/lib/front-office/crm.ts", "apps/web/test/front-office-crm*.test.ts", "apps/web/lib/front-office/setter/agent.ts"],
-      "acceptance": ["0000000000 and 0112345678 refused; 13 12 34 handled per decision", "tie test passes on real migrations", "lint, typecheck, tests pass"],
-      "plan": "A-9 review findings 1, 2, 4, 6; A-9 open question 2", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": "c-ef7fc367", "runIds": ["c-ef7fc367"], "commits": [], "evidence": [{"at": "2026-11-10T16:56:00Z", "kind": "note", "detail": "c-ef7fc367: planned from A-9 review (all low severity)."}], "blocker": null,
-      "notes": "Contact merge (chat visitor later matching another record) needs an owner decision and a new migration number; not in this task.", "updatedAt": "2026-11-10T16:56:00Z"
+      "id": "A-31",
+      "title": "CRM follow-ups: stricter AU phone validation (valid area codes, 04 mobiles exactly 9 digits after +61, 13xxxx numbers supported or documented), email search tolerant of legacy mixed-case rows, PGlite test for created_at ties in keyset paging; Setter accepts local AU phone formats via normalisePhone",
+      "phase": "A",
+      "module": "platform",
+      "owner": "ventra-backend",
+      "state": "queued",
+      "priority": 3,
+      "dependsOn": [
+        "A-9"
+      ],
+      "scope": [
+        "apps/web/lib/front-office/crm.ts",
+        "apps/web/test/front-office-crm*.test.ts",
+        "apps/web/lib/front-office/setter/agent.ts"
+      ],
+      "acceptance": [
+        "0000000000 and 0112345678 refused; 13 12 34 handled per decision",
+        "tie test passes on real migrations",
+        "lint, typecheck, tests pass"
+      ],
+      "plan": "A-9 review findings 1, 2, 4, 6; A-9 open question 2",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "lastRunId": "c-ef7fc367",
+      "runIds": [
+        "c-ef7fc367"
+      ],
+      "commits": [],
+      "evidence": [
+        {
+          "at": "2026-11-10T16:56:00Z",
+          "kind": "note",
+          "detail": "c-ef7fc367: planned from A-9 review (all low severity)."
+        }
+      ],
+      "blocker": null,
+      "notes": "Contact merge (chat visitor later matching another record) needs an owner decision and a new migration number; not in this task.",
+      "updatedAt": "2026-11-10T16:56:00Z"
     },
     {
-      "id": "A-32", "title": "Meta window follow-ups (before A-11): re-check inReplyWindow when an owner approves a held Instagram/Messenger item; reject future lastInbound timestamps; per-channel consent (sms/email) returned by fo_contact_context so out-of-window reroute can work; wire Meta pair into the jobs/run runner",
-      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["A-29"],
-      "scope": ["apps/web/lib/front-office/pending-actions.ts", "apps/web/lib/front-office/meta.ts", "apps/web/lib/front-office/jobs.ts", "apps/web/app/api/front-office/jobs/run/**", "apps/web/test/front-office-meta-window*.test.ts"],
-      "acceptance": ["Approving a held Meta item after the window closes does not send (tested)", "Future lastInbound refused", "Consent column work split to ventra-backend if a migration is needed"],
-      "plan": "A-29 review findings 1-3", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": "c-ef7fc367", "runIds": ["c-ef7fc367"], "commits": [], "evidence": [{"at": "2026-11-10T17:08:00Z", "kind": "note", "detail": "c-ef7fc367: planned from A-29 review. Not live today: Meta runner path is not wired."}], "blocker": null,
-      "notes": "Blocks A-11.", "updatedAt": "2026-11-10T17:08:00Z"
+      "id": "A-32",
+      "title": "Meta window follow-ups (before A-11): re-check inReplyWindow when an owner approves a held Instagram/Messenger item; reject future lastInbound timestamps; per-channel consent (sms/email) returned by fo_contact_context so out-of-window reroute can work; wire Meta pair into the jobs/run runner",
+      "phase": "A",
+      "module": "setter",
+      "owner": "ventra-voice",
+      "state": "done",
+      "priority": 2,
+      "dependsOn": [
+        "A-29"
+      ],
+      "scope": [
+        "apps/web/lib/front-office/pending-actions.ts",
+        "apps/web/lib/front-office/meta.ts",
+        "apps/web/lib/front-office/jobs.ts",
+        "apps/web/app/api/front-office/jobs/run/**",
+        "apps/web/test/front-office-meta-window*.test.ts"
+      ],
+      "acceptance": [
+        "Approving a held Meta item after the window closes does not send (tested)",
+        "Future lastInbound refused",
+        "Consent column work split to ventra-backend if a migration is needed"
+      ],
+      "plan": "A-29 review findings 1-3",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": "2026-11-10T17:27:36.948Z",
+      "finishedAt": "2026-11-10T17:35:39.403Z",
+      "lastRunId": "c-df526914",
+      "runIds": [
+        "c-ef7fc367",
+        "c-df526914"
+      ],
+      "commits": [
+        "e7ee82fb"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-10T17:08:00Z",
+          "kind": "note",
+          "detail": "c-ef7fc367: planned from A-29 review. Not live today: Meta runner path is not wired."
+        },
+        {
+          "at": "2026-11-10T17:27:36.948Z",
+          "kind": "note",
+          "detail": "c-df526914: dispatched to ventra-voice"
+        },
+        {
+          "at": "2026-11-10T17:35:39.403Z",
+          "kind": "diff",
+          "detail": "c-df526914: meta.ts, pending-actions.ts, jobs.ts, jobs/run/route.ts; new test/front-office-meta-window-approval.test.ts (14 tests). approvePendingAction re-checks the window for Instagram/Messenger, fails closed (META_WINDOW_CLOSED_AT_APPROVAL); inReplyWindow refuses future lastInbound/NaN; runner gets Meta channels from FRONT_OFFICE_INSTAGRAM/MESSENGER_CHANNEL_ID/_KEY, sends only with FRONT_OFFICE_META_AUTOSEND=1 (off)."
+        },
+        {
+          "at": "2026-11-10T17:35:39.403Z",
+          "kind": "review",
+          "detail": "c-df526914 ventra-review: PASS WITH FIXES, no live-send path outside window or without autosend. Low: pending-actions/[id] route passes no replyWindow, so every Meta approval fails closed (safe dead end) -> A-37; onClosed failures swallowed silently."
+        },
+        {
+          "at": "2026-11-10T17:35:39.403Z",
+          "kind": "test",
+          "detail": "coordinator: ventra-verify lint/typecheck/unit-tests/build/workspace-integration PASSED (916 unit tests per specialist runs); course/launcher FAILED as paused (known P0-7)"
+        },
+        {
+          "at": "2026-11-10T17:35:39.403Z",
+          "kind": "commit",
+          "detail": "e7ee82fb on agent/develop"
+        }
+      ],
+      "blocker": null,
+      "notes": "Consent for SMS/email reroute needs fo_contact_context to return contact.consent {sms,email} from explicit consent records (new migration) -> A-38.",
+      "updatedAt": "2026-11-10T17:35:39.403Z"
+    },
+    {
+      "id": "A-33",
+      "commits": [
+        "0df39bdc"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-10T17:27:36.948Z",
+          "kind": "note",
+          "detail": "c-df526914: planned from A-25 review and dispatched to ventra-backend"
+        },
+        {
+          "at": "2026-11-10T17:35:39.403Z",
+          "kind": "diff",
+          "detail": "c-df526914: new supabase/migrations/202611110002_front_office_lab_hardening.sql; lab-sandbox.ts (comments, LAB_SCENARIO_MAX=20); test/front-office-lab-db.test.ts (seeded business calls/handoffs/outbox/pending survive reset; stranger load/delete/set_modes refused; internal fns denied; anon denied on 7 RPCs; cap 20; channel kinds; user deletion). PGlite only."
+        },
+        {
+          "at": "2026-11-10T17:35:39.403Z",
+          "kind": "review",
+          "detail": "c-df526914 ventra-review: PASS WITH FIXES. Deletion triggers only touch kind=lab; SECURITY DEFINER sound. Low: tables referencing workspaces without cascade (business_profiles, draft_imports, launcher_drafts, courses, orders) could block deleting a lab workspace if lab owners can write them; deletion test should assert all workspace_id tables empty -> folded into A-35."
+        },
+        {
+          "at": "2026-11-10T17:35:39.403Z",
+          "kind": "test",
+          "detail": "coordinator: ventra-verify PASSED except course/launcher paused (known P0-7)"
+        },
+        {
+          "at": "2026-11-10T17:35:39.403Z",
+          "kind": "commit",
+          "detail": "0df39bdc on agent/develop"
+        }
+      ],
+      "runIds": [
+        "c-df526914"
+      ],
+      "dependsOn": [
+        "A-25"
+      ],
+      "title": "Lab sandbox hardening from the A-25 review: tighten lab channel guard to sms/voice, owner_id on delete cascade, lower scenario cap to 20, honest comments on channel key; tests for business calls/handoffs/outbox/pending surviving reset, stranger load/delete/set_modes refused, internal fo_lab_* functions not callable by authenticated, anon refused on all RPCs",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-backend",
+      "state": "done",
+      "priority": 2,
+      "scope": [
+        "supabase/migrations/202611110002_front_office_lab_hardening.sql",
+        "apps/web/lib/supabase/lab-sandbox.ts",
+        "apps/web/test/front-office-lab-db*.test.ts"
+      ],
+      "acceptance": [
+        "Each review finding fixed or documented",
+        "New negative tests pass",
+        "lint, typecheck, tests pass"
+      ],
+      "plan": "Owner note 2026-11-10 07:35 item 3 / A-25 review",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": "2026-11-10T17:27:36.948Z",
+      "finishedAt": "2026-11-10T17:35:39.403Z",
+      "blocker": null,
+      "notes": "",
+      "lastRunId": "c-df526914",
+      "updatedAt": "2026-11-10T17:35:39.403Z"
+    },
+    {
+      "id": "A-34",
+      "commits": [],
+      "evidence": [],
+      "runIds": [
+        "c-df526914"
+      ],
+      "dependsOn": [
+        "A-25",
+        "A-33"
+      ],
+      "title": "Wire Setter Lab and Receptionist Lab to the lab sandbox (ensureLabSandbox, lab channels, real rpc instead of in-memory store, reset and save/load scenario buttons, DEMO/LIVE + persistence indicator); falls back to in-memory with a visible reason when the lab key secret is not set",
+      "phase": "A",
+      "module": "setter",
+      "owner": "ventra-voice",
+      "state": "queued",
+      "priority": 2,
+      "scope": [
+        "apps/web/lib/front-office/**",
+        "apps/web/app/api/front-office/**",
+        "apps/web/app/tools/setter-lab/**",
+        "apps/web/app/tools/receptionist-lab/**",
+        "apps/web/test/front-office-*"
+      ],
+      "acceptance": [
+        "A Setter Lab booking is visible via GET /api/front-office/contacts for the sandbox workspace (local Supabase)",
+        "Reset and save/load work from the lab",
+        "Lab types moved into contracts.ts and documented in API_CONTRACTS.md",
+        "Sandbox contacts use test email domains; a real-looking email from the model is handled, not a failed turn"
+      ],
+      "plan": "Owner note 2026-11-10 07:35 item 3, milestone 1",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "blocker": null,
+      "notes": "Needs a server-only lab key secret (32+ chars) in apps/web/.env.local: owner or ventra-setup adds it; coordinator never edits .env*.",
+      "lastRunId": "c-df526914",
+      "updatedAt": "2026-11-10T17:27:36.948Z"
+    },
+    {
+      "id": "A-35",
+      "commits": [],
+      "evidence": [
+        {
+          "at": "2026-11-10T17:35:39.403Z",
+          "kind": "note",
+          "detail": "c-df526914: widened from A-33 review"
+        }
+      ],
+      "runIds": [
+        "c-df526914"
+      ],
+      "dependsOn": [
+        "A-25"
+      ],
+      "title": "Lab sandbox hygiene: GET /api/workspace (and workspace pickers) list only kind='business'; non-front-office writers (business_profiles, draft_imports, launcher_drafts, courses, orders) refuse lab workspaces or cascade; deletion test asserts every workspace_id table empty",
+      "phase": "A",
+      "module": "platform",
+      "owner": "ventra-backend",
+      "state": "queued",
+      "priority": 3,
+      "scope": [
+        "apps/web/app/api/workspace/**",
+        "supabase/migrations/202611110003_*.sql",
+        "apps/web/test/workspace-*.test.ts",
+        "apps/web/test/front-office-lab-db*.test.ts"
+      ],
+      "acceptance": [
+        "Sandbox not listed (test)",
+        "Existing workspace tests still pass"
+      ],
+      "plan": "A-25 open issue",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "blocker": null,
+      "notes": "",
+      "lastRunId": "c-df526914",
+      "updatedAt": "2026-11-10T17:35:39.403Z"
+    },
+    {
+      "id": "A-36",
+      "commits": [],
+      "evidence": [],
+      "runIds": [
+        "c-df526914"
+      ],
+      "dependsOn": [
+        "A-30"
+      ],
+      "title": "Settings save follow-ups from the A-30 review: body cap vs max knowledge size (raise the cap for this route or document it with a clear 'too large' error), tests for non-owner and read failure on the omit-knowledge path",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-voice",
+      "state": "queued",
+      "priority": 3,
+      "scope": [
+        "apps/web/app/api/front-office/settings/route.ts",
+        "apps/web/test/front-office-knowledge-settings-route.test.ts",
+        "docs/agents/API_CONTRACTS.md"
+      ],
+      "acceptance": [
+        "Oversized body gives a specific message",
+        "Two new tests pass",
+        "lint, typecheck, tests pass"
+      ],
+      "plan": "A-30 review",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "blocker": null,
+      "notes": "",
+      "lastRunId": "c-df526914",
+      "updatedAt": "2026-11-10T17:27:36.948Z"
+    },
+    {
+      "id": "A-37",
+      "commits": [],
+      "evidence": [],
+      "runIds": [
+        "c-df526914"
+      ],
+      "dependsOn": [
+        "A-32"
+      ],
+      "title": "Meta approvals in the approval route: pass socialWindowCheck(rpc, auth) to approvePendingAction in app/api/front-office/pending-actions/[id]/route.ts, let cannotPerform()/approvalExecutor() in pending-actions/shared.ts find Meta channels, record onClosed failures as a non-secret note; document new env pairs and META_WINDOW_CLOSED_AT_APPROVAL in API_CONTRACTS.md",
+      "phase": "A",
+      "module": "setter",
+      "owner": "ventra-voice",
+      "state": "queued",
+      "priority": 2,
+      "scope": [
+        "apps/web/app/api/front-office/pending-actions/**",
+        "apps/web/lib/front-office/pending-actions.ts",
+        "apps/web/test/front-office-meta-window*.test.ts",
+        "docs/agents/API_CONTRACTS.md"
+      ],
+      "acceptance": [
+        "In-window Meta approval queues the send; out-of-window creates one owner task (tested)",
+        "Runner stays dry-run with autosend off even when Meta is configured (tested)",
+        "lint, typecheck, tests pass"
+      ],
+      "plan": "A-32 review; blocks A-11",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "blocker": null,
+      "notes": "",
+      "lastRunId": "c-df526914",
+      "updatedAt": "2026-11-10T17:35:39.403Z"
+    },
+    {
+      "id": "A-38",
+      "commits": [],
+      "evidence": [],
+      "runIds": [
+        "c-df526914"
+      ],
+      "dependsOn": [
+        "A-32"
+      ],
+      "title": "Per-channel consent records (sms/email): table or columns with when/where given and withdrawal; fo_contact_context returns contact.consent {sms,email} (false without a record), so out-of-window Meta reroute can work",
+      "phase": "A",
+      "module": "shared",
+      "owner": "ventra-backend",
+      "state": "queued",
+      "priority": 3,
+      "scope": [
+        "supabase/migrations/202611110004_front_office_consent.sql",
+        "apps/web/test/front-office-consent*.test.ts"
+      ],
+      "acceptance": [
+        "Consent given/withdrawn recorded with source and time",
+        "fo_contact_context returns consent (PGlite test)",
+        "Local only"
+      ],
+      "plan": "A-32 report",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "blocker": null,
+      "notes": "Migration numbers 0003 (A-35) and 0004 (A-38) reserved to avoid clashes.",
+      "lastRunId": "c-df526914",
+      "updatedAt": "2026-11-10T17:35:39.403Z"
+    },
+    {
+      "id": "P0-10",
+      "commits": [],
+      "evidence": [
+        {
+          "at": "2026-11-10T17:35:39.403Z",
+          "kind": "note",
+          "detail": "c-df526914: ventra-backup verify exit 1: cat ventra-20261111-010224-8deb347.head: No such file. Newest bundles 00:29/01:02 lack .head and 600 mode, i.e. the script died at the files tar (line 19-21)."
+        }
+      ],
+      "runIds": [
+        "c-df526914"
+      ],
+      "dependsOn": [],
+      "title": "ventra-backup create fails silently: git ls-files -co lists tracked files that are deleted in the working tree (18 'D' entries now), tar fails on them, set -o pipefail aborts before .head/chmod; ventra-backup verify then fails (no .head). Fix: filter deleted paths (e.g. git ls-files -co --exclude-standard with a -d exclusion, or tar --ignore-failed-read) and write .head even on archive warnings",
+      "phase": 0,
+      "module": "platform",
+      "owner": "ventra-devops",
+      "state": "blocked",
+      "priority": 2,
+      "scope": [
+        "scripts/agents/ventra-backup"
+      ],
+      "acceptance": [
+        "ventra-backup create exit 0 with foreign deletions present",
+        "ventra-backup verify exit 0"
+      ],
+      "plan": "Build Plan phase 0 (safety)",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "blocker": {
+        "reason": "scripts/agents/ventra-backup carries foreign uncommitted edits and the installed copy lives in ~/.local/bin (coordinator hard limit). Owner: apply the fix (or let a session edit it), reinstall, then the coordinator re-runs create + verify. Newest complete backup is still 2026-11-09 21:55.",
+        "needsApproval": true,
+        "approvalId": null,
+        "since": "2026-11-10T17:50:00Z"
+      },
+      "notes": "",
+      "lastRunId": "c-df526914",
+      "updatedAt": "2026-11-10T17:35:39.403Z"
     }
   ]
 }
