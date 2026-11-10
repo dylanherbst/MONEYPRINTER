@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-10T18:17:00Z",
+  "updatedAt": "2026-11-10T18:25:46.857Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-4a47e138",
-    "startedAt": "2026-11-10T17:45:09Z",
-    "endedAt": "2026-11-10T18:18:00Z",
-    "summary": "c-4a47e138: A-37 (Meta approvals in approval route), A-35 (lab sandbox hygiene, local migration 0003) and A-36 (settings 256 KB cap + tests) reviewed, verified (934/934) and committed; A-39 review follow-ups queued; W-1 still blocked on localhost permission, no W- task dispatched."
+    "id": "c-4d146e6b",
+    "startedAt": "2026-11-10T18:15:09Z",
+    "endedAt": "2026-11-10T18:25:46.857Z",
+    "summary": "2 dispatched (A-26, A-39), 2 verified and committed (dd2efdfc, 8737522c), 1 review round-trip on A-26. New: A-40, A-41."
   },
   "tasks": [
     {
@@ -2691,7 +2691,7 @@
       "phase": "A",
       "module": "receptionist",
       "owner": "ventra-voice",
-      "state": "queued",
+      "state": "done",
       "priority": 2,
       "dependsOn": [
         "A-23"
@@ -2707,6 +2707,76 @@
       "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md",
       "branch": "agent/develop",
       "worktree": null,
+      "startedAt": "2026-11-10T18:15:37.314Z",
+      "finishedAt": "2026-11-10T18:25:46.857Z",
+      "lastRunId": "c-4d146e6b",
+      "runIds": [
+        "c-4d146e6b"
+      ],
+      "commits": [
+        "dd2efdfc"
+      ],
+      "evidence": [
+        {
+          "at": "2026-11-10T18:25:46.857Z",
+          "kind": "diff",
+          "detail": "new receptionist/lab-live.ts, new test front-office-receptionist-lab-live.test.ts (17 tests), simulate.ts additive (+14/-9)"
+        },
+        {
+          "at": "2026-11-10T18:25:46.857Z",
+          "kind": "test",
+          "detail": "npm --prefix apps/web test: 950/950 first pass, 952/952 after review fixes (was 935)"
+        },
+        {
+          "at": "2026-11-10T18:25:46.857Z",
+          "kind": "typecheck",
+          "detail": "tsc --noEmit clean"
+        },
+        {
+          "at": "2026-11-10T18:25:46.857Z",
+          "kind": "lint",
+          "detail": "eslint --max-warnings 0 clean"
+        },
+        {
+          "at": "2026-11-10T18:25:46.857Z",
+          "kind": "review",
+          "detail": "ventra-review: CHANGES NEEDED (medium: forged conversation bypassed the turn limit and could drain the cap; low: no element shape checks) -> fixed -> PASS"
+        },
+        {
+          "at": "2026-11-10T18:25:46.857Z",
+          "kind": "commit",
+          "detail": "dd2efdfc"
+        }
+      ],
+      "blocker": null,
+      "notes": "Owner note 2026-11-10 07:35. Page part (app/tools/receptionist-lab) is a ventra-feature follow-up. Server engine done c-4d146e6b. Page + server action = A-41. Operating modes not enforced on the phone booking path (tools labelled automatic, not enforced) - covered by A-7 (waits on A-14 owner decision). Real Live AI needs ANTHROPIC_API_KEY + FRONT_OFFICE_MODEL on the server.",
+      "updatedAt": "2026-11-10T18:25:46.857Z"
+    },
+    {
+      "id": "A-41",
+      "title": "Receptionist Lab page voice: /tools/receptionist-lab Live AI Test with browser speech-to-text + en-AU speechSynthesis, server action building LabCaller from the verified Supabase session, business settings passed, live transcript/tool actions/latency/AUD, shared budget via labUsageToday(), end-call summary; endpoint documented in API_CONTRACTS.md",
+      "phase": 1,
+      "module": "receptionist",
+      "owner": "ventra-feature",
+      "state": "queued",
+      "priority": 2,
+      "dependsOn": [
+        "A-26"
+      ],
+      "scope": [
+        "apps/web/app/tools/receptionist-lab/**",
+        "apps/web/test/front-office-receptionist-lab-page*.test.ts",
+        "docs/agents/API_CONTRACTS.md"
+      ],
+      "acceptance": [
+        "Uses lib/front-office/receptionist/lab-live.ts only (no new pipeline)",
+        "Anonymous visitor cannot trigger a paid call",
+        "DEMO/LIVE and connection-state indicators shown",
+        "Works with keyboard input when speech APIs are unavailable"
+      ],
+      "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md; owner note 2026-11-10 07:35 item 5",
+      "branch": "agent/develop",
+      "worktree": null,
       "startedAt": null,
       "finishedAt": null,
       "lastRunId": null,
@@ -2714,8 +2784,8 @@
       "commits": [],
       "evidence": [],
       "blocker": null,
-      "notes": "Owner note 2026-11-10 07:35. Page part (app/tools/receptionist-lab) is a ventra-feature follow-up.",
-      "updatedAt": "2026-11-10T16:20:00Z"
+      "notes": "Created c-4d146e6b from A-26 hand-off.",
+      "updatedAt": "2026-11-10T18:25:46.857Z"
     },
     {
       "id": "A-27",
@@ -3268,16 +3338,39 @@
     },
     {
       "id": "A-39",
-      "commits": [],
+      "commits": [
+        "8737522c"
+      ],
       "evidence": [
         {
           "at": "2026-11-10T18:00:00Z",
           "kind": "note",
           "detail": "c-4a47e138: low findings from the A-35 and A-37 reviews"
+        },
+        {
+          "at": "2026-11-10T18:18:44.097Z",
+          "kind": "diff",
+          "detail": "2 files +39/-3: create or replace function, 6x drop trigger if exists; test readdir anchored on import.meta.url; new double re-apply test"
+        },
+        {
+          "at": "2026-11-10T18:18:44.097Z",
+          "kind": "test",
+          "detail": "node --test apps/web/test/front-office-lab-db.test.ts from repo root: 7/7 pass exit 0 (was 6 tests)"
+        },
+        {
+          "at": "2026-11-10T18:18:44.097Z",
+          "kind": "review",
+          "detail": "coordinator read the full migration diff: behaviour-identical, idempotent forms only"
+        },
+        {
+          "at": "2026-11-10T18:18:44.097Z",
+          "kind": "commit",
+          "detail": "8737522c"
         }
       ],
       "runIds": [
-        "c-4a47e138"
+        "c-4a47e138",
+        "c-4d146e6b"
       ],
       "dependsOn": [
         "A-35",
@@ -3287,7 +3380,7 @@
       "phase": "A",
       "module": "platform",
       "owner": "ventra-backend",
-      "state": "queued",
+      "state": "done",
       "priority": 4,
       "scope": [
         "supabase/migrations/202611110003_lab_workspace_hygiene.sql",
@@ -3301,12 +3394,44 @@
       "plan": "A-35 / A-37 reviews",
       "branch": "agent/develop",
       "worktree": null,
+      "startedAt": "2026-11-10T18:15:37.314Z",
+      "finishedAt": "2026-11-10T18:18:44.097Z",
+      "blocker": null,
+      "notes": "Migration 202611110003 is uncommitted to any remote; editing it is safe while it is local only. Meta-window/shared.ts part split to A-40 (ventra-voice).",
+      "lastRunId": "c-4d146e6b",
+      "updatedAt": "2026-11-10T18:18:44.097Z"
+    },
+    {
+      "id": "A-40",
+      "title": "A-39 split: add opted-out-contact and sms/email/web approval regression cases to front-office-meta-window-route.test.ts; merge the duplicate doc comment in pending-actions/shared.ts",
+      "phase": 1,
+      "module": "setter",
+      "owner": "ventra-voice",
+      "state": "queued",
+      "priority": 4,
+      "dependsOn": [
+        "A-39"
+      ],
+      "scope": [
+        "apps/web/test/front-office-meta-window-route.test.ts",
+        "apps/web/app/api/front-office/pending-actions/shared.ts"
+      ],
+      "acceptance": [
+        "New regression cases pass",
+        "No behaviour change in shared.ts (comment only)"
+      ],
+      "plan": "A-37 review",
+      "branch": "agent/develop",
+      "worktree": null,
       "startedAt": null,
       "finishedAt": null,
+      "lastRunId": null,
+      "runIds": [],
+      "commits": [],
+      "evidence": [],
       "blocker": null,
-      "notes": "Migration 202611110003 is uncommitted to any remote; editing it is safe while it is local only.",
-      "lastRunId": "c-4a47e138",
-      "updatedAt": "2026-11-10T18:00:00Z"
+      "notes": "Split from A-39 in c-4d146e6b.",
+      "updatedAt": "2026-11-10T18:18:44.097Z"
     },
     {
       "id": "A-38",
