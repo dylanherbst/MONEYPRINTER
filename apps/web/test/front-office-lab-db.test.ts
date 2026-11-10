@@ -4,6 +4,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import './helpers/route-harness.ts';
 import { blankProfile } from '../lib/onboarding.ts';
@@ -17,7 +19,10 @@ const { bookingEventId } = await import('../lib/front-office/booking.ts');
 const SECRET = 's'.repeat(48), BIZ_KEY = 'b'.repeat(40);
 const BIZ_SMS = '+61800000030', SAM = '+61412345678', JO = '+61498765432';
 // Every migration, in order (as `supabase db reset` applies them locally), so every table with a workspace_id exists.
-const migrations = (await readdir('../../supabase/migrations')).filter(f => f.endsWith('.sql')).sort();
+// Anchored on this file, not the working directory, so the test runs from the repo root and from apps/web alike.
+const MIGRATIONS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../supabase/migrations');
+const migrations = (await readdir(MIGRATIONS_DIR)).filter(f => f.endsWith('.sql')).sort();
+const HYGIENE_MIGRATION = '202611110003_lab_workspace_hygiene.sql';
 /** Tables the A-35 deletion checks must cover at least (the full list is read from the database itself). */
 const EXPECTED_WORKSPACE_TABLES = ['memberships', 'business_profiles', 'offers', 'draft_imports', 'launcher_drafts', 'course_drafts', 'orders',
   'fo_lab_sandboxes', 'fo_lab_scenarios', 'fo_channels', 'fo_connections', 'fo_contacts', 'fo_messages', 'fo_events', 'fo_appointments', 'fo_jobs',
@@ -33,7 +38,7 @@ async function setup() {
     create function auth.uid() returns uuid language sql stable as $$ select (auth.jwt()->>'sub')::uuid $$;
     grant usage on schema public,auth to authenticated,anon,service_role;
     grant execute on function auth.uid(),auth.jwt() to authenticated,anon,service_role;`);
-  for (const f of migrations) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
+  for (const f of migrations) await db.exec(await readFile(path.join(MIGRATIONS_DIR, f), 'utf8'));
   const owner = '11111111-1111-4111-8111-111111111111', stranger = '33333333-3333-4333-8333-333333333333';
   const so = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', sx = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
   await db.query('insert into auth.users values ($1),($2)', [owner, stranger]);
@@ -471,6 +476,29 @@ test('hygiene (A-35): non-front-office tables refuse lab workspaces; deleting a 
   assert.deepEqual(await leftovers(env, biz), bizBefore, 'the business keeps every row');
   // A business workspace that still holds a profile, drafts or orders stays undeletable, as before.
   await assert.rejects(db.query('delete from public.workspaces where id = $1', [biz]), /foreign key/);
+});
+
+test('hygiene migration (A-39) re-applies without error and keeps exactly one guard per table, still enforced', async () => {
+  const env = await setup();
+  const { db, as, one, rows, rpc, owner, so, biz } = env;
+  assert.ok(migrations.includes(HYGIENE_MIGRATION));
+  const sql = await readFile(path.join(MIGRATIONS_DIR, HYGIENE_MIGRATION), 'utf8');
+  await db.exec('reset role');
+  await db.exec(sql); // second application (setup already applied every migration once)
+  await db.exec(sql); // and a third, for good measure
+  const guarded = ['business_profiles', 'course_drafts', 'draft_imports', 'launcher_drafts', 'offers', 'orders'];
+  assert.deepEqual(await rows<string>(`select c.relname::text as r from pg_trigger t join pg_class c on c.oid = t.tgrelid
+    join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'public' and t.tgname = 'lab_workspace_write_guard' order by 1`), guarded, 'one trigger per table, no duplicates');
+  // Behaviour unchanged after re-applying.
+  await as(owner, so);
+  const sb = await lab.ensureLabSandbox(rpc, lab.labChannelKey(SECRET, owner));
+  await db.exec('reset role');
+  await assert.rejects(db.query("insert into public.launcher_drafts(workspace_id, kind, data) values ($1,'business-plan','{}')", [sb.workspaceId]), LAB_ONLY);
+  await db.query("insert into public.launcher_drafts(workspace_id, kind, data) values ($1,'business-plan','{}')", [biz]);
+  await db.exec('set role service_role');
+  assert.equal(await one<string>("select public.record_test_order($1,'evt_lab_r','cs_lab_r',100,'AUD','paid',null) as r", [sb.workspaceId]), 'rejected');
+  assert.equal(await one<string>("select public.record_test_order($1,'evt_biz_r','cs_biz_r',100,'AUD','paid',null) as r", [biz]), 'recorded');
+  await db.exec('reset role');
 });
 
 test('rpcFromClient passes data through and only shows the lab messages, never raw database errors', async () => {

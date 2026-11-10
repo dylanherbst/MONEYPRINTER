@@ -18,19 +18,27 @@
 --   orders             (record_test_order, server only)   refuse; record_test_order audits it as 'rejected' instead of
 --                                                         raising, like any other unacceptable webhook event.
 -- The guard runs for every role, including the database owner, like the other lab guards.
+-- Re-apply safe (A-39): create or replace for functions, drop trigger if exists before each create trigger; revoke and
+-- grant are idempotent.
 
-create function public.lab_workspace_write_guard() returns trigger language plpgsql security definer set search_path='' as $$
+create or replace function public.lab_workspace_write_guard() returns trigger language plpgsql security definer set search_path='' as $$
 begin
   if public.fo_is_lab(new.workspace_id) then raise exception 'A lab sandbox only holds front office lab data.'; end if;
   return new;
 end $$;
 revoke all on function public.lab_workspace_write_guard() from public, anon, authenticated;
 
+drop trigger if exists lab_workspace_write_guard on public.business_profiles;
 create trigger lab_workspace_write_guard before insert or update on public.business_profiles for each row execute function public.lab_workspace_write_guard();
+drop trigger if exists lab_workspace_write_guard on public.offers;
 create trigger lab_workspace_write_guard before insert or update on public.offers for each row execute function public.lab_workspace_write_guard();
+drop trigger if exists lab_workspace_write_guard on public.draft_imports;
 create trigger lab_workspace_write_guard before insert or update on public.draft_imports for each row execute function public.lab_workspace_write_guard();
+drop trigger if exists lab_workspace_write_guard on public.launcher_drafts;
 create trigger lab_workspace_write_guard before insert or update on public.launcher_drafts for each row execute function public.lab_workspace_write_guard();
+drop trigger if exists lab_workspace_write_guard on public.course_drafts;
 create trigger lab_workspace_write_guard before insert or update on public.course_drafts for each row execute function public.lab_workspace_write_guard();
+drop trigger if exists lab_workspace_write_guard on public.orders;
 create trigger lab_workspace_write_guard before insert or update on public.orders for each row execute function public.lab_workspace_write_guard();
 
 -- Same body as 202611030011_orders.sql, plus one rejection reason: a lab workspace never records an order.
