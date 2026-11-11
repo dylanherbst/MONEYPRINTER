@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createRateLimiter } from '../../../../lib/rate-limit';
 import { apiReply, isResponse, openWorkspace, preflight, privateHeaders, requireMembership } from '../../../../lib/workspace-route';
-import { CONTACT_COLUMNS, collapseDuplicates, contactFromRow, contactsCursorFilter, nameSearchPattern, nextContactsCursor, parseContactsQuery } from '../../../../lib/front-office/crm';
+import { CONTACT_COLUMNS, collapseDuplicates, contactFromRow, contactsCursorFilter, emailSearchPattern, nameSearchPattern, nextContactsCursor, parseContactsQuery } from '../../../../lib/front-office/crm';
 import type { ContactRow, ContactsQuery } from '../../../../lib/front-office/crm';
 import type { Contact } from '../../../../lib/front-office/contracts';
 export const dynamic = 'force-dynamic';
@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
   let query = ws.db.from('fo_contacts').select(CONTACT_COLUMNS).eq('workspace_id', ws.workspace);
   if (q.state) query = query.eq('state', q.state);
   if (q.search?.column === 'name') query = query.ilike('name', nameSearchPattern(q.search.value));
+  else if (q.search?.column === 'email') query = query.ilike('email', emailSearchPattern(q.search.value));
   else if (q.search) query = query.eq(q.search.column, q.search.value);
   if (q.before) query = query.or(contactsCursorFilter(q.before));
   const res = await query.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(q.limit + 1);
