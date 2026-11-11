@@ -294,6 +294,72 @@ export async function dbSend(id: string, message: string) {
   });
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Receptionist (A-51). H-RTURN: one runReceptionistTurn against the simulated store, with any calendar (fault
+// injection) and operating mode; as quoteCall in front-office-receptionist-quote.test.ts. H-LABCALL: a multi-turn lab
+// call through runReceptionistLabTurnWith with a scripted model per caller line. No network, nothing sent.
+
+const rsim = await import('../../lib/front-office/receptionist/simulate.ts');
+const rlab = await import('../../lib/front-office/receptionist/lab-live.ts');
+const { runReceptionistTurn } = await import('../../lib/front-office/receptionist/agent.ts');
+type ScriptStep = import('../../lib/front-office/receptionist/simulate.ts').ScriptStep;
+type SimSeed = import('../../lib/front-office/receptionist/simulate.ts').SimSeed;
+type SimToolCall = import('../../lib/front-office/receptionist/simulate.ts').SimToolCall;
+type CallerTurn = import('../../lib/front-office/receptionist/agent.ts').CallerTurn;
+type AgentSettings = import('../../lib/front-office/settings.ts').AgentSettings;
+type CalendarProvider = import('../../lib/front-office/calendar/google.ts').CalendarProvider;
+type ReceptionistLabState = import('../../lib/front-office/receptionist/lab-live.ts').ReceptionistLabState;
+
+export const R_CALLER = '+61412000222';
+export const R_CALL_ID = 'call_scenario0001';
+/** The demo gym's required qualifying answers (same ids as the simulate.ts fixtures). */
+export const R_QUALIFIED = { goal: 'Get fitter', experience: 'New to training, no injuries', preferred_times: 'Weekday mornings', start_timeframe: 'This week' };
+
+/** Offers from a check_availability result ([] when it was not a list of times). */
+export const offersFrom = (content: string | null | undefined): { label: string; start: string }[] => {
+  try { const v = JSON.parse(content ?? ''); return Array.isArray(v) && v[0]?.start ? v : []; } catch { return []; }
+};
+export const toScenarioTools = (calls: SimToolCall[]): ScenarioToolCall[] => calls.map(({ name, input, result, isError }) => ({ name, input, result, isError }));
+
+/** H-RTURN. `calendar`: null for "not connected", or a function wrapping the simulated calendar (fault injection). */
+export async function receptionistTurn(o: {
+  steps: ScriptStep[]; settings?: AgentSettings; caller?: string | null; contact?: SimSeed['contact'];
+  calendar?: null | ((base: CalendarProvider) => CalendarProvider); mode?: OperatingMode; conversation?: CallerTurn[];
+}) {
+  const settings = o.settings ?? rsim.demoSettings();
+  const caller = o.caller === undefined ? R_CALLER : o.caller;
+  const db = rsim.simulationStore(settings, { caller, contact: o.contact });
+  const b = o.contact?.booking;
+  const cal = rsim.simulatedCalendar(b ? [{ id: b.eventId, start: Date.parse(b.starts), end: Date.parse(b.starts) + settings.bookingMinutes * 60_000 }] : []);
+  const calendar = o.calendar === null ? null : o.calendar ? o.calendar(cal.provider) : cal.provider;
+  const conversation = o.conversation ?? [{ role: 'user' as const, content: 'Hi' }];
+  const a = { channel: rsim.SIM_AUTH.channel, channel_key: rsim.SIM_AUTH.key };
+  const turn = await db.rpc('fo_voice_turn', { ...a, call_id: R_CALL_ID, caller, turn: 1, message: conversation.at(-1)?.content ?? null }) as { contact: string | null };
+  const senders = rsim.recordingSenders();
+  const tools: SimToolCall[] = [];
+  const llm = rsim.recordingModel(rsim.scriptedModel(o.steps), 1, tools, () => undefined);
+  const gen = runReceptionistTurn({ llm, rpc: db.rpc, auth: rsim.SIM_AUTH, calendar, send: senders.send, email: senders.email, settings, now: rsim.SIM_NOW, mode: o.mode, call: { id: R_CALL_ID, caller, contact: turn.contact }, conversation });
+  let text = '', transferTo: string | null = null, r = await gen.next();
+  while (!r.done) { if (r.value.type === 'text') text += r.value.text; else if (r.value.type === 'transfer') transferTo = r.value.number; r = await gen.next(); }
+  return { db, tables: db.tables, text: text.trim(), summary: r.value, tools, transferTo, cal, senders, wouldSend: senders.out, contactId: turn.contact, settings };
+}
+
+/** H-LABCALL: a lab call (greeting first), one scripted model per caller line, the same settings throughout. */
+export async function labCall(lines: { says: string; steps: ScriptStep[] }[], opts: { settings?: AgentSettings; from?: ReceptionistLabState } = {}) {
+  let s = opts.from ?? await rlab.startReceptionistLab({ settings: opts.settings });
+  for (const l of lines) s = await rlab.runReceptionistLabTurnWith(s, { says: l.says }, { base: rsim.scriptedModel(l.steps), model: 'scripted', settings: opts.settings });
+  return s;
+}
+export const labCallTools = (s: ReceptionistLabState) => s.turns.flatMap(t => t.tools);
+
+/** Receptionist globals: nothing sent, every outbound tagged with the receptionist and a prompt version, no booked
+ * wording without an appointment that has a calendar event. */
+export function assertReceptionistGlobals(x: { wouldSend: { sent: boolean }[]; tables: { fo_messages: { direction: string; agent: string | null; prompt_version: string | null }[]; fo_appointments: { provider_event_id: string }[] }; replies: string[] }) {
+  assertNothingSent(x.wouldSend);
+  assertOutboundTagged(x.tables.fo_messages.filter(m => m.direction === 'outbound'));
+  assertNoFalseBooking(x.replies, x.tables.fo_appointments);
+}
+
 export async function dbSnapshot(s: DbSetup) {
   type Row = Record<string, unknown>;
   const contact = await s.rows<Row>('select id, state, name, email, phone from public.fo_contacts where workspace_id = $1', [s.w]);
