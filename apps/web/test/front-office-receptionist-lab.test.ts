@@ -103,7 +103,7 @@ test('booking (automatic, the only mode today): real open time booked, calendar 
   nothingSent(r);
 });
 
-test('GAP (A-2): per-business operating modes do not exist yet; a mode in settings is dropped and booking stays automatic', async () => {
+test('Receptionist Lab: an operatingMode inside the settings data is dropped (modes are saved separately), and the lab reports and runs automatic only (perBusiness false, modes not enforced), so it books directly', async () => {
   const s = checkedAgentSettings({ ...demoSettings(), operatingMode: 'enquiry_only' });
   assert.equal('operatingMode' in s, false, 'settings have no operating mode today');
   const r = await run('book');
