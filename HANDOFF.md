@@ -15,6 +15,16 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
+- Last cycle: c-a72d6105 at 2026-11-12 00:25 AWST · 5 dispatched (A-24 fixes, A-31, A-40, A-41, A-42) + 3 reviews · 5 verified and committed · 0 new owner blockers
+- Integration branch: agent/develop @ fcbd653d (614a96c2 A-40 · 67eeaf33 A-24 · 3148c5e4 A-31 · 29755f59 A-41 · fcbd653d A-42); board commit follows
+- Verification: npm --prefix apps/web test 990/990, lint 0, typecheck 0. ventra-verify (mid-cycle): lint/typecheck/unit/build/workspace-integration PASSED; course + launcher integration FAILED as frozen (known P0-7). Reviews: A-24 request changes -> fixed; A-31 and A-41 approve with nits -> nits fixed.
+- Decision taken (A-31): 13/1300/1800 numbers are refused as a customer's phone (cannot get texts, no E.164 form, shared). Owner may overrule.
+- Running / implemented (needs reconciling next cycle): none. Backup not refreshed (P0-10 still broken; newest complete 2026-11-09 21:55).
+- Blocked, needs the owner: unchanged — W-1 browser check (also A-41 page not browser-checked), P0-10 backup script (no new backup since 2026-11-09 21:55), A-34 lab key secret, A-14 transfer rule (blocks A-7), P0-7. Real Live AI in either lab needs ANTHROPIC_API_KEY + FRONT_OFFICE_MODEL.
+- Next up: A-43 (voice, opted-out wording), A-38 (backend, consent records), A-28 QA scenario suites (deps A-23, A-26 done), A-6 QA of the Setter journey; follow-ups to plan: lab per-user rate limit, Receptionist Lab using the owner's saved business settings (backend loader).
+
+### Previous cycle c-0b02c781
+
 - Last cycle: c-0b02c781 at 2026-11-11 02:46 AWST · 1 dispatched (A-24) · 0 verified · 0 new owner blockers (small spend cap of 1.38 USD, so one task only)
 - Integration branch: agent/develop @ 371f84e (no code commit this cycle; board commit follows)
 - Verification: A-24 preset test 6/6 pass, typecheck 0 (subagent also reports lint 0). Full npm test, ventra-verify and ventra-review not run (budget). Website: W-1 still blocked, no W- task dispatched.
@@ -139,10 +149,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-11 02:49 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-12 00:40 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `371f84e chore(coordinator): cycle c-4d146e6b board and handoff`
-- Lock: coordinator (pid 79618, 2 min old)
+- HEAD: `fcbd653 fix(crm): contacts route searches email case-insensitively via emailSearchPattern (escaped ilike), phone search unchanged [A-42]`
+- Lock: coordinator (pid 8290, 15 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -202,15 +212,15 @@ _Generated 2026-11-11 02:49 by `ventra-handoff snapshot`. Do not hand-edit this 
  scripts/agents/install.sh                         |   2 +-
  scripts/agents/ventra-backup                      |   3 +
  scripts/agents/ventra-verify                      |  11 +-
- 32 files changed, 100 insertions(+), 1681 deletions(-)
+ 32 files changed, 184 insertions(+), 1699 deletions(-)
 ```
 - Recent commits:
 ```text
-371f84e chore(coordinator): cycle c-4d146e6b board and handoff
-dd2efdf feat(receptionist): Receptionist Lab Live AI Test engine (server side): real model through the existing runReceptionistTurn with sandboxed store/calendar/senders, shared lab daily cap checked before each call, authorised caller required, per-turn transcript/tools/tokens/latency/AUD, post-call summary, client state shape- and size-checked (turn limit from conversation) [A-26]
-8737522 fix(platform): migration 202611110003 re-apply safe (create or replace guard function, drop trigger if exists before each trigger); lab db test anchors migrations on import.meta.url and proves double re-apply keeps one enforced guard per table [A-39]
-9550a20 chore(coordinator): cycle c-4a47e138 board and handoff
-eaec63a fix(front-office): settings save uses the shared 256 KB body cap (max knowledge base fits), over-cap gets 413 too_large with a plain message; tests for non-owner and stored-knowledge read failure on the omit-knowledge path; stale metaRunnerChannels comment updated [A-36]
+fcbd653 fix(crm): contacts route searches email case-insensitively via emailSearchPattern (escaped ilike), phone search unchanged [A-42]
+29755f5 feat(receptionist): Receptionist Lab Live AI Test page with en-AU browser speech + keyboard fallback, server actions on the verified session through lab-live.ts, DEMO/LIVE and connection indicators, shared lab cap, end-call summary, whitelisted errors [A-41]
+3148c5e fix(crm): stricter AU phone validation (readPhone with reasons; 13/1300/1800 refused as customer phones), case-insensitive email search pattern, keyset paging tie test on real migrations, Setter saves local AU formats [A-31]
+67eeaf3 feat(setter): industry presets Beauty/Fitness/Trades on the real knowledge base shapes, example-value labels, price placeholders in example conversations, safe emergency/licence/injury wording [A-24]
+614a96c test(setter): meta-window approval regression cases for opted-out contacts and sms/email/web channels; merge duplicate doc comment in pending-actions/shared.ts [A-40]
 ```
 <!-- git-state:end -->
 

@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-10T18:48:50.914Z",
+  "updatedAt": "2026-11-11T17:32:00Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-0b02c781",
-    "startedAt": "2026-11-10T18:46:09Z",
-    "endedAt": "2026-11-10T18:48:50.914Z",
-    "summary": "1 dispatched (A-24), implemented and tested locally; review and commit pending (budget)."
+    "id": "c-a72d6105",
+    "startedAt": "2026-11-11T16:25:11Z",
+    "endedAt": "2026-11-11T17:33:00Z",
+    "summary": "5 committed: A-40 614a96c2, A-24 67eeaf33 (review fixes), A-31 3148c5e4, A-41 29755f59 (not browser-checked), A-42 fcbd653d. Full suite 993/993, lint 0, typecheck 0. Planned A-42, A-43. No new owner blockers."
   },
   "tasks": [
     {
@@ -2596,7 +2596,7 @@
       "phase": "A",
       "module": "setter",
       "owner": "ventra-voice",
-      "state": "implemented",
+      "state": "done",
       "priority": 2,
       "dependsOn": [
         "A-16"
@@ -2613,12 +2613,13 @@
       "branch": "agent/develop",
       "worktree": null,
       "startedAt": "2026-11-10T18:46:38.072Z",
-      "finishedAt": null,
-      "lastRunId": "c-0b02c781",
+      "finishedAt": "2026-11-11T16:55:00Z",
+      "lastRunId": "c-a72d6105",
       "runIds": [
-        "c-0b02c781"
+        "c-0b02c781",
+        "c-a72d6105"
       ],
-      "commits": [],
+      "commits": ["67eeaf33"],
       "evidence": [
         {
           "at": "2026-11-10T18:48:50.914Z",
@@ -2639,11 +2640,16 @@
           "at": "2026-11-10T18:48:50.914Z",
           "kind": "note",
           "detail": "Uncommitted. Needs ventra-review (diff over 150 lines) and a full ventra-verify run before commit. Cycle budget ran out. Example conversations mention prices in plain text and are covered only by the preset-level exampleValues flag; the reviewer should check this."
-        }
+        },
+        {"at": "2026-11-11T16:35:00Z", "kind": "review", "detail": "c-a72d6105 ventra-review: request changes (types not A-16 KnowledgeBase shapes; plain-text prices in conversations; unsafe emergency/licence/injury/patch-test wording). Sent back to ventra-voice once."},
+        {"at": "2026-11-11T16:54:00Z", "kind": "diff", "detail": "presets.ts rewritten (269 lines) on settings.ts KnowledgeBase/Faq types, exampleIds, fillExamplePlaceholders; test 161 lines. Grep: no '$' in preset data, emergency lines include 000, no 'licensed'/'guarantee'."},
+        {"at": "2026-11-11T16:54:00Z", "kind": "test", "detail": "node --experimental-strip-types --test apps/web/test/front-office-presets.test.ts: exit 0, 14/14 (6 before), incl. checkedKnowledge/checkedAgentSettings accept every preset."},
+        {"at": "2026-11-11T16:54:00Z", "kind": "typecheck", "detail": "npm --prefix apps/web run typecheck: clean."},
+        {"at": "2026-11-11T16:55:00Z", "kind": "commit", "detail": "67eeaf33 via ventra-git."}
       ],
       "blocker": null,
       "notes": "Owner note 2026-11-10 07:35.",
-      "updatedAt": "2026-11-10T18:48:50.914Z"
+      "updatedAt": "2026-11-11T16:55:00Z"
     },
     {
       "id": "A-25",
@@ -2781,7 +2787,7 @@
       "phase": 1,
       "module": "receptionist",
       "owner": "ventra-feature",
-      "state": "queued",
+      "state": "done",
       "priority": 2,
       "dependsOn": [
         "A-26"
@@ -2800,15 +2806,22 @@
       "plan": "docs/agents/briefs/FRONT_OFFICE_LAUNCH_BRIEF_2026-11-10.md; owner note 2026-11-10 07:35 item 5",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
-      "lastRunId": null,
-      "runIds": [],
-      "commits": [],
-      "evidence": [],
+      "startedAt": "2026-11-11T16:30:00Z",
+      "finishedAt": "2026-11-11T17:20:00Z",
+      "lastRunId": "c-a72d6105",
+      "runIds": ["c-a72d6105"],
+      "commits": ["29755f59"],
+      "evidence": [
+        {"at": "2026-11-11T17:00:00Z", "kind": "review", "detail": "ventra-review: approve with nits. All acceptance points hold (lab-live.ts only; state check -> cookie -> verifiedCaller -> engine; no client user id; 'use server' only on actions.ts; live.ts/voice.ts not client-callable; only modelConfigured boolean reaches client). Nits 3 (raw error text in start/endCall), 4 (unguarded usage read at render), 7 (stuck summary) sent back once and fixed."},
+        {"at": "2026-11-11T17:18:00Z", "kind": "test", "detail": "node --test apps/web/test/front-office-receptionist-lab-page.test.ts: 15/15 (0 before). npm --prefix apps/web test: 990/990."},
+        {"at": "2026-11-11T17:18:00Z", "kind": "lint", "detail": "npm --prefix apps/web run lint: clean; typecheck clean."},
+        {"at": "2026-11-11T17:18:00Z", "kind": "diff", "detail": "actions.ts +30, page.tsx +12/-1, new live.ts, voice.ts, live-call.tsx, test file; API_CONTRACTS.md +25 (one new section only)."},
+        {"at": "2026-11-11T17:20:00Z", "kind": "commit", "detail": "29755f59 via ventra-git."},
+        {"at": "2026-11-11T17:20:00Z", "kind": "note", "detail": "NOT browser-checked (coordinator sessions cannot reach localhost; same blocker as W-1). Lab answers as the demo business (owner's saved settings need a settings loader = backend follow-up). No per-user rate limit (bounded by shared cap; follow-up with A-25). Real Live AI needs ANTHROPIC_API_KEY + FRONT_OFFICE_MODEL."}
+      ],
       "blocker": null,
       "notes": "Created c-4d146e6b from A-26 hand-off.",
-      "updatedAt": "2026-11-10T18:25:46.857Z"
+      "updatedAt": "2026-11-11T17:20:00Z"
     },
     {
       "id": "A-27",
@@ -2960,7 +2973,7 @@
       "phase": "A",
       "module": "platform",
       "owner": "ventra-backend",
-      "state": "queued",
+      "state": "done",
       "priority": 3,
       "dependsOn": [
         "A-9"
@@ -2978,11 +2991,12 @@
       "plan": "A-9 review findings 1, 2, 4, 6; A-9 open question 2",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
+      "startedAt": "2026-11-11T16:30:00Z",
       "finishedAt": null,
-      "lastRunId": "c-ef7fc367",
+      "lastRunId": "c-a72d6105",
       "runIds": [
-        "c-ef7fc367"
+        "c-ef7fc367",
+        "c-a72d6105"
       ],
       "commits": [],
       "evidence": [
@@ -2990,11 +3004,15 @@
           "at": "2026-11-10T16:56:00Z",
           "kind": "note",
           "detail": "c-ef7fc367: planned from A-9 review (all low severity)."
-        }
+        },
+        {"at": "2026-11-11T17:05:00Z", "kind": "review", "detail": "ventra-review: approve with nits. No valid AU mobile/landline wrongly refused except all-same-digit check (0444 444 444) -> removed; import skip reason for 1300 numbers fixed; refused number not saved now asserted. normalisePhone callers limited to crm.ts (caller ID, twilio, vapi, settings use own regex) so 1300 refusal breaks no channel path. Email helper not wired into contacts route -> A-42."},
+        {"at": "2026-11-11T17:12:00Z", "kind": "test", "detail": "node --test front-office-crm.test.ts + front-office-crm-db.test.ts: 15/15 (db test on real migrations, local Supabase running). Full suite 990/990 after."},
+        {"at": "2026-11-11T17:12:00Z", "kind": "lint", "detail": "npm --prefix apps/web run lint: clean; typecheck clean."},
+        {"at": "2026-11-11T17:13:00Z", "kind": "commit", "detail": "3148c5e4 via ventra-git. Decision: 13/1300/1800 refused as customer phones (cannot receive SMS, no E.164 form, shared by many people)."}
       ],
       "blocker": null,
       "notes": "Contact merge (chat visitor later matching another record) needs an owner decision and a new migration number; not in this task.",
-      "updatedAt": "2026-11-10T16:56:00Z"
+      "updatedAt": "2026-11-11T17:13:00Z"
     },
     {
       "id": "A-32",
@@ -3430,7 +3448,7 @@
       "phase": 1,
       "module": "setter",
       "owner": "ventra-voice",
-      "state": "queued",
+      "state": "done",
       "priority": 4,
       "dependsOn": [
         "A-39"
@@ -3446,15 +3464,73 @@
       "plan": "A-37 review",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
-      "lastRunId": null,
-      "runIds": [],
-      "commits": [],
-      "evidence": [],
+      "startedAt": "2026-11-11T16:30:00Z",
+      "finishedAt": "2026-11-11T16:45:00Z",
+      "lastRunId": "c-a72d6105",
+      "runIds": ["c-a72d6105"],
+      "commits": ["614a96c2"],
+      "evidence": [
+        {"at": "2026-11-11T16:44:00Z", "kind": "diff", "detail": "2 files, +60/-6: test file only + shared.ts diff checked comment-only (two stacked /** */ merged)."},
+        {"at": "2026-11-11T16:44:00Z", "kind": "test", "detail": "node --experimental-strip-types --test apps/web/test/front-office-meta-window-route.test.ts: exit 0, 14/14 (9 before). Opted-out contact refused on Instagram + Messenger; sms/email/web not subject to Meta window."},
+        {"at": "2026-11-11T16:45:00Z", "kind": "commit", "detail": "614a96c2 via ventra-git."},
+        {"at": "2026-11-11T16:45:00Z", "kind": "note", "detail": "Follow-up (not a task yet): owner note for an opted-out contact still says 'Meta 24h window closed, reply from the app' — misleading wording in lib/front-office/pending-actions.ts / jobs.ts. Behaviour is correct (fails safe)."}
+      ],
       "blocker": null,
       "notes": "Split from A-39 in c-4d146e6b.",
-      "updatedAt": "2026-11-10T18:18:44.097Z"
+      "updatedAt": "2026-11-11T16:45:00Z"
+    },
+    {
+      "id": "A-42",
+      "title": "Contacts route: email search uses ilike(emailSearchPattern) so legacy mixed-case rows are found; name stays ilike(nameSearchPattern), phone stays eq",
+      "phase": 1,
+      "module": "platform",
+      "owner": "ventra-voice",
+      "state": "done",
+      "priority": 3,
+      "dependsOn": ["A-31"],
+      "scope": ["apps/web/app/api/front-office/contacts/route.ts", "apps/web/test/front-office-contacts-route*.test.ts"],
+      "acceptance": ["GET /api/front-office/contacts?search=Sam@Example.COM finds a row stored as sam@example.com and vice versa, within its own workspace only", "phone search unchanged", "lint, typecheck, tests pass"],
+      "plan": "A-31 review finding 1 (route.ts:29 still uses eq for email)",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": "2026-11-11T17:20:00Z",
+      "finishedAt": "2026-11-11T17:30:00Z",
+      "lastRunId": "c-a72d6105",
+      "runIds": ["c-a72d6105"],
+      "commits": ["fcbd653d"],
+      "evidence": [
+        {"at": "2026-11-11T17:05:00Z", "kind": "note", "detail": "Planned c-a72d6105 from A-31 review."},
+        {"at": "2026-11-11T17:30:00Z", "kind": "diff", "detail": "route.ts: +1 branch (email -> ilike(emailSearchPattern)) + import; workspace filter untouched. New test file front-office-contacts-route.test.ts (3 tests)."},
+        {"at": "2026-11-11T17:30:00Z", "kind": "test", "detail": "node --test front-office-contacts-route.test.ts: 3/3 (fails with the old eq, per specialist). Specialist full suite 993/993; coordinator lint clean."},
+        {"at": "2026-11-11T17:30:00Z", "kind": "commit", "detail": "fcbd653d via ventra-git. Coordinator reviewed the one-line diff; pattern already reviewed in A-31."}
+      ],
+      "blocker": null,
+      "notes": "",
+      "updatedAt": "2026-11-11T17:30:00Z"
+    },
+    {
+      "id": "A-43",
+      "title": "Owner-facing note for a refused approval on an opted-out contact says the contact opted out (not 'Meta 24h window closed, reply from the app')",
+      "phase": 1,
+      "module": "setter",
+      "owner": "ventra-voice",
+      "state": "queued",
+      "priority": 4,
+      "dependsOn": ["A-40"],
+      "scope": ["apps/web/lib/front-office/pending-actions.ts", "apps/web/lib/front-office/jobs.ts", "apps/web/test/front-office-meta-window*.test.ts"],
+      "acceptance": ["Opted-out refusal note names opt-out and tells the owner not to contact", "Window-closed note unchanged for opted-in contacts", "Behaviour unchanged (still refused, nothing queued)"],
+      "plan": "A-40 finding",
+      "branch": "agent/develop",
+      "worktree": null,
+      "startedAt": null,
+      "finishedAt": null,
+      "lastRunId": "c-a72d6105",
+      "runIds": ["c-a72d6105"],
+      "commits": [],
+      "evidence": [{"at": "2026-11-11T17:05:00Z", "kind": "note", "detail": "Planned c-a72d6105 from A-40 specialist finding."}],
+      "blocker": null,
+      "notes": "",
+      "updatedAt": "2026-11-11T17:05:00Z"
     },
     {
       "id": "A-38",
