@@ -15,6 +15,16 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
+- Last cycle: c-4735b672 at 2026-11-12 02:04 AWST · 3 dispatched (A-55, A-54, A-61; all ventra-voice, one at a time) + 2 reviews · 3 verified and committed · 1 new owner item (A-64 wording)
+- Integration branch: agent/develop @ 7ddb32f6 (1601301a A-55 · 890222e7 A-54 · 7ddb32f6 A-61); board commit follows
+- Verification: npm --prefix apps/web test 1078 total, 1077 pass, 1 todo, 0 fail (was 1058 at start); lint 0; typecheck 0. ventra-verify not run (no migration/persistence change).
+- Behaviour changes: (A-55) on every channel using the Setter, a model/API failure now sends "Thanks for your message. Someone from the team will get back to you shortly." and hands the lead to a person, instead of an error (chat route 200, not 503). (A-54) a booked contact writing again on web chat or the Setter Lab is told their booking; move/cancel goes to a person; a model reply claiming a booking changed is never sent. (A-61) the Setter Lab now goes quiet after a hand-off, as live does.
+- Running / implemented (needs reconciling next cycle): none. Backup not refreshed (P0-10 still broken).
+- Blocked, needs the owner: NEW A-64 (approve the new fixed customer lines in setter/agent.ts). Unchanged: W-1 browser check (blocks every W- task; curl to localhost:3020 refused again this cycle), A-12, A-60, A-14 (blocks A-7, A-56), A-34 lab key secret, P0-10, P0-7.
+- Next up: A-51, A-52 (QA scenarios, voice), A-58, A-59, A-63/A-62/A-50 nits, A-64 code nits, A-20, A-18 (backend).
+
+### Previous cycle c-a8a636ff
+
 - Last cycle: c-a8a636ff at 2026-11-12 01:33 AWST · 3 dispatched to build (A-48, A-49, A-57) + 1 QA spec (A-28) + 3 reviews · 3 verified and committed · 2 new owner decisions
 - Integration branch: agent/develop @ 975dcf85 (ea570fea A-48 · 570d55fd A-49 · 975dcf85 A-57); board commit follows
 - Verification: npm --prefix apps/web test 1058 total, 1054 pass, 4 todo, 0 fail (was 1033 at start); lint 0; typecheck 0. ventra-verify not run (no persistence/route change). Reviews: A-48, A-49, A-57 approve with nits (-> A-50, A-62, A-63).
@@ -173,10 +183,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-12 01:54 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-12 02:32 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `975dcf8 feat(receptionist): prompt voice@2 adds safety and clarity rules: a caller in danger is told to hang up and call 000 (not replaced by a booking or message), urgent-but-not-life-threatening keeps transfer/take_message, ask to repeat instead of guessing, read back names, numbers and times; lab test now asserts the 000 rule [A-57]`
-- Lock: coordinator (pid 26274, 21 min old)
+- HEAD: `7ddb32f fix(setter-lab): after a hand-off to a person the Setter Lab goes quiet like the live routes (same withPerson check on the lab's handoff records; message stored, no model call, no reply, route shows why); A-49 lab-fidelity todo now a passing test in all three modes [A-61]`
+- Lock: coordinator (pid 32389, 28 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -236,15 +246,15 @@ _Generated 2026-11-12 01:54 by `ventra-handoff snapshot`. Do not hand-edit this 
  scripts/agents/install.sh                         |   2 +-
  scripts/agents/ventra-backup                      |   3 +
  scripts/agents/ventra-verify                      |  11 +-
- 32 files changed, 256 insertions(+), 1687 deletions(-)
+ 32 files changed, 114 insertions(+), 1681 deletions(-)
 ```
 - Recent commits:
 ```text
+7ddb32f fix(setter-lab): after a hand-off to a person the Setter Lab goes quiet like the live routes (same withPerson check on the lab's handoff records; message stored, no model call, no reply, route shows why); A-49 lab-fidelity todo now a passing test in all three modes [A-61]
+890222e feat(setter): returning booked contacts on web chat and the Setter Lab get a reply with their stored booking (time, zone, where; built in code) via setter/returning-booked@1; only handoff tools allowed (server-enforced); move/cancel and any hand-off end on fixed lines; model text claiming a booking change is never sent; no upcoming booking -> code-recorded hand-off; SMS/email/Meta unchanged; S9 G1 todo now passing [A-54]
+1601301 feat(setter): model/API failure falls back to a fixed 'someone will get back to you' reply (setter/fallback@1), records a human handoff through the permission check, books nothing, logs only a short code (no key or provider body); DB errors still fail the turn; S12 G2 todo now a real chat-route test in all three modes [A-55]
+5ee59bf chore(coordinator): cycle c-a8a636ff board and handoff
 975dcf8 feat(receptionist): prompt voice@2 adds safety and clarity rules: a caller in danger is told to hang up and call 000 (not replaced by a booking or message), urgent-but-not-life-threatening keeps transfer/take_message, ask to repeat instead of guessing, read back names, numbers and times; lab test now asserts the 000 rule [A-57]
-570d55f test(setter): QA scenario suite S1-S12 in Demo mode (lab, direct agent and real-SQL chat route harnesses; S5 in all three modes) with a per-scenario recorder; known gaps G1, G2, G7 and lab hand-off parity as test.todo [A-49]
-ea570fe fix(setter): on the email runner a contact with phone and email is followed up by email (same-channel, no SMS grant needed); other channels still need a grant, opt-out wins, unknown via fails closed; jobBlocked comment states the full rule; jobs/run route test pins via per channel [A-48]
-1aaf06e chore(coordinator): cycle c-08120d7a board and handoff
-28b651d fix(setter): consent rule applied everywhere follow-ups are decided: approved held follow-ups and the job runner pass the channel (via), send time needs same-channel inbound or an open grant, unknown channel fails closed; STOP withdraw always on; warn log without error text [A-47]
 ```
 <!-- git-state:end -->
 

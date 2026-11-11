@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-11T18:10:00Z",
+  "updatedAt": "2026-11-11T19:00:00Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-a8a636ff",
-    "startedAt": "2026-11-11T17:33:11Z",
-    "endedAt": "2026-11-11T18:12:00Z",
-    "summary": "3 committed: A-48 ea570fea (email runner follows up by email), A-49 570d55fd (Setter QA scenarios S1-S12, test-only), A-57 975dcf85 (Receptionist prompt voice@2: 000 for emergencies, ask to repeat, read back). A-28 QA spec saved (docs/agents/briefs/A-28_QA_SCENARIOS.md) with 8 gaps -> A-54..A-61. Full suite 1058 (1054 pass, 4 todo, 0 fail), lint 0, typecheck 0. New owner decisions: A-12 per-business Google Calendar OAuth/token storage, A-60 quote estimates. W- tasks still blocked by W-1 browser check; backup still broken (P0-10)."
+    "id": "c-4735b672",
+    "startedAt": "2026-11-11T18:04:11Z",
+    "endedAt": "2026-11-11T19:00:00Z",
+    "summary": "3 committed: A-55 1601301a (Setter model/API failure -> fixed fallback reply + human handoff, no secrets logged), A-54 890222e7 (returning booked contact on web chat/lab told their booking; move/cancel to a person; code blocks any false 'booking changed' text), A-61 7ddb32f6 (Setter Lab goes quiet after a hand-off, as live). Full suite 1078 (1077 pass, 1 todo, 0 fail), lint 0, typecheck 0. Reviews: A-55, A-54 approve with nits (A-54 medium fixed in one round). New owner item A-64: approve the new fixed customer lines. W- still blocked by W-1 browser check (curl to localhost:3020 refused again); P0-10 backup still broken."
   },
   "tasks": [
     {
@@ -3700,21 +3700,31 @@
     },
     {
       "id": "A-54", "title": "G1: returning booked customer gets an answer on web chat and in the Setter Lab (today no reply; router sends booked contacts to 'sales' and only a setter hook is passed)",
-      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["A-49"],
-      "scope": ["apps/web/lib/front-office/setter/**", "apps/web/lib/front-office/orchestrator.ts", "apps/web/lib/front-office/router.ts", "apps/web/app/api/front-office/chat/route.ts", "apps/web/test/front-office-returning*.test.ts"],
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "done", "priority": 2, "dependsOn": ["A-49"],
+      "scope": ["apps/web/lib/front-office/setter/**", "apps/web/lib/front-office/orchestrator.ts", "apps/web/lib/front-office/router.ts", "apps/web/app/api/front-office/chat/route.ts", "apps/web/test/front-office-returning*.test.ts", "apps/web/test/front-office-scenarios-setter.test.ts"],
       "acceptance": ["A booked contact who writes again is recognised and told their booking (time, where) and offered reschedule/cancel within the mode rules", "Scenario S9 todo turns into a passing test"],
       "plan": "A-28 spec G1 (router.ts:12, chat/route.ts:126, orchestrator.ts:66, setter/agent.ts:64,91)", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": "c-a8a636ff", "runIds": ["c-a8a636ff"], "commits": [],
-      "evidence": [], "blocker": null, "notes": "", "updatedAt": "2026-11-11T17:41:00Z"
+      "startedAt": "2026-11-11T18:25:00Z", "finishedAt": "2026-11-11T18:48:00Z", "lastRunId": "c-4735b672", "runIds": ["c-a8a636ff", "c-4735b672"], "commits": ["890222e7"],
+      "evidence": [{"at": "2026-11-11T18:36:00Z", "kind": "diff", "detail": "agent.ts, prompt.ts, lab.ts, chat/route.ts (uses shared setterHooks), orchestrator.ts (comment), scenarios-setter test (S9 G1 todo -> passing; S5 rebook-replay pin updated from silent reply to booking restated, still 1 appointment), new front-office-returning-booked.test.ts (12 tests). router.ts unchanged; SMS/email/Meta unchanged (tested)."},
+        {"at": "2026-11-11T18:37:00Z", "kind": "test", "detail": "Coordinator round 1: 1073 total, 1071 pass, 0 fail, 2 todo; typecheck 0; lint 0."},
+        {"at": "2026-11-11T18:38:00Z", "kind": "review", "detail": "ventra-review: APPROVE WITH NITS; medium: 'never claims booking changed' was prompt-only on free text and escalate_human without booking_change; low: no-upcoming-booking hand-off prompt-only. Sent back once."},
+        {"at": "2026-11-11T18:46:00Z", "kind": "diff", "detail": "Round 2: any escalate_human on a returning turn ends on a fixed line; BOOKING_CHANGE_CLAIM regex (moved|rescheduled|rebooked|cancelled|changed|shifted) blocks model text and hands to a person; no upcoming booking -> code-recorded hand-off, no model call (NO_BOOKING_SAY); fallback-on-booked test; owner_approval wording no longer implies an approval item. Coordinator read the guard (agent.ts:113-118, 406-409)."},
+        {"at": "2026-11-11T18:47:00Z", "kind": "test", "detail": "Coordinator round 2: npm --prefix apps/web test 1077 total, 1075 pass, 0 fail, 2 todo; typecheck 0; lint 0."},
+        {"at": "2026-11-11T18:48:00Z", "kind": "commit", "detail": "890222e7 via ventra-git (7 files)."}],
+      "blocker": null, "notes": "Setter has no real reschedule/cancel tool: requests go to a person via escalate_human in every mode. Booked contacts on SMS/email/Meta still get no AI reply (router unchanged). New fixed lines need owner wording approval -> A-64.", "updatedAt": "2026-11-11T18:48:00Z"
     },
     {
       "id": "A-55", "title": "G2: Setter recovers from a model/API failure: inbound stored, a short 'someone will get back to you' reply (approved template, no AI text), a human handoff recorded, no secret in logs",
-      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["A-49"],
-      "scope": ["apps/web/lib/front-office/setter/agent.ts", "apps/web/app/api/front-office/chat/route.ts", "apps/web/lib/front-office/setter/lab.ts", "apps/web/test/front-office-setter-failure*.test.ts"],
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "done", "priority": 2, "dependsOn": ["A-49"],
+      "scope": ["apps/web/lib/front-office/setter/agent.ts", "apps/web/app/api/front-office/chat/route.ts", "apps/web/lib/front-office/setter/lab.ts", "apps/web/test/front-office-setter-failure*.test.ts", "apps/web/test/front-office-scenarios-setter.test.ts"],
       "acceptance": ["Model throws -> fallback reply + handoff, no booking, no state change", "Scenario S12 todo turns into a passing test"],
       "plan": "A-28 spec G2", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": "c-a8a636ff", "runIds": ["c-a8a636ff"], "commits": [],
-      "evidence": [], "blocker": null, "notes": "", "updatedAt": "2026-11-11T17:41:00Z"
+      "startedAt": "2026-11-11T18:10:00Z", "finishedAt": "2026-11-11T18:24:00Z", "lastRunId": "c-4735b672", "runIds": ["c-a8a636ff", "c-4735b672"], "commits": ["1601301a"],
+      "evidence": [{"at": "2026-11-11T18:20:00Z", "kind": "diff", "detail": "agent.ts +57/-? (try around the model call only; SETTER_FALLBACK_REPLY tagged setter/fallback@1; handoff via the transfer permission path, no double handoff; short failure code only), lab.ts +8, front-office-scenarios-setter.test.ts S12 G2 todo -> real chat-route test in all three modes, new front-office-setter-failure.test.ts (8 tests). Chat route unchanged (now 200 + fallback instead of 503)."},
+        {"at": "2026-11-11T18:21:00Z", "kind": "test", "detail": "Coordinator: npm --prefix apps/web test 1066 total, 1063 pass, 0 fail, 3 todo (was 1058/1054/0/4); typecheck exit 0; lint exit 0."},
+        {"at": "2026-11-11T18:23:00Z", "kind": "review", "detail": "ventra-review: APPROVE WITH NITS. Only the model call is caught (DB errors still fail the turn); no key/provider body in logs/response; no new send path (fallback goes through the same senders, live only with FRONT_OFFICE_SEND_LIVE=1; Meta via approval queue); lab never reads env. Nits: if A-14 makes transfer holdable the fallback ignores toPerson's return; malformed content blocks inside the array still fail the turn; lab error text shows adapter message (fixed strings today)."},
+        {"at": "2026-11-11T18:24:00Z", "kind": "commit", "detail": "1601301a via ventra-git."}],
+      "blocker": null, "notes": "Applies to every channel using runSetterTurn (chat, SMS, email, Meta) and the lab. Owner should approve the fallback wording before any live switch. Review nits -> A-64.", "updatedAt": "2026-11-11T18:24:00Z"
     },
     {
       "id": "A-56", "title": "G3: Receptionist applies the business operating mode to book, reschedule and cancel (Owner approval holds the action in fo_pending_actions; Enquiry only takes a message)",
@@ -3758,12 +3768,26 @@
     },
     {
       "id": "A-61", "title": "Setter Lab parity after a hand-off: the lab runs the Setter without the permission check (setter/lab.ts:426), so the 'a person is looking after this contact' silence (setter/agent.ts:94) never applies in the lab, while the live chat route goes quiet",
-      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["A-49"],
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "done", "priority": 2, "dependsOn": ["A-49"],
       "scope": ["apps/web/lib/front-office/setter/lab.ts", "apps/web/test/front-office-setter-lab.test.ts", "apps/web/test/front-office-scenarios-setter.test.ts"],
       "acceptance": ["After escalate_human in the lab, the next customer message gets no AI reply (as live)", "The A-49 todo for this turns into a passing test"],
       "plan": "Found by ventra-voice while writing A-49 (code reading)", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": "c-a8a636ff", "runIds": ["c-a8a636ff"], "commits": [],
-      "evidence": [], "blocker": null, "notes": "Owner may see different behaviour on the Setter Lab page than live until fixed.", "updatedAt": "2026-11-11T18:05:00Z"
+      "startedAt": "2026-11-11T18:50:00Z", "finishedAt": "2026-11-11T18:57:00Z", "lastRunId": "c-4735b672", "runIds": ["c-a8a636ff", "c-4735b672"], "commits": ["7ddb32f6"],
+      "evidence": [{"at": "2026-11-11T18:55:00Z", "kind": "diff", "detail": "lab.ts +10/-1: before runSetterTurn the lab applies withPerson() (actions.ts) to its own handoff rows for the contact; if a person owns it: reply null, no model call, route gets LAB_WITH_PERSON_NOTE. Tests: new lab test; A-49 S7 lab-fidelity todo -> real test in three modes (counting model proves 0 calls). 3 files, +54/-3."},
+        {"at": "2026-11-11T18:56:00Z", "kind": "test", "detail": "Coordinator: npm --prefix apps/web test 1078 total, 1077 pass, 0 fail, 1 todo (was 1077/1075/0/2); typecheck 0; lint 0."},
+        {"at": "2026-11-11T18:56:00Z", "kind": "review", "detail": "Coordinator read the full production diff (lab-only, 11 lines, reuses the live withPerson check, no env access); no ventra-review dispatched (small lab-only change, budget)."},
+        {"at": "2026-11-11T18:57:00Z", "kind": "commit", "detail": "7ddb32f6 via ventra-git."}],
+      "blocker": null, "notes": "Remaining scenario todo: S7 G7 plain 'talk to a person' rule (A-59).", "updatedAt": "2026-11-11T18:57:00Z"
+    },
+    {
+      "id": "A-64", "title": "A-55/A-54 follow-ups: owner approves the new fixed customer lines (SETTER_FALLBACK_REPLY, BOOKING_CHANGE_SAY move/cancel, RETURNING_HANDOFF_SAY, NO_BOOKING_SAY in setter/agent.ts); review nits: fallback ignores toPerson's return if A-14 makes transfer holdable; malformed content blocks inside the array still fail the turn; permissions.ts held reschedule line 'I have asked the team to confirm the new time' implies an approval item",
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "blocked", "priority": 3, "dependsOn": ["A-54", "A-55"],
+      "scope": ["apps/web/lib/front-office/setter/agent.ts", "apps/web/test/front-office-setter-failure.test.ts", "apps/web/test/front-office-returning-booked.test.ts"],
+      "acceptance": ["Owner-approved wording in place (tested)", "Malformed content blocks -> fallback, tested", "A pinned test or comment for the holdable-transfer case"],
+      "plan": "ventra-review c-4735b672", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": "c-4735b672", "runIds": ["c-4735b672"], "commits": [],
+      "evidence": [], "blocker": {"reason": "Owner: approve or edit the fixed customer lines in apps/web/lib/front-office/setter/agent.ts (fallback 'Thanks for your message. Someone from the team will get back to you shortly.'; booked-contact move/cancel, hand-off and no-booking lines) before any live switch. The code nits can run without waiting.", "needsApproval": false, "since": "2026-11-11T19:00:00Z"},
+      "notes": "Also: real AI reschedule/cancel for booked Setter contacts (instead of hand-off to a person) would be a new task needing an owner decision; a cancel DB function exists only on the receptionist side.", "updatedAt": "2026-11-11T19:00:00Z"
     },
     {
       "id": "A-63", "title": "A-57 review nits: emergency rule adds 'if unsure, tell them to call 000' and 'then say goodbye and end_call'; db test literals receptionist/voice@1 -> @2 (front-office-receptionist-db.test.ts:80,90,107); prompt test rule() lookup less fragile",
