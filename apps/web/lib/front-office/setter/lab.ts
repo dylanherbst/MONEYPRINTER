@@ -422,9 +422,15 @@ export async function runLabTurnWith(state: LabState, input: { message: string; 
     turn.reply = r.reply;
     if (setterContact) {
       const contactId: string = setterContact;
-      const llm = gatedModel(m.base, s, db, contactId, turn.tools, p => { turn.booking = p; });
+      const gated = gatedModel(m.base, s, db, contactId, turn.tools, p => { turn.booking = p; });
+      // Task A-55: a failed model call no longer fails the turn. runSetterTurn sends the fixed fallback reply and hands
+      // the lead to a person; the lab keeps the model's own error message (the provider status or the cap refusal,
+      // already free of keys and provider bodies) so the tester sees why.
+      const caught: { message?: string } = {};
+      const llm: Llm = async (req) => { try { return await gated(req); } catch (e) { caught.message = e instanceof Error ? e.message : 'The AI model call failed.'; throw e; } };
       const out = await runSetterTurn(contactId, { llm, rpc: db.rpc, auth: LAB_AUTH, calendar: db.calendar, send: db.send, config: LAB_CONFIG, now: s.now, channel: 'sms' });
       turn.reply = out.reply; turn.handedTo = out.handedTo;
+      if (out.modelFailure) turn.error = `${caught.message ?? `The AI model call failed (${out.modelFailure}).`} The fixed fallback reply was sent and the lead was handed to a person.`;
       if (turn.booking?.decision === 'perform') turn.booking.booked = out.booked;
     }
   } catch (e) {

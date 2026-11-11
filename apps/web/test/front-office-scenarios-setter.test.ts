@@ -10,7 +10,7 @@ import './helpers/route-harness.ts';
 const h = await import('./helpers/front-office-scenarios.ts');
 const { tool, say, scripted, lead, agentSetup, AGENT_NOW, CID, OWNER, assertNothingSent, assertOutboundTagged, assertNoFalseBooking, BOOKED_WORDING } = h;
 const { newLab, runLabTurn, runLabTurnWith, decideLabAction, labStore, scriptedSetterModel, LAB_CONFIG, LAB_AUTH } = await import('../lib/front-office/setter/lab.ts');
-const { runSetterTurn } = await import('../lib/front-office/setter/agent.ts');
+const { runSetterTurn, SETTER_FALLBACK_REPLY, SETTER_FALLBACK_PROMPT } = await import('../lib/front-office/setter/agent.ts');
 const { inQuietHours } = await import('../lib/front-office/setter/actions.ts');
 const { decide } = await import('../lib/front-office/permissions.ts');
 const { offerTimes } = await import('../lib/front-office/booking.ts');
@@ -494,23 +494,29 @@ test('S11 booking conflict, owner approval (H-AGENT): a held booking whose slot 
 
 // ---------------------------------------------------------------------------------------------------------------
 test('S12 API failure (H-AGENT + H-LAB, automatic): model error leaves no state change and no secret; calendar failure never says booked', async () => {
-  await rec.scenario({ id: 'S12', operatingMode: 'automatic', expected: 'model throws: no appointment/state change, inbound stored, no secret in error; calendar throws: never "You\'re booked"' }, async (c) => {
-    // Model throws in the direct turn: today the error propagates (G2) and nothing is written.
+  await rec.scenario({ id: 'S12', operatingMode: 'automatic', expected: 'model throws: fixed fallback reply + human handoff, no appointment/state change, inbound stored, no secret; calendar throws: never "You\'re booked"' }, async (c) => {
+    // Model throws in the direct turn (A-55, G2 closed): the fixed fallback reply, a hand-off to a person, nothing else.
     const a = agentSetup('automatic');
     c.input('Hi, saw your ad');
-    await assert.rejects(runSetterTurn(CID, a.deps(async () => { throw new Error('AI provider error (500).'); })), /AI provider error/);
-    assert.equal(a.db.contact.state, 'qualified'); assert.equal(a.db.outbound.length, 0); assert.equal(a.db.appointment, null); assert.equal(a.db.jobs.length, 0);
+    const failed = await runSetterTurn(CID, a.deps(async () => { throw new Error('AI provider error (500).'); }));
+    assert.equal(failed.reply, SETTER_FALLBACK_REPLY); assert.equal(failed.modelFailure, 'provider_500');
+    assert.equal(failed.handedTo, 'human'); assert.deepEqual(a.db.handoffs.map(x => x.owner), ['human']);
+    assert.equal(failed.actions.find(x => x.action === 'transfer')?.decision, 'perform');
+    assert.equal(a.db.contact.state, 'qualified'); assert.deepEqual(a.db.outbound, [{ message: SETTER_FALLBACK_REPLY, prompt: SETTER_FALLBACK_PROMPT }]);
+    assert.equal(a.db.appointment, null); assert.equal(a.db.jobs.length, 0); assert.equal(a.pending.items.length, 0); assert.equal(failed.booked, false);
 
-    // The real Anthropic adapter against a fake 500 (passed in, not global): lab turn error, no reply, no secret.
+    // The real Anthropic adapter against a fake 500 (passed in, not global): the lab shows the fallback reply, the
+    // hand-off and the provider status, and no secret.
     const SECRET = 'fake-test-key-SECRET-do-not-leak';
     const fake500 = (async () => new Response(JSON.stringify({ error: { message: `bad key ${SECRET}` } }), { status: 500 })) as unknown as typeof fetch;
     const s = await runLabTurnWith(newLab('automatic'), { message: 'Hi, saw your ad. What do you do?' }, { base: anthropicLlm({ apiKey: SECRET, model: 'test-model' }, fake500), model: 'scripted' });
     const t = s.turns[0];
-    assert.equal(t.reply, null); assert.match(t.error ?? '', /AI provider error \(500\)/);
+    assert.equal(t.reply, SETTER_FALLBACK_REPLY); assert.match(t.error ?? '', /AI provider error \(500\)/);
+    assert.equal(t.handedTo, 'human'); assert.deepEqual(s.tables.handoffs.map(x => x.owner), ['human']);
     assert.ok(!JSON.stringify(s).includes(SECRET), 'no secret anywhere in the lab state');
     assert.equal(s.tables.messages.filter(m => m.direction === 'inbound').length, 1, 'the inbound is stored');
-    assert.equal(s.tables.messages.filter(m => m.direction === 'outbound').length, 0);
-    assert.equal(s.tables.contacts[0].state, 'new'); assert.equal(s.tables.appointments.length, 0);
+    assert.deepEqual(s.tables.messages.filter(m => m.direction === 'outbound').map(m => m.body), [SETTER_FALLBACK_REPLY]);
+    assert.equal(s.tables.contacts[0].state, 'new'); assert.equal(s.tables.appointments.length, 0); assert.equal(s.pending.length, 0);
     labGlobals(s);
 
     // Calendar createEvent throws: nothing booked, never booked wording.
@@ -530,7 +536,60 @@ test('S12 API failure (H-AGENT + H-LAB, automatic): model error leaves no state 
     c.actual(`model error: ${t.error}; calendar error: ${bookCall?.result}`);
   });
 });
-test.todo('S12 G2: a Setter model/API failure gets a graceful reply ("someone will be in touch") and a handoff instead of a thrown turn / chat 503 (setter/agent.ts:284, chat/route.ts:134)');
+test('S12 G2 (H-DB, all three modes): a model/API failure through the real chat route gets the fixed fallback reply and a human handoff, not a 503; nothing booked; no secret; the next message is left to the person', async () => {
+  for (const mode of MODES) {
+    await rec.scenario({ id: 'S12', operatingMode: mode, expected: 'chat 200 with SETTER_FALLBACK_REPLY; inbound stored; 1 outbound tagged setter/fallback@1; human handoff; state qualified; 0 appointments/pending; no key or provider body in response or logs; next message: no AI reply' }, async (c) => {
+      const SECRET = 'fake-route-key-SECRET-do-not-leak';
+      const s = await h.dbSetup(mode);
+      const restore = h.dbEnv(s.channel, true);
+      process.env.ANTHROPIC_API_KEY = SECRET; // restored by restore()
+      const w = h.dbWorld(s.rpc);
+      const world = globalThis.fetch;
+      let modelCalls = 0;
+      // The provider answers 500 with a body that echoes the key: neither may reach the visitor or the logs.
+      globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
+        if (url.host !== 'api.anthropic.com') return world(input, init);
+        modelCalls++; w.hosts.push(url.host);
+        return new Response(JSON.stringify({ type: 'error', error: { message: `invalid x-api-key ${SECRET}` } }), { status: 500 });
+      }) as typeof fetch;
+      const logged: string[] = [];
+      const realWarn = console.warn, realLog = console.log;
+      console.warn = (...x: unknown[]) => { logged.push(x.map(String).join(' ')); };
+      console.log = (...x: unknown[]) => { logged.push(x.map(String).join(' ')); };
+      try {
+        c.input('Hi, can someone help me?', 'Hello? Anyone there?');
+        const res = await h.dbSend(`s12g2${mode.slice(0, 3)}01`, 'Hi, can someone help me?');
+        assert.equal(res.status, 200, JSON.stringify(res.body));
+        assert.equal(res.body.reply, SETTER_FALLBACK_REPLY); assert.equal(res.body.live, true); assert.equal(res.body.booked, false);
+        assert.equal(modelCalls, 1);
+        const db = await h.dbSnapshot(s);
+        assert.ok(db.messages.some(m => m.direction === 'inbound' && m.body === 'Hi, can someone help me?'), 'the inbound is stored');
+        const out = db.messages.filter(m => m.direction === 'outbound');
+        assert.deepEqual(out.map(m => [m.body, m.agent, m.prompt_version]), [[SETTER_FALLBACK_REPLY, 'setter', SETTER_FALLBACK_PROMPT]]);
+        assertOutboundTagged(out);
+        assert.deepEqual(db.handoffs.map(x => [x.from_agent, x.owner]), [['setter', 'human']]);
+        assert.equal(db.contact[0].state, 'qualified'); assert.equal(db.appointments.length, 0); assert.equal(db.pending.length, 0); assert.equal(w.events.length, 0);
+        assertNoFalseBooking([res.body.reply as string], db.appointments);
+        assert.deepEqual(w.rpcErrors, []); assert.deepEqual(w.errors, []);
+        assert.ok(w.hosts.every(x => h.ALLOWED_HOSTS.has(x)), w.hosts.join(', '));
+        assert.ok(logged.some(l => l.includes('provider_500')), 'the failure is logged by code');
+        for (const text of [JSON.stringify(res.body), ...logged, ...w.errors]) {
+          assert.ok(!text.includes(SECRET), 'no key'); assert.ok(!text.includes('x-api-key'), 'no provider body');
+        }
+        // A person now owns the conversation: the next message is stored and the AI stays silent (agent.ts withPerson).
+        const next = await h.dbSend(`s12g2${mode.slice(0, 3)}02`, 'Hello? Anyone there?');
+        assert.equal(next.status, 200); assert.equal(next.body.reply, null);
+        assert.equal(modelCalls, 1, 'no model call while a person has the lead');
+        const after = await h.dbSnapshot(s);
+        assert.equal(after.messages.filter(m => m.direction === 'outbound').length, 1);
+        assert.ok(after.messages.some(m => m.direction === 'inbound' && m.body === 'Hello? Anyone there?'));
+        c.output(res.body, next.body); c.db(after);
+        c.actual(`reply "${res.body.reply}", handoffs ${db.handoffs.map(x => x.owner)}, state ${db.contact[0].state}, next reply ${next.body.reply}`);
+      } finally { console.warn = realWarn; console.log = realLog; w.restore(); restore(); await s.db.close(); }
+    });
+  }
+});
 
 // ---------------------------------------------------------------------------------------------------------------
 after(() => {

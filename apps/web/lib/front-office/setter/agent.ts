@@ -10,6 +10,11 @@
 // not happen. Without deps.permissions the turn behaves exactly as before A-8 (direct booking, the old follow-up start,
 // no hand-off silence); every new rule applies only with deps.permissions. The live routes in app/api/front-office/*
 // must pass channelPermissions(rpc, auth) (task A-17); that wiring is outside this module.
+//
+// Model failure (task A-55, gap G2): when the model call throws (provider error, timeout) or returns no content list,
+// the turn does not fail. The contact gets SETTER_FALLBACK_REPLY (fixed text, logged with SETTER_FALLBACK_PROMPT), the
+// lead is handed to a person exactly as escalate_human does (through the permission check when one is given), no
+// follow-up is started and nothing is booked. Only a safe code is logged and returned (turn.modelFailure).
 import { bookSlot, offerTimes, SlotTaken } from '../booking';
 import type { Offer } from '../booking';
 import type { CalendarProvider } from '../calendar/google';
@@ -19,7 +24,7 @@ import { readPhone } from '../crm';
 import { checkedHandoff } from '../handoff';
 import type { Agent, Channel, Handoff } from '../handoff';
 import { FOLLOW_UP_PROMPT, scheduleReminders, startFollowUps } from '../jobs';
-import type { Llm, LlmMessage, ToolResultBlock, ToolSpec, ToolUseBlock } from '../llm';
+import type { Llm, LlmMessage, LlmResponse, ToolResultBlock, ToolSpec, ToolUseBlock } from '../llm';
 import type { ChannelAuth, Rpc } from '../orchestrator';
 import { gate } from '../pending-actions';
 import type { ExecutionResult } from '../pending-actions';
@@ -43,12 +48,33 @@ export type SetterTurn = {
   pendingActionIds: string[];
   actions: SetterActionRecord[];
   transitions: StatusTransition[];
+  /** Present only when the model call failed this turn (task A-55): a safe code such as 'provider_500', 'timeout',
+   * 'malformed_response' or 'model_error'. Never the provider's message or body. The reply is then SETTER_FALLBACK_REPLY. */
+  modelFailure?: string;
 };
 /** logReply false: the caller queues the reply for approval and logs it only once it is sent (social DMs). */
 export type SetterDeps = { llm: Llm; rpc: Rpc; auth: ChannelAuth; calendar: CalendarProvider | null; send: SmsSender; config: SetterConfig; now: number; channel?: Channel; logReply?: boolean; permissions?: SetterPermissions };
 
 /** What the AI says when a hand-off to a person is held (decide() has no words for it today). */
 const TRANSFER_HELD_SAY = 'I have asked a person from the team to get back to you.';
+/** Task A-55 (G2): the fixed reply when the model call fails (provider error, timeout, malformed response). Approved
+ * template text, never AI-written; the lead is handed to a person the same way escalate_human does. */
+export const SETTER_FALLBACK_REPLY = 'Thanks for your message. Someone from the team will get back to you shortly.';
+/** Prompt version logged with the fallback reply, so it is never mistaken for model output. */
+export const SETTER_FALLBACK_PROMPT = 'setter/fallback@1';
+
+class MalformedModelResponse extends Error { constructor() { super('The model response had no content list.'); this.name = 'MalformedModelResponse'; } }
+
+/** A safe code for a failed model call: the error class or provider status only, never its message or body. */
+export function modelFailureCode(e: unknown): string {
+  if (e instanceof MalformedModelResponse) return 'malformed_response';
+  if (e instanceof Error) {
+    if (e.name === 'TimeoutError' || e.name === 'AbortError') return 'timeout';
+    const m = /^AI provider error \((\d{3}|stream)\)\.?$/.exec(e.message);
+    if (m) return `provider_${m[1]}`;
+  }
+  return 'model_error';
+}
 const replyLimit: Record<Channel, number> = { sms: 320, 'web-chat': 600, email: 1500, voice: 400, form: 600, instagram: 450, messenger: 450 };
 
 export const setterTools: ToolSpec[] = [
@@ -83,11 +109,11 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
   const ctx = await d.rpc('fo_contact_context', { ...a, contact: contactId }) as Context;
   const used: string[] = [], actions: SetterActionRecord[] = [], transitions: StatusTransition[] = [], held: string[] = [];
   let state = ctx.contact.state, booked = false, handedTo: Agent | null = null, offers: Offer[] = [], bookedReply: string | null = null;
-  let forcedReply: string | null = null, bookingHeld = false;
+  let forcedReply: string | null = null, bookingHeld = false, modelFailure: string | null = null;
   const store = d.permissions ? failSafeStore(d.permissions.store) : null;
   const mode: OperatingMode = store ? await store.mode('setter') : 'automatic';
   const x: SetterActionDeps = { rpc: d.rpc, auth: d.auth, calendar: d.calendar, config: d.config, now: d.now, send: d.send, channel, via: d.channel ?? null, quietHours: d.permissions?.quietHours };
-  const result = (reply: string | null): SetterTurn => ({ reply, state, booked, handedTo, tools: used, mode, pendingActionIds: held, actions, transitions });
+  const result = (reply: string | null): SetterTurn => ({ reply, state, booked, handedTo, tools: used, mode, pendingActionIds: held, actions, transitions, ...(modelFailure ? { modelFailure } : {}) });
   if (ctx.contact.optedOut || !ACTIVE_STATES.includes(state)) return result(null);
   // A person owns this conversation: the AI does not reply (or start follow-ups) until it is handed back.
   // Only with the permission check; without it the turn runs as before A-8.
@@ -281,7 +307,17 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
 
   let reply = '';
   for (let round = 0; round < 6; round++) {
-    const res = await d.llm({ system, messages, tools: setterTools });
+    let res: LlmResponse;
+    try {
+      res = await d.llm({ system, messages, tools: setterTools });
+      if (!res || !Array.isArray(res.content)) throw new MalformedModelResponse();
+    } catch (e) {
+      // Task A-55 (G2): the model call failed. Only the model call is caught here: tool errors are already passed back
+      // to the model, and store errors still fail the turn (the route answers 503) rather than promise a follow-up
+      // nobody recorded.
+      modelFailure = modelFailureCode(e);
+      break;
+    }
     messages.push({ role: 'assistant', content: res.content });
     const calls = res.content.filter((b): b is ToolUseBlock => b.type === 'tool_use');
     reply = res.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join(' ').trim();
@@ -294,6 +330,8 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
     messages.push({ role: 'user', content: results });
     if (booked || forcedReply) break;
   }
+  // The loop stops right after a booking or a forced reply, so a model failure never follows one.
+  if (modelFailure) return fallback(modelFailure);
   // After a booking the logged confirmation is the reply; after a held or refused action, decide()'s words; otherwise the
   // model's text (capped to two SMS).
   const own = forcedReply ?? reply;
@@ -306,6 +344,17 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
   } else if (text && !booked && !handedTo && !bookingHeld && !['booked', 'disqualified', 'customer'].includes(state)) await followUp();
   if (!text) text = null;
   return result(text);
+
+  /** Model call failed: the fixed reply, a hand-off to a person (as escalate_human), no follow-up ladder, no booking.
+   * Logs only the safe code, never the error message, provider body or key. */
+  async function fallback(code: string): Promise<SetterTurn> {
+    console.warn(`[front-office/setter] model call failed (${code}); fixed fallback reply used and the lead handed to a person.`);
+    // Already handed on this turn (an earlier round's escalate_human or handoff_receptionist): not recorded twice.
+    if (!handedTo) await toPerson('AI could not reply', `The AI model call failed (${code}). The contact got the fixed holding reply: "${SETTER_FALLBACK_REPLY}" Please reply to them.`, 'A person replies to the contact');
+    const text = SETTER_FALLBACK_REPLY.slice(0, replyLimit[channel]);
+    if (d.logReply !== false) await d.rpc('fo_log_outbound', { ...a, contact: contactId, message: text, agent_name: 'setter', prompt: SETTER_FALLBACK_PROMPT });
+    return result(text);
+  }
 
   async function followUp() {
     const chk = checkFollowUp({ ...ctx, contact: { ...ctx.contact, state } }, d.channel);
