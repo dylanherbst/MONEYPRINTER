@@ -3,8 +3,38 @@
 // fake calendar, recording senders): no call is placed or answered, nothing is sent, no database or provider is used.
 import { fixtureById, fixtures, simulateCall } from '../../../lib/front-office/receptionist/simulate';
 import type { SimResult } from '../../../lib/front-office/receptionist/simulate';
+import type { ReceptionistLabState } from '../../../lib/front-office/receptionist/lab-live';
+import { labUsageToday } from '../../../lib/front-office/lab-usage';
+import type { LabUsageToday } from '../../../lib/front-office/lab-usage';
+import { endCall, liveTurn, startCall } from './live';
+import type { LiveCallResult } from './live';
 
 export type LabState = { result: SimResult | null; error: string | null };
+
+// Live AI Test (task A-41): the real model through the A-26 engine (lib/front-office/receptionist/lab-live.ts), with the
+// store, calendar and senders sandboxed. Starting and ending a call are free (no model). A turn is paid, so the caller is
+// built ONLY from the server-verified Supabase session (lp-access cookie read here); no user id is taken from the browser.
+export async function startLiveCall(): Promise<LiveCallResult> {
+  return startCall();
+}
+
+export async function sendLiveTurn(state: ReceptionistLabState, says: string): Promise<LiveCallResult> {
+  return liveTurn(state, says, {
+    token: async () => {
+      // Imported here so the demo action (and its Node tests) never load next/headers.
+      const { cookies } = await import('next/headers');
+      return (await cookies()).get('lp-access')?.value;
+    },
+  });
+}
+
+export async function endLiveCall(state: ReceptionistLabState): Promise<LiveCallResult> {
+  return endCall(state);
+}
+
+export async function getLiveUsage(): Promise<LabUsageToday> {
+  return labUsageToday();
+}
 
 export async function runLab(_prev: LabState, form: FormData): Promise<LabState> {
   const id = String(form.get('fixture') ?? '');

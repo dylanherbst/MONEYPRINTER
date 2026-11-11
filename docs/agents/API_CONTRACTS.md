@@ -114,6 +114,31 @@ EXISTS. Shown so the UI knows where data comes from.
   with `FRONT_OFFICE_VOICE_LIVE=1`, saved settings, Receptionist and voice switched on.
 - `GET|POST /api/front-office/jobs/run` (cron; Bearer secret). Follow-ups and reminders; sent only with `FRONT_OFFICE_SEND_LIVE=1`.
 
+### Receptionist Lab Live AI Test server actions (A-41, test page only)
+EXISTS. Next.js Server Actions (not REST routes) in `apps/web/app/tools/receptionist-lab/actions.ts`, used only by the
+isolated test page `/tools/receptionist-lab`. Logic in `apps/web/app/tools/receptionist-lab/live.ts`; engine is
+`lib/front-office/receptionist/lab-live.ts` (A-26). Sandboxed: real model only; store, calendar, SMS/email in memory,
+nothing placed, booked or sent. Shapes: `ReceptionistLabState`, `ReceptionistCallSummary` (lab-live.ts), `LabUsageToday`
+(lab-usage.ts).
+- Result of every call action: `{ state: ReceptionistLabState | null, error: string | null, liveAi?: "configured" |
+  "not_configured", signIn?: "verified" | "refused" }`. `state` is null on any error; the page keeps its last state.
+- `startLiveCall()` -> result. Free (fixed greeting, no model). No sign-in needed.
+- `sendLiveTurn(state, says: string)` -> result. PAID (one Receptionist turn on the real model). Order of checks: `state`
+  shape and size (`checkedReceptionistLab`, before any cookie read), then the caller is built ONLY from the server session
+  (`lp-access` cookie -> `auth.getUser` + `session_active`, shared `verifiedCaller` from `tools/setter-lab/live-auth.ts`;
+  no user id is accepted from the browser), then the engine checks model config and the shared daily lab cap before any
+  model call. Business settings are chosen on the server (demo business for now), never sent by the page. `says` is
+  trimmed and capped at 600 characters by the engine; 30 caller turns per call.
+  Errors (plain English): sign-in required / account sign-in not connected / could not check sign-in (`signIn: "refused"`,
+  no model call); `LIVE_NOT_CONFIGURED` (`liveAi: "not_configured"`); today's cap reached; "This lab call has ended / is
+  too long / could not be read. Start a new call."; "Say something first."; anything else -> generic "Live AI Test failed".
+  A model or tool failure during the turn is not an error: it lands in the turn as `route: "error"` with the phone apology.
+- `endLiveCall(state)` -> result with `state.ended = { reason, summary }`. Free (no model).
+- `getLiveUsage()` -> `LabUsageToday` (same shared cap as the Setter Lab's `getLabUsage`).
+- Page indicators: LIVE only when the server reports a configured model (`!!anthropicConfigFromEnv()`, a yes/no only);
+  speech-to-text (Web Speech API, `en-AU`) and spoken replies (`speechSynthesis`, `en-AU`) are optional, keyboard input
+  always works.
+
 ## Planned endpoints
 
 All planned endpoints: signed-in, `?workspace=<id>`, common errors above, lists capped and newest first unless stated.
