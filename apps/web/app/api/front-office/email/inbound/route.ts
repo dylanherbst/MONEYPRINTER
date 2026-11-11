@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
   } : {};
   try {
     // STOP / unsubscribe counts in the new text, or in the subject when the text is empty.
-    const result = await handleInbound(rpc, auth, { via: 'email', sender: mail.from, body, messageId: mail.messageId, checkText: mail.text || mail.subject }, agents);
+    const result = await handleInbound(rpc, auth, { via: 'email', sender: mail.from, body, messageId: mail.messageId, checkText: mail.text || mail.subject }, agents, { withdrawConsent: true });
     if (result.reply) defer(async () => { await emailSenderFromEnv()(mail.from, replySubject(mail.subject), result.reply as string, mail.messageId); });
     return reply({ received: true, duplicate: result.duplicate });
   } catch (e) {

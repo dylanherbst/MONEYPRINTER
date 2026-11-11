@@ -121,6 +121,15 @@ export type Message = {
   createdAt: string;                // created_at
 };
 
+/** fo_contact_context contact.consent (migration 202611110004, A-38): true only while the contact has an open, explicit
+ * grant for that channel. Older databases do not return it: missing means no consent on either channel. A grant never
+ * overrides an opt-out; callers still refuse opted-out contacts first. */
+export type ContactConsent = { sms: boolean; email: boolean };
+/** Explicit consent for one channel from a raw contact.consent value. Only the boolean true counts. */
+export function hasConsent(consent: unknown, channel: 'sms' | 'email'): boolean {
+  return !!consent && typeof consent === 'object' && (consent as Record<string, unknown>)[channel] === true;
+}
+
 /** One contact on one channel, for an inbox list. Derived from fo_messages (planned A-9). */
 export type Conversation = {
   contactId: string;

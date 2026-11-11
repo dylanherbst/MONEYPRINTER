@@ -4,7 +4,8 @@
 //
 // Permission check (task A-17): with input.permissions (the jobs runner passes channelPermissions()), every job that
 // sends (each follow-up step, both reminders and each no-show rescue message) is checked again when it falls due:
-// opt-out, a person having taken over, recorded consent (follow-ups: the contact messaged the business first), the
+// opt-out, a person having taken over, recorded consent (follow-ups: the contact messaged the business first, or an
+// explicit fo_contact_consents grant for the channel, A-45), the
 // Setter's operating mode through pending-actions.ts gate() and quiet hours in the business's time zone (DST-safe: the
 // job moves to the end of the quiet hours by the local clock). Modes: automatic sends once; enquiry_only never sends;
 // owner_approval holds this exact message (one item per step, reminder or rescue message) and sends it only once the
@@ -14,8 +15,8 @@
 // Approving a held job item: use createJobsExecutor(createSetterExecutor(...)) so the item becomes 'performed'.
 import { timingSafeEqual } from 'node:crypto';
 import { formatSlot } from './calendar/slots';
-import { DEFAULT_OPERATING_MODE } from './contracts';
-import type { PendingActionPayload } from './contracts';
+import { DEFAULT_OPERATING_MODE, hasConsent } from './contracts';
+import type { ContactConsent, PendingActionPayload } from './contracts';
 import type { ChannelAuth, Rpc } from './orchestrator';
 import { DEFAULT_TTL_MINUTES, gate } from './pending-actions';
 import type { ActionExecutor, ApproveOptions, PendingActionStore } from './pending-actions';
@@ -91,10 +92,10 @@ export function afterJobQuietHours(t: number, timeZone: string, q: QuietHours = 
 
 type Job = { id: string; contact: string; kind: 'follow-up' | 'reminder-24h' | 'reminder-2h' | 'no-show-rescue'; step: number; appointment: string | null };
 type Ctx = {
-  /** consent: explicit consent per channel (only the boolean true counts). fo_contact_context does not return it yet
-   * (needs ventra-backend), so a Meta contact is never moved to SMS or email today (an owner task is created instead);
-   * metaRoute() starts rerouting as soon as the field is returned. */
-  contact: { name: string | null; phone: string | null; email: string | null; state: string; optedOut: boolean; consent?: { sms?: boolean; email?: boolean } };
+  /** consent: explicit consent per channel from fo_contact_context (migration 202611110004, A-38; only the boolean true
+   * counts, a missing field from an older database is no consent). metaRoute() uses it to move a Meta contact to SMS or
+   * email outside the 24-hour window; without it an owner task is created instead. optedOut always wins. */
+  contact: { name: string | null; phone: string | null; email: string | null; state: string; optedOut: boolean; consent?: Partial<ContactConsent> };
   appointment: { id: string; starts: string } | null;
   messages?: { direction: 'inbound' | 'outbound'; at?: string }[];
   handoffs?: { owner: string }[];
@@ -113,7 +114,9 @@ export function approvalWindow(kind: Job['kind'], step: number): number {
 /** Why a job may not go out under the business rules, or null. Same rules as setter/actions.ts checkFollowUp. */
 function jobBlocked(job: Job, ctx: Ctx): string | null {
   if (ctx.handoffs?.at(-1)?.owner === 'human') return 'A person is looking after this contact.';
-  if (job.kind === 'follow-up' && !(ctx.messages ?? []).some(m => m.direction === 'inbound')) return 'No recorded consent: the contact has not messaged the business.';
+  // Consent for a follow-up: the contact messaged the business, or an explicit grant (A-38) for the channel it goes by.
+  const by = ctx.contact.phone ? 'sms' : 'email';
+  if (job.kind === 'follow-up' && !(ctx.messages ?? []).some(m => m.direction === 'inbound') && !hasConsent(ctx.contact.consent, by)) return 'No recorded consent: the contact has not messaged the business.';
   return null;
 }
 /** When the contact last messaged the business (0 if unknown): a new conversation starts a new follow-up ladder. */
@@ -153,8 +156,8 @@ export type MetaRoute = { via: 'meta'; recipient: string } | { via: 'sms' | 'ema
 export function metaRoute(w: SocialWindow, contact: Ctx['contact'], now: number, canEmail: boolean): MetaRoute {
   if (w.optedOut || contact.optedOut) return { via: 'owner', reason: 'The contact opted out.' };
   if (w.recipient && inReplyWindow(w.lastInbound, now)) return { via: 'meta', recipient: w.recipient };
-  if (contact.phone && contact.consent?.sms === true) return { via: 'sms' };
-  if (contact.email && canEmail && contact.consent?.email === true) return { via: 'email' };
+  if (contact.phone && hasConsent(contact.consent, 'sms')) return { via: 'sms' };
+  if (contact.email && canEmail && hasConsent(contact.consent, 'email')) return { via: 'email' };
   return { via: 'owner', reason: w.recipient ? 'Meta’s 24-hour reply window has closed and there is no SMS or email consent.' : 'No Instagram or Messenger id for this contact.' };
 }
 

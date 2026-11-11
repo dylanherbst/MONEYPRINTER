@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
         }
       }),
     } : {};
-    const result = await handleInboundSms(rpc, { channel, key }, sms, agents);
+    const result = await handleInboundSms(rpc, { channel, key }, sms, agents, { withdrawConsent: true });
     return new NextResponse(twiml(result.reply ?? undefined), { status: 200, headers: xmlHeaders });
   } catch (e) {
     if (e instanceof Error && /Channel not recognised/.test(e.message)) return plain(403, 'Channel not recognised.');

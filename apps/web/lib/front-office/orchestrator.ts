@@ -23,14 +23,18 @@ export const OPT_IN_PROMPT_VERSION = 'system/opt-in-confirmation@1';
 /** sales: called for booked contacts; not passed by any live route until the owner approves the Sales agent. */
 export type AgentHooks = { setter?: (contact: string) => void; sales?: (contact: string) => void };
 
-export async function handleInboundSms(rpc: Rpc, auth: ChannelAuth, sms: InboundSms, agents: AgentHooks = {}): Promise<InboundResult> {
-  return handleInbound(rpc, auth, { via: 'sms', sender: sms.from, to: sms.to, body: sms.body, messageId: sms.messageSid }, agents);
+/** withdrawConsent: on a STOP by SMS or email, also close the contact's explicit consent for that channel
+ * (fo_withdraw_consent, A-45). The live SMS and email inbound routes set it; it needs migration 202611110004. */
+export type InboundOptions = { withdrawConsent?: boolean };
+
+export async function handleInboundSms(rpc: Rpc, auth: ChannelAuth, sms: InboundSms, agents: AgentHooks = {}, opts: InboundOptions = {}): Promise<InboundResult> {
+  return handleInbound(rpc, auth, { via: 'sms', sender: sms.from, to: sms.to, body: sms.body, messageId: sms.messageSid }, agents, opts);
 }
 
 /** One inbound message on any channel: SMS (fo_ingest_sms), web chat or email (fo_ingest). */
 /** checkText: the words checked for STOP/START when the stored body has extra framing (an email's subject line). */
 export type InboundMessage = { via: 'sms' | 'web-chat' | 'email' | 'instagram' | 'messenger'; sender: string; to?: string; body: string; messageId: string; checkText?: string };
-export async function handleInbound(rpc: Rpc, auth: ChannelAuth, m: InboundMessage, agents: AgentHooks = {}): Promise<InboundResult> {
+export async function handleInbound(rpc: Rpc, auth: ChannelAuth, m: InboundMessage, agents: AgentHooks = {}, opts: InboundOptions = {}): Promise<InboundResult> {
   const words = m.checkText ?? m.body;
   const optOut = isOptOut(words), optIn = !optOut && isOptIn(words);
   const raw = (m.via === 'sms'
@@ -48,6 +52,16 @@ export async function handleInbound(rpc: Rpc, auth: ChannelAuth, m: InboundMessa
   if (reply) {
     // Logged before it is sent (tracker 0.6).
     await rpc('fo_log_outbound', { channel: auth.channel, channel_key: auth.key, contact: base.contact, message: reply, agent_name: 'system', prompt: reply === OPT_OUT_CONFIRMATION ? OPT_OUT_PROMPT_VERSION : OPT_IN_PROMPT_VERSION });
+  }
+  // STOP by SMS or email also closes any explicit consent for that channel (fo_contact_consents, A-38/A-45). The opt-out
+  // above is what stops all messaging; this only keeps the consent history right, so a failure (an older database
+  // without the RPC, a transient error) is logged and never changes the opt-out or the reply.
+  if (opts.withdrawConsent && optOut && base.optedOut && (m.via === 'sms' || m.via === 'email')) {
+    try {
+      await rpc('fo_withdraw_consent', { channel: auth.channel, channel_key: auth.key, contact: base.contact, consent_channel: m.via, source: `inbound STOP (${m.via})`, withdrawn: null });
+    } catch (e) {
+      console.warn(`fo_withdraw_consent failed after a ${m.via} opt-out; the opt-out stands.`, e instanceof Error ? e.message : e);
+    }
   }
   // System replies (opt-out, opt-in) end the turn; otherwise the owning agent replies on its own.
   if (!reply && route.agent === 'setter' && agents.setter) agents.setter(base.contact);

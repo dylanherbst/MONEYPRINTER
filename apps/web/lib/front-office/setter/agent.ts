@@ -86,7 +86,7 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
   let forcedReply: string | null = null, bookingHeld = false;
   const store = d.permissions ? failSafeStore(d.permissions.store) : null;
   const mode: OperatingMode = store ? await store.mode('setter') : 'automatic';
-  const x: SetterActionDeps = { rpc: d.rpc, auth: d.auth, calendar: d.calendar, config: d.config, now: d.now, send: d.send, channel, quietHours: d.permissions?.quietHours };
+  const x: SetterActionDeps = { rpc: d.rpc, auth: d.auth, calendar: d.calendar, config: d.config, now: d.now, send: d.send, channel, via: d.channel ?? null, quietHours: d.permissions?.quietHours };
   const result = (reply: string | null): SetterTurn => ({ reply, state, booked, handedTo, tools: used, mode, pendingActionIds: held, actions, transitions });
   if (ctx.contact.optedOut || !ACTIVE_STATES.includes(state)) return result(null);
   // A person owns this conversation: the AI does not reply (or start follow-ups) until it is handed back.
@@ -308,7 +308,7 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
   return result(text);
 
   async function followUp() {
-    const chk = checkFollowUp({ ...ctx, contact: { ...ctx.contact, state } });
+    const chk = checkFollowUp({ ...ctx, contact: { ...ctx.contact, state } }, d.channel);
     if (!chk.ok) {
       actions.push({ action: 'follow_up', decision: 'skipped', reason: chk.why, pendingActionId: null, summary: `No follow-up for ${who}.`, payload: null, ok: null, note: null });
       return;
