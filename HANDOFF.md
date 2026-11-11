@@ -15,6 +15,18 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
+- Last cycle: c-08120d7a at 2026-11-12 00:56 AWST · 7 dispatched (A-43, A-38, A-6, A-44, A-46, A-45, A-47) + 3 reviews · 6 verified and committed · 0 new owner blockers
+- Integration branch: agent/develop @ 28b651db (576c9dd1 A-43 · 8fced048 A-38 · 22732105 A-46 · 46268b2c A-44 · fd0073e5 A-45 · 28b651db A-47); board commit follows
+- Verification: npm --prefix apps/web test 1030/1030 (was 990 at start of the previous cycle), lint 0, typecheck 0. ventra-verify (after A-38): lint/typecheck/unit/build/workspace-integration PASSED; course + launcher FAILED as frozen (P0-7). Reviews: A-38, A-45, A-47 approve with nits (A-38/A-45 nits closed by A-46/A-47; A-47 nits -> A-48).
+- A-6 QA of the Setter website-chat journey: PARTIAL PASS, 0 FAIL. Real calendar and live chat (FRONT_OFFICE_CHAT_LIVE + key) not tested. A-44 now drives the real chat route through real fo_* SQL in all three modes.
+- Behaviour change (A-45/A-47): follow-ups use recorded consent. A web-chat/Instagram/Messenger contact who left a mobile no longer gets an SMS follow-up without a recorded grant; an SMS/email STOP also withdraws that channel's consent. Owner may want a way to record consent by hand (needs a member RPC + UI, Workstream B).
+- Migration 202611110004 (consent) is local/PGlite only; applying it to the live project needs the owner. Until then the STOP withdraw call fails safely and is logged.
+- Running / implemented (needs reconciling next cycle): none. Backup not refreshed (P0-10 still broken; newest complete 2026-11-09 21:55).
+- Blocked, needs the owner: unchanged: W-1 browser check (blocks every W- task), P0-10 backup script, A-34 lab key secret, A-14 transfer rule (blocks A-7), P0-7. Real Live AI in either lab needs ANTHROPIC_API_KEY + FRONT_OFFICE_MODEL.
+- Next up: A-48 (voice, email runner preference), A-28 QA scenario suites (spec by qa, tests written by voice), A-18 (backend, one approval queue), A-12 (backend, Google Calendar availability), A-20 (voice, caller identity check).
+
+### Previous cycle c-a72d6105
+
 - Last cycle: c-a72d6105 at 2026-11-12 00:25 AWST · 5 dispatched (A-24 fixes, A-31, A-40, A-41, A-42) + 3 reviews · 5 verified and committed · 0 new owner blockers
 - Integration branch: agent/develop @ fcbd653d (614a96c2 A-40 · 67eeaf33 A-24 · 3148c5e4 A-31 · 29755f59 A-41 · fcbd653d A-42); board commit follows
 - Verification: npm --prefix apps/web test 990/990, lint 0, typecheck 0. ventra-verify (mid-cycle): lint/typecheck/unit/build/workspace-integration PASSED; course + launcher integration FAILED as frozen (known P0-7). Reviews: A-24 request changes -> fixed; A-31 and A-41 approve with nits -> nits fixed.
@@ -149,10 +161,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-12 00:40 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-12 01:32 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `fcbd653 fix(crm): contacts route searches email case-insensitively via emailSearchPattern (escaped ilike), phone search unchanged [A-42]`
-- Lock: coordinator (pid 8290, 15 min old)
+- HEAD: `28b651d fix(setter): consent rule applied everywhere follow-ups are decided: approved held follow-ups and the job runner pass the channel (via), send time needs same-channel inbound or an open grant, unknown channel fails closed; STOP withdraw always on; warn log without error text [A-47]`
+- Lock: coordinator (pid 15671, 36 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -171,6 +183,7 @@ _Generated 2026-11-12 00:40 by `ventra-handoff snapshot`. Do not hand-edit this 
  D apps/web/app/lab/page.tsx
  M apps/web/package-lock.json
  M apps/web/package.json
+ M docs/agents/API_CONTRACTS.md
  M docs/agents/TASKS.md
  M docs/agents/TASK_BOARD.json
  D docs/design/LIQUID_GLASS_SPEC.md
@@ -194,7 +207,6 @@ _Generated 2026-11-12 00:40 by `ventra-handoff snapshot`. Do not hand-edit this 
 ?? .claude/agents/ventra-web-design.md
 ?? .codex/agents/ventra-marketing.toml
 ?? .codex/agents/ventra-store.toml
-?? .codex/agents/ventra-voice.toml
 ```
 - Diff stat vs HEAD:
 ```text
@@ -212,15 +224,15 @@ _Generated 2026-11-12 00:40 by `ventra-handoff snapshot`. Do not hand-edit this 
  scripts/agents/install.sh                         |   2 +-
  scripts/agents/ventra-backup                      |   3 +
  scripts/agents/ventra-verify                      |  11 +-
- 32 files changed, 184 insertions(+), 1699 deletions(-)
+ 33 files changed, 199 insertions(+), 1695 deletions(-)
 ```
 - Recent commits:
 ```text
-fcbd653 fix(crm): contacts route searches email case-insensitively via emailSearchPattern (escaped ilike), phone search unchanged [A-42]
-29755f5 feat(receptionist): Receptionist Lab Live AI Test page with en-AU browser speech + keyboard fallback, server actions on the verified session through lab-live.ts, DEMO/LIVE and connection indicators, shared lab cap, end-call summary, whitelisted errors [A-41]
-3148c5e fix(crm): stricter AU phone validation (readPhone with reasons; 13/1300/1800 refused as customer phones), case-insensitive email search pattern, keyset paging tie test on real migrations, Setter saves local AU formats [A-31]
-67eeaf3 feat(setter): industry presets Beauty/Fitness/Trades on the real knowledge base shapes, example-value labels, price placeholders in example conversations, safe emergency/licence/injury wording [A-24]
-614a96c test(setter): meta-window approval regression cases for opted-out contacts and sms/email/web channels; merge duplicate doc comment in pending-actions/shared.ts [A-40]
+28b651d fix(setter): consent rule applied everywhere follow-ups are decided: approved held follow-ups and the job runner pass the channel (via), send time needs same-channel inbound or an open grant, unknown channel fails closed; STOP withdraw always on; warn log without error text [A-47]
+fd0073e feat(setter): follow-ups use recorded consent (opt-out wins; same-channel reply allowed; other channel needs an open grant; missing = no consent); SMS/email STOP also withdraws that channel's consent (non-fatal); Meta reroute uses hasConsent [A-45]
+46268b2 test(setter): end-to-end website chat through the real route and real fo_* SQL in PGlite for automatic, owner approval, enquiry only and not-live, asserting contacts, messages, pending actions, appointments and handoffs; accurate Receptionist Lab mode test label [A-44]
+2273210 test(crm): consent grant on an opted-out contact keeps optedOut true; anon/authenticated cannot execute fo_consent_input or the guard trigger function [A-46]
+8fced04 feat(crm): per-channel consent records fo_contact_consents (sms/email, grant/withdraw source+time, RLS read-only for members, guard trigger), fo_grant_consent/fo_withdraw_consent RPCs, fo_contact_context returns contact.consent; local/PGlite only [A-38]
 ```
 <!-- git-state:end -->
 

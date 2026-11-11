@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-11T17:32:00Z",
+  "updatedAt": "2026-11-11T17:34:00Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-a72d6105",
-    "startedAt": "2026-11-11T16:25:11Z",
-    "endedAt": "2026-11-11T17:33:00Z",
-    "summary": "5 committed: A-40 614a96c2, A-24 67eeaf33 (review fixes), A-31 3148c5e4, A-41 29755f59 (not browser-checked), A-42 fcbd653d. Full suite 993/993, lint 0, typecheck 0. Planned A-42, A-43. No new owner blockers."
+    "id": "c-08120d7a",
+    "startedAt": "2026-11-11T16:56:11Z",
+    "endedAt": "2026-11-11T17:35:00Z",
+    "summary": "6 committed: A-43 576c9dd1, A-38 8fced048 (consent migration, PGlite only), A-46 22732105, A-44 46268b2c (chat e2e through real SQL), A-45 fd0073e5 (consent wired), A-47 28b651db. A-6 QA: partial pass, 0 FAIL. Full suite 1030/1030, lint 0, typecheck 0; ventra-verify unit/build/workspace PASSED, course/launcher frozen (P0-7). Planned A-44..A-48; A-48 queued. No new owner blockers; backup still broken (P0-10)."
   },
   "tasks": [
     {
@@ -1211,7 +1211,7 @@
       "phase": 1,
       "module": "setter",
       "owner": "ventra-qa",
-      "state": "queued",
+      "state": "done",
       "priority": 2,
       "dependsOn": [],
       "scope": [],
@@ -1222,14 +1222,15 @@
       "plan": "Owner directive: QA both products independently; completion standard",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
-      "lastRunId": null,
-      "runIds": [],
+      "startedAt": "2026-11-11T16:58:00Z",
+      "finishedAt": "2026-11-11T17:03:00Z",
+      "lastRunId": "c-08120d7a",
+      "runIds": ["c-08120d7a"],
       "commits": [],
-      "evidence": [],
+      "evidence": [{"at": "2026-11-11T17:03:00Z", "kind": "note", "detail": "ventra-qa report: PARTIAL PASS, 0 FAIL. npm --prefix apps/web test 993/993 exit 0; npm run test:local-integration exit 0 (workspace/RLS only, not fo_*). Steps PASS: chat route 503/403/400, fo_contacts/fo_messages + duplicate id, qualification + state machine, chat silent until live, booking in automatic/owner approval/enquiry only, decide()/gate() matrix, persistence (PGlite), logging, STOP opt-out, cross-workspace. NOT IMPLEMENTED in tests: real calendar (fake only). Gaps -> A-44 (route tests use fake RPC; stale GAP label), A-45 (consent not wired). TODO(A-14) at setter/agent.ts:162 stays with A-14."}],
       "blocker": null,
-      "notes": "Workstream A (owner directive 2026-11-09): AI Setter + AI Receptionist. Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site (owner's frontend)."
+      "notes": "Workstream A (owner directive 2026-11-09): AI Setter + AI Receptionist. Never touch apps/web/app/ui, components, design-system, (ventra) layouts or site (owner's frontend). Live chat path (FRONT_OFFICE_CHAT_LIVE=1 + model key) not verified by QA.",
+      "updatedAt": "2026-11-11T17:03:00Z"
     },
     {
       "id": "A-7",
@@ -3514,7 +3515,7 @@
       "phase": 1,
       "module": "setter",
       "owner": "ventra-voice",
-      "state": "queued",
+      "state": "done",
       "priority": 4,
       "dependsOn": ["A-40"],
       "scope": ["apps/web/lib/front-office/pending-actions.ts", "apps/web/lib/front-office/jobs.ts", "apps/web/test/front-office-meta-window*.test.ts"],
@@ -3522,23 +3523,34 @@
       "plan": "A-40 finding",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
-      "lastRunId": "c-a72d6105",
-      "runIds": ["c-a72d6105"],
-      "commits": [],
-      "evidence": [{"at": "2026-11-11T17:05:00Z", "kind": "note", "detail": "Planned c-a72d6105 from A-40 specialist finding."}],
+      "startedAt": "2026-11-11T16:58:00Z",
+      "finishedAt": "2026-11-11T17:06:00Z",
+      "lastRunId": "c-08120d7a",
+      "runIds": ["c-a72d6105", "c-08120d7a"],
+      "commits": ["576c9dd1"],
+      "evidence": [{"at": "2026-11-11T17:05:00Z", "kind": "note", "detail": "Planned c-a72d6105 from A-40 specialist finding."},
+        {"at": "2026-11-11T17:04:00Z", "kind": "diff", "detail": "Coordinator read diff: 4 files +95/-7. pending-actions.ts META_OPTED_OUT_AT_APPROVAL + optional replyWindow.optedOut checked first (errors fall back to window check); jobs.ts socialWindowCheck.optedOut hands its fo_social_window read to lastInbound (one read). 11 new tests in meta-window-approval, route test expects opt-out note."},
+        {"at": "2026-11-11T17:05:00Z", "kind": "test", "detail": "npm --prefix apps/web test 1010/1010 (prev cycle 990 + A-6 era 993), typecheck 0, lint 0; ventra-verify lint/typecheck/unit/build/workspace-integration PASSED, course+launcher FAILED (frozen, P0-7)."},
+        {"at": "2026-11-11T17:06:00Z", "kind": "commit", "detail": "576c9dd1 via ventra-git."}],
       "blocker": null,
       "notes": "",
-      "updatedAt": "2026-11-11T17:05:00Z"
+      "updatedAt": "2026-11-11T17:06:00Z"
     },
     {
       "id": "A-38",
-      "commits": [],
-      "evidence": [],
-      "runIds": [
-        "c-df526914"
+      "commits": ["8fced048"],
+      "evidence": [
+        {"at": "2026-11-11T17:02:00Z", "kind": "diff", "detail": "2 new files: migration 202611110004_front_office_consent.sql (fo_contact_consents, RLS select for members only, guard trigger, fo_grant_consent/fo_withdraw_consent, fo_contact_context create-or-replace adding contact.consent) + front-office-consent-db.test.ts (6 PGlite tests)."},
+        {"at": "2026-11-11T17:03:00Z", "kind": "review", "detail": "ventra-review APPROVE WITH NITS: fo_contact_context body identical to 202611060003 except consent; search_path='' on all definer functions; isolation and re-apply OK. Nits -> A-46 (tests) and notes."},
+        {"at": "2026-11-11T17:05:00Z", "kind": "test", "detail": "npm --prefix apps/web test 1010/1010, typecheck 0, lint 0; ventra-verify unit/build/workspace-integration PASSED, course+launcher FAILED (frozen, P0-7). Migration applied to PGlite only."},
+        {"at": "2026-11-11T17:06:00Z", "kind": "commit", "detail": "8fced048 via ventra-git."}
       ],
+      "finishedAt": "2026-11-11T17:06:00Z",
+      "runIds": [
+        "c-df526914",
+        "c-08120d7a"
+      ],
+      "startedAt": "2026-11-11T16:58:00Z",
       "dependsOn": [
         "A-32"
       ],
@@ -3546,7 +3558,7 @@
       "phase": "A",
       "module": "shared",
       "owner": "ventra-backend",
-      "state": "queued",
+      "state": "done",
       "priority": 3,
       "scope": [
         "supabase/migrations/202611110004_front_office_consent.sql",
@@ -3560,12 +3572,78 @@
       "plan": "A-32 report",
       "branch": "agent/develop",
       "worktree": null,
-      "startedAt": null,
-      "finishedAt": null,
       "blocker": null,
-      "notes": "Migration numbers 0003 (A-35) and 0004 (A-38) reserved to avoid clashes.",
-      "lastRunId": "c-df526914",
-      "updatedAt": "2026-11-10T17:35:39.403Z"
+      "notes": "Migration numbers 0003 (A-35) and 0004 (A-38) reserved to avoid clashes. Local/PGlite only; applying to the live project needs the owner. Not yet called by app code (A-45). No member RPC to record consent by hand yet. Review nit: 5-minute future allowance on grant time is accepted.",
+      "lastRunId": "c-08120d7a",
+      "updatedAt": "2026-11-11T17:06:00Z"
+    },
+    {
+      "id": "A-44",
+      "title": "End-to-end website chat test through real SQL: POST /api/front-office/chat via PGlite-backed rpc for automatic / owner approval / enquiry only, asserting fo_contacts, fo_messages, fo_pending_actions and booking rows; fix stale 'GAP (A-2)' test label",
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "done", "priority": 2, "dependsOn": ["A-6"],
+      "scope": ["apps/web/test/front-office-chat-e2e-db.test.ts", "apps/web/test/front-office-receptionist-lab.test.ts"],
+      "acceptance": ["One PGlite test per mode drives the real chat route handler and asserts the DB rows", "No fake RPC for the fo_* calls under test", "Stale label renamed, assertion unchanged"],
+      "plan": "A-6 QA gaps 1 and 3", "branch": "agent/develop", "worktree": null,
+      "startedAt": "2026-11-11T17:07:00Z", "finishedAt": "2026-11-11T17:12:00Z", "lastRunId": "c-08120d7a", "runIds": ["c-08120d7a"], "commits": ["46268b2c"],
+      "evidence": [{"at": "2026-11-11T17:07:00Z", "kind": "note", "detail": "Planned c-08120d7a from A-6 QA report (no FAILs, gap: route tests use a fake RPC)."},
+        {"at": "2026-11-11T17:11:00Z", "kind": "diff", "detail": "New test file 258 lines (real chat POST handler, Supabase REST rpc calls routed to real fo_* in PGlite as anon; fetch fully intercepted + restored, only scripted model and fake Google allowed); receptionist-lab test label only (1 line). No production code changed. No fake/real shape mismatch found."},
+        {"at": "2026-11-11T17:11:00Z", "kind": "test", "detail": "Coordinator ran npm --prefix apps/web test: 1016/1016 (was 1012 incl. A-46)."},
+        {"at": "2026-11-11T17:12:00Z", "kind": "commit", "detail": "46268b2c via ventra-git."}],
+      "blocker": null, "notes": "", "updatedAt": "2026-11-11T17:12:00Z"
+    },
+    {
+      "id": "A-45",
+      "title": "Wire consent: setter/actions.ts reads contact.consent from fo_contact_context instead of inferring from the first inbound message; SMS/email STOP calls fo_withdraw_consent; out-of-window Meta reroute uses consent",
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "done", "startedAt": "2026-11-11T17:13:00Z", "priority": 3, "dependsOn": ["A-38", "A-44"],
+      "scope": ["apps/web/lib/front-office/setter/actions.ts", "apps/web/lib/front-office/jobs.ts", "apps/web/app/api/front-office/**", "apps/web/test/front-office-consent*.test.ts", "apps/web/test/front-office-setter-actions*.test.ts"],
+      "acceptance": ["Consent comes from the record, false without one", "STOP withdraws the matching channel's consent and still opts out", "Existing opt-out behaviour unchanged", "Tests cover each case"],
+      "plan": "A-6 QA gap 2; A-38 open issues", "branch": "agent/develop", "worktree": null,
+      "finishedAt": "2026-11-11T17:24:00Z", "lastRunId": "c-08120d7a", "runIds": ["c-08120d7a"], "commits": ["fd0073e5"],
+      "evidence": [{"at": "2026-11-11T17:07:00Z", "kind": "note", "detail": "Planned c-08120d7a. Also fix jobs.ts comment lines 94-96 that says consent is not returned."},
+        {"at": "2026-11-11T17:21:00Z", "kind": "diff", "detail": "7 source files +75/-33 (contracts.ts ContactConsent+hasConsent; setter/actions.ts checkFollowUp(ctx, via); agent.ts passes channel; jobs.ts hasConsent + comment; orchestrator.ts STOP -> fo_withdraw_consent non-fatal behind withdrawConsent option; sms/email inbound routes pass it) + new front-office-consent-wiring.test.ts (9 tests incl. PGlite round trip)."},
+        {"at": "2026-11-11T17:23:00Z", "kind": "review", "detail": "ventra-review APPROVE WITH NITS: nothing sends more than before; opt-out wins everywhere; withdraw non-fatal after opt-out. Nits -> A-47 (approval executor lacks via; jobBlocked any-channel inbound; via-unknown default not fail-closed; option default; warn message)."},
+        {"at": "2026-11-11T17:23:00Z", "kind": "test", "detail": "Coordinator: npm --prefix apps/web test 1025/1025 (was 1016), typecheck 0, lint 0."},
+        {"at": "2026-11-11T17:24:00Z", "kind": "commit", "detail": "fd0073e5 via ventra-git."}],
+      "blocker": null, "notes": "Behaviour change: a web-chat/Instagram/Messenger contact who left a mobile no longer gets an SMS follow-up without a recorded grant. fo_withdraw_consent only exists where migration 202611110004 is applied (fails safe + logged until then). Who records consent by hand (owner UI) is a later backend RPC + Workstream B.", "updatedAt": "2026-11-11T17:24:00Z"
+    },
+    {
+      "id": "A-47",
+      "title": "A-45 review nits: approval executor passes the originating channel (via) for held follow-ups; jobBlocked at send time requires same-channel inbound or an open grant; unknown via fails closed (needs a grant); withdrawConsent default-on with explicit opt-out for the legacy exact-call test; consent warn logs error name only",
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "done", "priority": 3, "dependsOn": ["A-45"],
+      "scope": ["apps/web/lib/front-office/setter/actions.ts", "apps/web/lib/front-office/jobs.ts", "apps/web/lib/front-office/orchestrator.ts", "apps/web/lib/front-office/pending-actions.ts", "apps/web/app/api/front-office/pending-actions/shared.ts", "apps/web/app/api/front-office/sms/inbound/route.ts", "apps/web/app/api/front-office/email/inbound/route.ts", "apps/web/test/front-office-consent-wiring.test.ts", "apps/web/test/front-office.test.ts"],
+      "acceptance": ["Approved held follow-up applies the same cross-channel rule as at hold time (test)", "Send-time check refuses after a grant is withdrawn when the only inbound is on another channel (test)", "Callers with unknown via need a grant (test); all live callers still pass channel", "front-office.test.ts exact call list updated deliberately, not loosened", "No PII in logs", "Full suite, typecheck, lint pass"],
+      "plan": "ventra-review of A-45 (c-08120d7a)", "branch": "agent/develop", "worktree": null,
+      "startedAt": "2026-11-11T17:25:00Z", "finishedAt": "2026-11-11T17:33:00Z", "lastRunId": "c-08120d7a", "runIds": ["c-08120d7a"], "commits": ["28b651db"],
+      "evidence": [{"at": "2026-11-11T17:28:00Z", "kind": "test", "detail": "First attempt: full suite 1015/1030 (15 fail: live jobs/run route passed no channel, so same-channel follow-ups failed closed). Sent back once with scope + jobs/run route, routes-modes-jobs and setter-actions test setup."},
+        {"at": "2026-11-11T17:31:00Z", "kind": "diff", "detail": "11 files: shared.ts approvalChannel kind -> via; jobs.ts jobBlocked via===by or open grant; jobs/run route via from isChannelKind; actions.ts unknown via fails closed; orchestrator STOP withdraw always on, warn = channel + error name/code; tests: setup via/channel 'sms', deliberate fail-closed flip, fo_withdraw_consent added to exact call list. +5 consent-wiring tests."},
+        {"at": "2026-11-11T17:32:00Z", "kind": "review", "detail": "ventra-review APPROVE WITH NITS: nothing looser; Meta same-channel ok; reroute needs grant. Nits -> A-48."},
+        {"at": "2026-11-11T17:32:00Z", "kind": "test", "detail": "Coordinator: npm --prefix apps/web test 1030/1030, typecheck 0, lint 0."},
+        {"at": "2026-11-11T17:33:00Z", "kind": "commit", "detail": "28b651db via ventra-git."}],
+      "blocker": null, "notes": "", "updatedAt": "2026-11-11T17:33:00Z"
+    },
+    {
+      "id": "A-48",
+      "title": "A-47 review nits: on the email runner channel prefer email for a contact who has both phone and email (today sms is picked, so an email lead with a phone needs an SMS grant); reword the jobBlocked comment; optional jobs/run route test that via is passed (Meta via = meta.kind)",
+      "phase": "A", "module": "setter", "owner": "ventra-voice", "state": "queued", "priority": 3, "dependsOn": ["A-47"],
+      "scope": ["apps/web/lib/front-office/jobs.ts", "apps/web/test/front-office-consent-wiring.test.ts", "apps/web/test/front-office-routes-modes-jobs.test.ts"],
+      "acceptance": ["Email lead with a phone gets a same-channel email follow-up without a grant (test)", "Nothing looser: other-channel still needs a grant", "Full suite, typecheck, lint pass"],
+      "plan": "ventra-review of A-47 (c-08120d7a)", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": "c-08120d7a", "runIds": ["c-08120d7a"], "commits": [],
+      "evidence": [{"at": "2026-11-11T17:33:00Z", "kind": "note", "detail": "Planned c-08120d7a. Fail-safe today (blocks, never over-sends)."}],
+      "blocker": null, "notes": "", "updatedAt": "2026-11-11T17:33:00Z"
+    },
+    {
+      "id": "A-46",
+      "title": "A-38 review nits, test-only: pin that fo_grant_consent on an opted-out contact is allowed but fo_contact_context still reports optedOut; assert anon/authenticated lack execute on fo_consent_input and the guard trigger function",
+      "phase": "A", "module": "shared", "owner": "ventra-backend", "state": "done", "priority": 4, "dependsOn": ["A-38"],
+      "scope": ["apps/web/test/front-office-consent-db.test.ts"],
+      "acceptance": ["Both assertions added and passing", "No migration change"],
+      "plan": "ventra-review of A-38 (c-08120d7a)", "branch": "agent/develop", "worktree": null,
+      "startedAt": "2026-11-11T17:07:00Z", "finishedAt": "2026-11-11T17:12:00Z", "lastRunId": "c-08120d7a", "runIds": ["c-08120d7a"], "commits": ["22732105"],
+      "evidence": [{"at": "2026-11-11T17:11:00Z", "kind": "diff", "detail": "1 file +33/-0, test-only, no migration change."},
+        {"at": "2026-11-11T17:11:00Z", "kind": "test", "detail": "Coordinator ran node --experimental-strip-types --test apps/web/test/front-office-consent-db.test.ts: 8/8 (was 6). Full suite re-run after A-44."},
+        {"at": "2026-11-11T17:12:00Z", "kind": "commit", "detail": "22732105 via ventra-git."}],
+      "blocker": null, "notes": "", "updatedAt": "2026-11-11T17:12:00Z"
     },
     {
       "id": "P0-10",

@@ -216,6 +216,18 @@ EXISTS (read path): `apps/web/app/api/front-office/contacts/route.ts`, `.../acti
 - `GET /api/front-office/bookings?from=<ISO>&to=<ISO>` -> `{ items: Booking[] }`.
 - One contact per person per workspace: phone (E.164) and email (lower case) are unique; no silent merges.
 
+### Consent records (A-38, local/PGlite only until the owner approves the migration)
+EXISTS (database): `supabase/migrations/202611110004_front_office_consent.sql`, tests `test/front-office-consent-db.test.ts`.
+- Table `fo_contact_consents` (one row per grant; history kept): `channel` `sms|email`, `granted_at`, `granted_source`,
+  `withdrawn_at`, `withdrawn_source`. Members can read their workspace's rows; nobody writes directly.
+- `fo_grant_consent(channel, channel_key, contact, consent_channel, source, given_at?)` ->
+  `{ id, channel, granted: true, grantedAt, grantedSource, created }` (`created: false` when already open).
+- `fo_withdraw_consent(channel, channel_key, contact, consent_channel, source, withdrawn?)` ->
+  `{ id, channel, granted: false, changed: true, withdrawnAt, withdrawnSource }` or `{ channel, granted: false, changed: false }`.
+- `fo_contact_context` adds `contact.consent: { sms: boolean, email: boolean }` (false without an open grant).
+  Consent never overrides `optedOut`: callers refuse opted-out contacts first.
+- No member-facing RPC to record consent by hand yet (planned with the owner UI).
+
 ### GET /api/front-office/performance?workspace=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD&tz=<IANA zone> (A-10)
 EXISTS: `apps/web/app/api/front-office/performance/route.ts` (logic `lib/front-office/performance.ts`). Tests:
 `apps/web/test/front-office-performance.test.ts`.
