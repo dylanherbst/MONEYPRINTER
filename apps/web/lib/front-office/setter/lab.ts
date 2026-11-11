@@ -35,7 +35,7 @@ import type { ActionExecutor, PendingActionRecord } from '../pending-actions';
 import type { SmsSender } from '../sms-send';
 import { canTransition, isContactState } from '../state';
 import type { ContactState } from '../state';
-import { runSetterTurn } from './agent';
+import { runSetterTurn, setterHooks } from './agent';
 import { checkedSetterConfig, ventraSetterConfig } from './config';
 import type { SetterConfig } from './config';
 
@@ -274,6 +274,8 @@ const ESCALATE = /\b(discount|refund|price|pricing|cost|how much|legal|guarantee
 const SUPPORT = /\b(existing customer|my account|billing|complaint|complain)\b/i;
 const BOOK = /\b(book|call|time|slot|meeting|available|availability)\b/i;
 const PICK = /\b(first|second|third|last|earliest)\b/i;
+const CANCEL = /\bcancel\w*\b/i;
+const MOVE = /\b(reschedul\w*|move|change|different (time|day)|another (time|day)|push (it )?back)\b/i;
 
 /** What the scripted model would read out of one customer message: answers by question id, and contact details. */
 export function detectAnswers(text: string, config: SetterConfig = LAB_CONFIG): { answers: Record<string, string>; name?: string; email?: string; phone?: string } {
@@ -308,6 +310,16 @@ export function scriptedSetterModel(config: SetterConfig = LAB_CONFIG): Llm {
     };
     const missingNow = () => config.questions.filter(q => q.required && !known[q.id]).map(q => q.id);
     const results = resultsOf(req);
+    if (!results.length && stage === 'booked') {
+      // A-54: a booked contact writing again. Only what the returning prompt gives: the booking line, and a person for changes.
+      const change = CANCEL.test(text) ? 'cancel' : MOVE.test(text) ? 'reschedule' : null;
+      if (change) return reply([tool('escalate_human', { intent: `${change} booking`, summary: text.slice(0, 300), booking_change: change })]);
+      if (ESCALATE.test(text)) return reply([tool('escalate_human', { intent: 'Pricing or deal question', summary: text.slice(0, 300) })]);
+      if (SUPPORT.test(text)) return reply([tool('handoff_receptionist', { intent: 'Existing customer or support', summary: text.slice(0, 300) })]);
+      const booking = /^Their booking: (.+?)\.?$/m.exec(req.system)?.[1];
+      if (!booking || booking.startsWith('none upcoming')) return reply([tool('escalate_human', { intent: 'check booking', summary: 'Booked, but no upcoming booking is on file.' })]);
+      return reply([say(`Welcome back${hi}. You're booked for your ${booking}. Would you like to keep it, or should I ask the team to move or cancel it?`)]);
+    }
     if (!results.length) {
       if (ESCALATE.test(text)) return reply([tool('escalate_human', { intent: 'Pricing or deal question', summary: text.slice(0, 300) })]);
       if (SUPPORT.test(text)) return reply([tool('handoff_receptionist', { intent: 'Existing customer or support', summary: text.slice(0, 300) })]);
@@ -416,7 +428,8 @@ export async function runLabTurnWith(state: LabState, input: { message: string; 
   const turn: LabTurn = { n, customer: message, reply: null, model: m.model, route: '', contactId: null, state: null, answers: {}, missing: [], detected: detected({}), objection: OBJECTION_NOTE, offer: `${LAB_CONFIG.meetingTitle} (${LAB_CONFIG.where}), the one offer in the Setter config. The pipeline does not pick a different offer per lead.`, tools: [], handedTo: null, writes: db.writes, booking: null, error: null };
   try {
     let setterContact: string | null = null;
-    const r = await handleInboundSms(db.rpc, LAB_AUTH, { from: s.phone, to: '+61400000000', body: message, messageSid: `SMlab${String(n).padStart(6, '0')}` }, { setter: c => { setterContact = c; } });
+    // setterHooks: the same hooks as web chat, so a booked contact writing again gets the returning-booked answer (A-54).
+    const r = await handleInboundSms(db.rpc, LAB_AUTH, { from: s.phone, to: '+61400000000', body: message, messageSid: `SMlab${String(n).padStart(6, '0')}` }, setterHooks(c => { setterContact = c; }));
     turn.route = r.route.agent ? `${r.route.agent}: ${r.route.reason}` : `no agent: ${r.route.reason}`;
     turn.contactId = r.contact;
     turn.reply = r.reply;

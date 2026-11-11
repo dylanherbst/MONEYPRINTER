@@ -17,7 +17,8 @@ const { offerTimes } = await import('../lib/front-office/booking.ts');
 const { approvePendingAction } = await import('../lib/front-office/pending-actions.ts');
 const { handleInboundSms } = await import('../lib/front-office/orchestrator.ts');
 const { anthropicLlm } = await import('../lib/front-office/llm.ts');
-const { localParts } = await import('../lib/front-office/calendar/slots.ts');
+const { localParts, formatSlot } = await import('../lib/front-office/calendar/slots.ts');
+const { SETTER_RETURNING_PROMPT_VERSION } = await import('../lib/front-office/setter/prompt.ts');
 const { ventraSetterConfig } = await import('../lib/front-office/setter/config.ts');
 const { checkedAgentSettings, checkedKnowledge, templateSettings, setterConfigFor } = await import('../lib/front-office/settings.ts');
 type LabState = import('../lib/front-office/setter/lab.ts').LabState;
@@ -169,10 +170,13 @@ test('S5 booking, automatic (H-LAB): one appointment and event, booked, sales ha
     assert.ok(!s.tables.jobs.some(j => j.kind === 'follow-up' && j.status === 'pending'), 'no follow-up after a booking');
     assert.equal(s.pending.length, 0);
     assert.match(t.reply ?? '', BOOKED_WORDING, 'the confirmation is the reply');
-    // The same pick again: the contact is booked, so the router hands it to Sales and nothing new is booked.
+    // The same pick again: the contact is booked, so the router hands it to Sales and nothing new is booked. Since A-54
+    // (G1) the Setter answers with the booking it already has, using no booking tools.
     s = await runLabTurn(s, { message: 'The last one please.' });
     assert.equal(s.tables.appointments.length, 1, 'still one appointment'); assert.equal(s.calendar.length, 1, 'still one event');
-    assert.equal(s.turns[2].reply, null); assert.match(s.turns[2].route, /^sales:/);
+    assert.match(s.turns[2].route, /^sales:/);
+    assert.ok(s.turns[2].reply?.includes(formatSlot(Date.parse(s.tables.appointments[0].starts), LAB_CONFIG.availability.timeZone)), `the booking is restated: ${s.turns[2].reply}`);
+    assert.deepEqual(s.turns[2].tools, [], 'no booking tools on the replay');
     labGlobals(s);
     c.output(...s.turns.map(x => x.reply)); c.tools(...labTools(s)); c.db(labDb(s));
     c.actual(`appointments ${s.tables.appointments.length}, events ${s.calendar.length}`);
@@ -366,8 +370,8 @@ test('S8 interruption (H-AGENT + H-LAB, automatic): consecutive messages merge, 
 });
 
 // ---------------------------------------------------------------------------------------------------------------
-test('S9 returning customer (H-DB, automatic): a qualified contact is not re-asked; a booked contact gets the baseline (no AI reply, Sales dispatch)', async () => {
-  await rec.scenario({ id: 'S9', operatingMode: 'automatic', expected: 'qualified: answers in context, no re-ask; booked: no reply + sales dispatch (G1 baseline)' }, async (c) => {
+test('S9 returning customer (H-DB, automatic): a qualified contact is not re-asked; a booked contact is told their booking (G1 closed, A-54)', async () => {
+  await rec.scenario({ id: 'S9', operatingMode: 'automatic', expected: 'qualified: answers in context, no re-ask; booked: reply restates the booking (time, where) with no booking tools, tagged setter/returning-booked@1; nothing re-booked' }, async (c) => {
     // Qualified contact writes again.
     let s = await h.dbSetup('automatic');
     let restore = h.dbEnv(s.channel, true);
@@ -388,10 +392,18 @@ test('S9 returning customer (H-DB, automatic): a qualified contact is not re-ask
       c.output(res.body); c.db({ qualified: db });
     } finally { w.restore(); restore(); await s.db.close(); }
 
-    // Booked contact writes again: today the router hands it to Sales and no agent replies (G1).
+    // Booked contact writes again (G1, closed by A-54): the router still records Sales as the owner, and the Setter answers
+    // with the booking from the database. The model stand-in only repeats the prompt's booking line, so the time and
+    // place in the reply come from the stored appointment, not from the script.
     s = await h.dbSetup('automatic');
     restore = h.dbEnv(s.channel, true);
-    w = h.dbWorld(s.rpc);
+    const toolLists: string[][] = [];
+    w = h.dbWorld(s.rpc, (body) => {
+      const booking = /^Their booking: (.+?)\.?$/m.exec(body.system)?.[1];
+      if (!booking) return h.offerThenBook(body);
+      toolLists.push(((body as { tools?: { name: string }[] }).tools ?? []).map(t => t.name));
+      return [say(`Welcome back, Sam. You're booked for your ${booking}. Would you like to keep it, or should I ask the team to move or cancel it?`)];
+    });
     try {
       c.input('Can I book a call?', 'Hi, quick question about my call');
       const booked = await h.dbSend('s9booked0001', 'Can I book a call?');
@@ -399,20 +411,30 @@ test('S9 returning customer (H-DB, automatic): a qualified contact is not re-ask
       const llmBefore = w.llmCalls(), before = await h.dbSnapshot(s);
       assert.equal(before.contact[0].state, 'booked');
       const res = await h.dbSend('s9booked0002', 'Hi, quick question about my call');
-      assert.equal(res.status, 200); assert.equal(res.body.reply, null); assert.equal(res.body.live, true);
-      assert.equal(w.llmCalls(), llmBefore, 'no model turn for a booked contact');
+      assert.equal(res.status, 200, JSON.stringify(res.body)); assert.equal(res.body.live, true); assert.equal(res.body.booked, false);
+      assert.equal(w.llmCalls(), llmBefore + 1, 'one model turn for the booked contact');
+      const cfg = setterConfigFor(checkedAgentSettings(templateSettings('ventra', 'Ventra'))), tz = cfg.availability.timeZone;
+      const [appt] = await s.rows<{ starts_at: unknown }>('select starts_at from public.fo_appointments where contact_id = $1', [s.contact]);
+      const start = new Date(appt.starts_at as string).getTime();
+      const line = `${cfg.meetingTitle} on ${formatSlot(start, tz)} (${tz}), ${cfg.where}`;
+      assert.ok(w.systems.at(-1)?.includes(`Their booking: ${line}.`), 'the prompt carries the stored booking');
+      assert.ok((res.body.reply as string).includes(formatSlot(start, tz)) && (res.body.reply as string).includes(cfg.where), `reply restates time and where: ${res.body.reply}`);
+      assert.match(res.body.reply as string, /move or cancel/, 'offers a change');
+      assert.deepEqual(toolLists, [['handoff_receptionist', 'escalate_human']], 'no booking tools for a booked contact');
       const db = await h.dbSnapshot(s);
-      assert.equal(db.dispatches.at(-1)?.agent, 'sales');
-      assert.equal(db.messages.filter(m => m.direction === 'outbound').length, before.messages.filter(m => m.direction === 'outbound').length, 'nothing new said');
+      assert.equal(db.dispatches.at(-1)?.agent, 'sales', 'Sales still owns the booked contact');
+      const out = db.messages.filter(m => m.direction === 'outbound');
+      assert.equal(out.length, before.messages.filter(m => m.direction === 'outbound').length + 1, 'one new reply');
+      assert.deepEqual([out.at(-1)?.agent, out.at(-1)?.prompt_version], ['setter', SETTER_RETURNING_PROMPT_VERSION]);
+      assertOutboundTagged(out);
       assert.ok(db.messages.some(m => m.direction === 'inbound' && m.body === 'Hi, quick question about my call'), 'the inbound is stored');
-      assert.equal(db.appointments.length, 1); assert.equal(w.events.length, 1);
-      assert.deepEqual(w.rpcErrors, []);
+      assert.equal(db.contact[0].state, 'booked'); assert.equal(db.appointments.length, 1); assert.equal(w.events.length, 1); assert.equal(db.pending.length, 0);
+      assert.deepEqual(w.rpcErrors, []); assert.deepEqual(w.errors, []);
       c.output(booked.body, res.body); c.db({ booked: db });
-      c.actual(`qualified: replied; booked: reply ${res.body.reply}, dispatch ${db.dispatches.at(-1)?.agent}`);
+      c.actual(`qualified: replied; booked: reply "${res.body.reply}", dispatch ${db.dispatches.at(-1)?.agent}`);
     } finally { w.restore(); restore(); await s.db.close(); }
   });
 });
-test.todo('S9 G1: a returning booked customer gets a reply (or a Sales/Receptionist answer) instead of silence; chat route and lab pass only a setter hook (router.ts:12, chat/route.ts:126, lab.ts:419)');
 
 // ---------------------------------------------------------------------------------------------------------------
 test('S10 out of hours (H-AGENT, automatic, Sunday 2 am Perth): only future in-hours slots, follow-up due outside quiet hours, AI still replies', async () => {

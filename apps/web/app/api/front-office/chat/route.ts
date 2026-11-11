@@ -9,7 +9,7 @@ import type { Rpc } from '../../../../lib/front-office/orchestrator';
 import { anthropicConfigFromEnv, anthropicLlm } from '../../../../lib/front-office/llm';
 import { googleCalendar, googleConfigFromEnv } from '../../../../lib/front-office/calendar/google';
 import { dryRunSender, senderFromEnv } from '../../../../lib/front-office/sms-send';
-import { runSetterTurn } from '../../../../lib/front-office/setter/agent';
+import { runSetterTurn, setterHooks } from '../../../../lib/front-office/setter/agent';
 import { channelPermissions } from '../../../../lib/front-office/setter/actions';
 import { loadSetter } from '../../../../lib/front-office/settings';
 import { AuditDemoInvalid, auditDemoConfig, auditDemoHash, DEMO_NOT_ON, demoRpc, demoSender } from '../../../../lib/front-office/templates/audit';
@@ -123,7 +123,8 @@ export async function POST(req: NextRequest) {
   const rpc = rpcClient();
   try {
     let contact: string | null = null;
-    const result = await handleInbound(rpc, auth, { via: 'web-chat', sender: visitor, body: message, messageId: 'chat-' + visitor.slice(0, 16) + '-' + id }, { setter: c => { contact = c; } });
+    // setterHooks: a booked visitor writing again is answered about their booking (task A-54), not left in silence.
+    const result = await handleInbound(rpc, auth, { via: 'web-chat', sender: visitor, body: message, messageId: 'chat-' + visitor.slice(0, 16) + '-' + id }, setterHooks(c => { contact = c; }));
     if (result.reply || !contact) return reply(req, { reply: result.reply, live: true });
     const ai = anthropicConfigFromEnv(), gcal = googleConfigFromEnv();
     if (process.env.FRONT_OFFICE_CHAT_LIVE !== '1' || !ai) return reply(req, { reply: null, live: false, note: 'Thanks, your message is with the team. We will reply soon.' });

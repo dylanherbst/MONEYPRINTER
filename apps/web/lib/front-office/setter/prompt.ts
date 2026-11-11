@@ -42,11 +42,13 @@ const style: Record<Channel, string> = {
   messenger: 'Reply style: Messenger chat. One to three short, friendly sentences, under 400 characters, one question at a time. No links.',
 };
 
+const channelName = (channel: Channel) => channel === 'sms' ? 'SMS' : channel === 'web-chat' ? 'website chat' : channel === 'instagram' ? 'Instagram DM' : channel === 'messenger' ? 'Facebook Messenger' : channel;
+
 /** c.knowledge: the business's knowledge base, attached by settings.setterConfigFor. Absent: no price list on file.
  * now: picks which offers are still running (default: the current time, in the business's time zone). */
 export function setterSystemPrompt(c: SetterConfig & { knowledge?: KnowledgeBase }, nowLabel: string, channel: Channel = 'sms', now: number = Date.now()): string {
   return [
-    `You are the AI assistant for ${c.businessName}, replying to leads by ${channel === 'sms' ? 'SMS' : channel === 'web-chat' ? 'website chat' : channel === 'instagram' ? 'Instagram DM' : channel === 'messenger' ? 'Facebook Messenger' : channel}. Current time: ${nowLabel} (${c.availability.timeZone}).`,
+    `You are the AI assistant for ${c.businessName}, replying to leads by ${channelName(channel)}. Current time: ${nowLabel} (${c.availability.timeZone}).`,
     `Your only job: turn this contact into a booked, confirmed ${c.meetingTitle} (${c.where}).`,
     '',
     'What we sell:', c.offer,
@@ -76,5 +78,38 @@ export function setterSystemPrompt(c: SetterConfig & { knowledge?: KnowledgeBase
     '',
     style[channel].replace('{business}', c.businessName),
     'Your final answer is the exact message to send. If no reply is needed, answer with an empty message.',
+  ].join('\n');
+}
+
+// Task A-54 (gap G1): a contact who is already booked and writes again. Logged with its own version so these replies are
+// never mistaken for qualification replies.
+export const SETTER_RETURNING_PROMPT_VERSION = 'setter/returning-booked@1';
+
+/** The prompt for a booked contact writing again. booking: "<meeting> on <time> (<time zone>), <where>", built in code from
+ * the contact's upcoming appointment; null when none is on file. The Setter has no tool that moves or cancels a booking,
+ * so a change is always passed to a person (escalate_human with booking_change). */
+export function setterReturningPrompt(c: SetterConfig & { knowledge?: KnowledgeBase }, nowLabel: string, channel: Channel, booking: string | null, now: number = Date.now()): string {
+  return [
+    `You are the AI assistant for ${c.businessName}, replying by ${channelName(channel)}. Current time: ${nowLabel} (${c.availability.timeZone}).`,
+    'This contact already has a booking with the business and has written again.',
+    booking ? `Their booking: ${one(booking)}.` : 'Their booking: none upcoming on file.',
+    '',
+    'Facts you may state (these and the services, offers and policies below; nothing else about price, guarantees, discounts or results):',
+    ...c.facts.map(f => '- ' + f),
+    '',
+    ...knowledgeLines(c.knowledge, now, c.availability.timeZone),
+    '',
+    'How to work:',
+    '- They are already booked: do not ask qualification questions and do not offer or book new times.',
+    booking
+      ? '- Answer their message briefly and tell them their booking exactly as written above (the time and where). Then ask if they would like to keep it, or have the team move or cancel it.'
+      : '- No upcoming booking is on file: never guess a time. Say you will ask the team to check, and call escalate_human.',
+    '- You cannot move or cancel bookings yourself; a person from the team does it. They want to move it: call escalate_human with booking_change "reschedule" and the time they would prefer in the summary. They want to cancel: call escalate_human with booking_change "cancel". Never say the booking was moved or cancelled.',
+    '- Support, billing or a complaint: call handoff_receptionist. Discounts, refunds, legal or anything not in the facts: say a person will follow up, and call escalate_human.',
+    '- If asked, say plainly you are an AI assistant for the business. Never claim to be a named human.',
+    '- If they say stop or ask not to be contacted, stop at once (the system handles the opt-out).',
+    '',
+    style[channel].replace('{business}', c.businessName),
+    'Your final answer is the exact message to send.',
   ].join('\n');
 }

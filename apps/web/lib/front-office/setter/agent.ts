@@ -15,6 +15,17 @@
 // the turn does not fail. The contact gets SETTER_FALLBACK_REPLY (fixed text, logged with SETTER_FALLBACK_PROMPT), the
 // lead is handed to a person exactly as escalate_human does (through the permission check when one is given), no
 // follow-up is started and nothing is booked. Only a safe code is logged and returned (turn.modelFailure).
+//
+// Returning booked contact (task A-54, gap G1): a contact in state 'booked' who writes again gets an answer instead of
+// silence. The turn uses setterReturningPrompt (their upcoming booking, built in code from fo_contact_context's
+// appointment: meeting, time, time zone, where) and only two tools, handoff_receptionist and escalate_human. The Setter
+// has no tool that moves or cancels a booking, so a change request is passed to a person (escalate_human with
+// booking_change, a 'transfer' through the permission check) and the contact hears a fixed line that never says it was
+// changed (BOOKING_CHANGE_SAY; decide()'s refused words in enquiry_only). Enforced in code, not only by the prompt: any
+// escalate_human on a returning turn ends with a fixed line, a model reply matching BOOKING_CHANGE_CLAIM is replaced by
+// RETURNING_HANDOFF_SAY with a hand-off to a person, and a booked contact with no upcoming booking on file is handed to a
+// person without a model call (NO_BOOKING_SAY). A person who owns the conversation (withPerson) still silences the AI.
+// Web chat and the Setter Lab route booked contacts here with setterHooks().
 import { bookSlot, offerTimes, SlotTaken } from '../booking';
 import type { Offer } from '../booking';
 import type { CalendarProvider } from '../calendar/google';
@@ -25,7 +36,7 @@ import { checkedHandoff } from '../handoff';
 import type { Agent, Channel, Handoff } from '../handoff';
 import { FOLLOW_UP_PROMPT, scheduleReminders, startFollowUps } from '../jobs';
 import type { Llm, LlmMessage, LlmResponse, ToolResultBlock, ToolSpec, ToolUseBlock } from '../llm';
-import type { ChannelAuth, Rpc } from '../orchestrator';
+import type { AgentHooks, ChannelAuth, Rpc } from '../orchestrator';
 import { gate } from '../pending-actions';
 import type { ExecutionResult } from '../pending-actions';
 import { decide } from '../permissions';
@@ -36,7 +47,7 @@ import { checkFollowUp, failSafeStore, performBook, performFollowUp, withPerson 
 import type { BookOutcome, SetterActionDeps, SetterActionRecord, SetterContext, SetterPermissions, StatusTransition } from './actions';
 import { fillTemplate } from './config';
 import type { SetterConfig } from './config';
-import { SETTER_PROMPT_VERSION, setterSystemPrompt } from './prompt';
+import { SETTER_PROMPT_VERSION, SETTER_RETURNING_PROMPT_VERSION, setterReturningPrompt, setterSystemPrompt } from './prompt';
 
 type Context = SetterContext;
 /** Matches contracts.ts SetterRunResult, plus what each action did and the lead status changes (timestamped). */
@@ -86,6 +97,33 @@ export const setterTools: ToolSpec[] = [
   { name: 'escalate_human', description: 'Discounts, custom deals, legal or refund questions, or anything not in the facts: hand to a person.', input_schema: { type: 'object', properties: { intent: { type: 'string' }, summary: { type: 'string' } }, required: ['intent', 'summary'] } },
 ];
 
+/** Task A-54: the only tools for a booked contact writing again. No booking tools; a change goes to a person. */
+export const returningTools: ToolSpec[] = [
+  setterTools.find(t => t.name === 'handoff_receptionist') as ToolSpec,
+  { name: 'escalate_human', description: 'Hand to a person: to move or cancel the booking (set booking_change), or anything not in the facts.', input_schema: { type: 'object', properties: { intent: { type: 'string' }, summary: { type: 'string', description: 'What they want, and the time they would prefer if moving it' }, booking_change: { type: 'string', enum: ['reschedule', 'cancel'] } }, required: ['intent', 'summary'] } },
+];
+/** What a booked contact hears after asking to move or cancel, in automatic and owner_approval mode (the AI cannot change
+ * bookings, so a person does it and no approval item is created). enquiry_only uses decide()'s own refused words. */
+export const BOOKING_CHANGE_SAY: Record<'reschedule' | 'cancel', string> = {
+  reschedule: "I've passed this to the team and they'll get back to you to sort out the new time. Your current booking stays as it is until then.",
+  cancel: "I've passed your cancellation request to the team and they'll get back to you to confirm it.",
+};
+/** Any other hand-off to a person on a booked contact's turn (escalate_human without booking_change, or a model reply that
+ * claimed the booking changed). Fixed text: never model wording. */
+export const RETURNING_HANDOFF_SAY = "I've passed your message to the team and a person will get back to you. Your booking stays as it is.";
+/** Booked, but no upcoming booking on file (it may have already happened): a person checks; no model call, no guessed time. */
+export const NO_BOOKING_SAY = "Thanks for your message. I can't see an upcoming booking on file, so I've asked a person from the team to check and get back to you.";
+/** A returning-turn reply that claims a booking was moved, rescheduled, rebooked, cancelled or changed. Matched replies are
+ * never sent: the fixed line goes instead and the contact is handed to a person. Broad on purpose (fails safe). */
+export const BOOKING_CHANGE_CLAIM = /\b(moved|re-?scheduled|re-?booked|cancell?ed|changed|shifted)\b/i;
+
+/** The agent hooks for web chat and the Setter Lab (task A-54): the Setter takes new and unqualified contacts, and booked
+ * contacts writing again (router 'sales'), whose turn runs the returning-booked path. One place, so chat and lab match.
+ * Until the owner approves the Sales agent, no route passes a separate sales hook. */
+export function setterHooks(take: (contact: string) => void): AgentHooks {
+  return { setter: take, sales: take };
+}
+
 const str = (v: unknown, max: number) => typeof v === 'string' ? v.trim().slice(0, max) : '';
 const ACTIVE_STATES: readonly ContactState[] = ['new', 'contacted', 'qualifying', 'qualified', 'nurture', 'no-show', 'disqualified'];
 
@@ -114,11 +152,17 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
   const mode: OperatingMode = store ? await store.mode('setter') : 'automatic';
   const x: SetterActionDeps = { rpc: d.rpc, auth: d.auth, calendar: d.calendar, config: d.config, now: d.now, send: d.send, channel, via: d.channel ?? null, quietHours: d.permissions?.quietHours };
   const result = (reply: string | null): SetterTurn => ({ reply, state, booked, handedTo, tools: used, mode, pendingActionIds: held, actions, transitions, ...(modelFailure ? { modelFailure } : {}) });
-  if (ctx.contact.optedOut || !ACTIVE_STATES.includes(state)) return result(null);
+  // A booked contact writing again (A-54): answered about their booking, with no booking tools.
+  const returning = state === 'booked';
+  if (ctx.contact.optedOut || (!ACTIVE_STATES.includes(state) && !returning)) return result(null);
   // A person owns this conversation: the AI does not reply (or start follow-ups) until it is handed back.
   // Only with the permission check; without it the turn runs as before A-8.
   if (store && withPerson(ctx.handoffs)) return result(null);
   const who = ctx.contact.name ?? ctx.contact.phone ?? ctx.contact.email ?? 'this lead';
+  const tz = d.config.availability.timeZone;
+  const apptStart = ctx.appointment ? Date.parse(ctx.appointment.starts) : NaN;
+  /** "<meeting> on <time> (<time zone>), <where>": from the stored appointment only, never from the model. */
+  const bookingLine = returning && Number.isFinite(apptStart) ? `${d.config.meetingTitle} on ${formatSlot(apptStart, tz)} (${tz}), ${d.config.where}` : null;
 
   const contactLine = [
     `Contact stage: ${state}.`,
@@ -127,7 +171,10 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
     ctx.appointment ? `Already booked: ${formatSlot(Date.parse(ctx.appointment.starts), d.config.availability.timeZone)}.` : '',
     ctx.handoffs.length ? `Earlier handoffs: ${ctx.handoffs.map(h => `${h.from} to ${h.owner}: ${h.intent}`).join('; ')}.` : '',
   ].filter(Boolean).join('\n');
-  const system = setterSystemPrompt(d.config, formatSlot(d.now, d.config.availability.timeZone), channel) + '\n\n' + contactLine;
+  const nowLabel = formatSlot(d.now, tz);
+  const system = (returning ? setterReturningPrompt(d.config, nowLabel, channel, bookingLine, d.now) : setterSystemPrompt(d.config, nowLabel, channel)) + '\n\n' + contactLine;
+  const tools = returning ? returningTools : setterTools;
+  const promptVersion = returning ? SETTER_RETURNING_PROMPT_VERSION : SETTER_PROMPT_VERSION;
   const messages = transcript(ctx.messages);
 
   async function moveTo(target: ContactState, reason: string) {
@@ -200,6 +247,8 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
   async function run(t: ToolUseBlock): Promise<string> {
     used.push(t.name);
     const input = t.input ?? {};
+    // A booked contact: only the returning tools run, whatever the model asks for (nothing is re-qualified or re-booked).
+    if (returning && !tools.some(x => x.name === t.name)) return 'Not available: this contact is already booked. Tell them their booking; a person moves or cancels it (escalate_human with booking_change).';
     switch (t.name) {
       case 'save_answers': {
         const answers: Record<string, string> = {};
@@ -296,7 +345,19 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
         await handoff('receptionist', str(input.intent, 200), str(input.summary, 4000), 'Answer the customer');
         return 'Handed to the Receptionist. Tell the contact the team will help them shortly.';
       case 'escalate_human': {
+        const bc = input.booking_change;
+        const change: 'reschedule' | 'cancel' | null = returning && (bc === 'reschedule' || bc === 'cancel') ? bc : null;
+        if (change) {
+          // A-54: the Setter cannot move or cancel a booking, so a person does it. The hand-off is a 'transfer' through the
+          // permission check; the contact hears a fixed line that never says the booking changed.
+          const summary = `Wants to ${change} their booking (${bookingLine ?? 'no upcoming booking on file'}): ${str(input.summary, 3500) || 'see the conversation'}`;
+          const say = await toPerson(`${change} booking`, summary, change === 'reschedule' ? 'A person agrees a new time with the contact and moves the booking' : 'A person cancels the booking and confirms with the contact');
+          forcedReply = say || (store && mode === 'enquiry_only' ? decide(mode, change).say : '') || BOOKING_CHANGE_SAY[change];
+          return 'Passed to the team.';
+        }
         const say = await toPerson(str(input.intent, 200), str(input.summary, 4000), 'A person replies to the contact');
+        // A booked contact: the fixed line, never model wording after a hand-off.
+        if (returning) { forcedReply = say || RETURNING_HANDOFF_SAY; return 'Passed to the team.'; }
         if (say) { forcedReply = say; return 'Passed to the team.'; }
         return 'A person has been asked to follow up. Tell the contact someone will be in touch soon. Do not promise anything else.';
       }
@@ -305,11 +366,19 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
     }
   }
 
+  // Booked, but no upcoming booking on file: a person checks, in code. No model call, so no time can be guessed.
+  if (returning && !bookingLine) {
+    const say = await toPerson('check booking', 'Contact is booked but no upcoming booking is on file (it may have already happened). Please check and reply to them.', 'A person checks the booking and replies to the contact');
+    const text = (say || NO_BOOKING_SAY).slice(0, replyLimit[channel]);
+    if (d.logReply !== false) await d.rpc('fo_log_outbound', { ...a, contact: contactId, message: text, agent_name: 'setter', prompt: promptVersion });
+    return result(text);
+  }
+
   let reply = '';
   for (let round = 0; round < 6; round++) {
     let res: LlmResponse;
     try {
-      res = await d.llm({ system, messages, tools: setterTools });
+      res = await d.llm({ system, messages, tools });
       if (!res || !Array.isArray(res.content)) throw new MalformedModelResponse();
     } catch (e) {
       // Task A-55 (G2): the model call failed. Only the model call is caught here: tool errors are already passed back
@@ -332,11 +401,17 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
   }
   // The loop stops right after a booking or a forced reply, so a model failure never follows one.
   if (modelFailure) return fallback(modelFailure);
+  // A booked contact: a model reply that claims the booking changed is never sent. The fixed line goes instead and a person
+  // is asked to follow up (unless this turn already handed the contact on).
+  if (returning && !forcedReply && BOOKING_CHANGE_CLAIM.test(reply)) {
+    const say = handedTo ? null : await toPerson('check booking reply', 'The AI reply claimed the booking was changed and was not sent. Nothing was changed. Please check what the contact wants and reply to them.', 'A person replies to the contact');
+    forcedReply = say || RETURNING_HANDOFF_SAY;
+  }
   // After a booking the logged confirmation is the reply; after a held or refused action, decide()'s words; otherwise the
   // model's text (capped to two SMS).
   const own = forcedReply ?? reply;
   let text = booked ? bookedReply : ((channel === 'email' ? own.trim() : own.replace(/\s+/g, ' ').trim()).slice(0, replyLimit[channel]) || null);
-  if (text && !booked && d.logReply !== false) await d.rpc('fo_log_outbound', { ...a, contact: contactId, message: text, agent_name: 'setter', prompt: SETTER_PROMPT_VERSION });
+  if (text && !booked && d.logReply !== false) await d.rpc('fo_log_outbound', { ...a, contact: contactId, message: text, agent_name: 'setter', prompt: promptVersion });
   // The follow-up ladder: not after a booking, a hand-off, or a booking waiting for the owner.
   if (!store) {
     // Without the permission check: the start before A-8, unchanged (now + gapBefore(1), no new checks).

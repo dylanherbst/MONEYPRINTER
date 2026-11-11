@@ -20,7 +20,9 @@ export const OPT_IN_CONFIRMATION = 'You are subscribed again. Reply STOP at any 
 export const OPT_IN_PROMPT_VERSION = 'system/opt-in-confirmation@1';
 
 /** Agents that can take a turn after the dispatch. Each is called at most once per new inbound message. */
-/** sales: called for booked contacts; not passed by any live route until the owner approves the Sales agent. */
+/** sales: called for booked contacts. The Sales agent is not run by any live route until the owner approves it; web chat
+ * and the Setter Lab pass setter/agent.ts setterHooks(), which sends booked contacts writing again to the Setter's
+ * returning-booked answer (task A-54). Other channels pass no sales hook, so booked contacts there get no AI reply. */
 export type AgentHooks = { setter?: (contact: string) => void; sales?: (contact: string) => void };
 
 export async function handleInboundSms(rpc: Rpc, auth: ChannelAuth, sms: InboundSms, agents: AgentHooks = {}): Promise<InboundResult> {
