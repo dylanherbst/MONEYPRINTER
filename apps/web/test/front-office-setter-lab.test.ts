@@ -5,7 +5,7 @@ import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import './helpers/route-harness.ts';
 
-const { newLab, runLabTurn, decideLabAction, checkedLab, labStore, OBJECTION_NOTE, LAB_PHONE, LAB_AUTH, LAB_LIMITS } = await import('../lib/front-office/setter/lab.ts');
+const { newLab, runLabTurn, decideLabAction, checkedLab, labStore, OBJECTION_NOTE, LAB_WITH_PERSON_NOTE, LAB_PHONE, LAB_AUTH, LAB_LIMITS } = await import('../lib/front-office/setter/lab.ts');
 const { sendMessage, decideAction } = await import('../app/tools/setter-lab/actions.ts');
 type LabState = import('../lib/front-office/setter/lab.ts').LabState;
 type Mode = LabState['mode'];
@@ -110,6 +110,24 @@ test('enquiry_only: the booking is refused and handed to a person', async () => 
   assert.equal(s.pending.length, 0);
   assert.equal(t.handedTo, 'human');
   assert.match(t.reply ?? '', /cannot book that myself/);
+});
+
+test('after a hand-off to a person the lab AI goes quiet, like the live routes (A-61)', async () => {
+  // enquiry_only refused booking -> escalate_human; the next message is stored but gets no AI reply.
+  const s1 = await runLabTurn(await toOffer('enquiry_only'), { message: 'The first one please.' });
+  assert.equal(s1.turns[1].handedTo, 'human');
+  const out = s1.tables.messages.filter(m => m.direction === 'outbound').length;
+  const s2 = await runLabTurn(s1, { message: 'Hello? Is anyone there?' });
+  const t = s2.turns[2];
+  assert.equal(t.error, null);
+  assert.equal(t.reply, null);
+  assert.deepEqual(t.tools, [], 'no model tool calls');
+  assert.match(t.route, /^setter:/);
+  assert.ok(t.route.endsWith(LAB_WITH_PERSON_NOTE), 'the turn says why there is no reply');
+  assert.equal(s2.tables.messages.filter(m => m.direction === 'outbound').length, out, 'no outbound');
+  assert.equal(s2.tables.messages.at(-1)?.body, 'Hello? Is anyone there?');
+  assert.ok(!t.writes.some(w => w.rpc === 'fo_log_outbound'));
+  assert.equal(s2.wouldSend.length, 0);
 });
 
 test('oversized or tampered state is refused before the pipeline runs', async () => {

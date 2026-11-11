@@ -35,6 +35,7 @@ import type { ActionExecutor, PendingActionRecord } from '../pending-actions';
 import type { SmsSender } from '../sms-send';
 import { canTransition, isContactState } from '../state';
 import type { ContactState } from '../state';
+import { withPerson } from './actions';
 import { runSetterTurn, setterHooks } from './agent';
 import { checkedSetterConfig, ventraSetterConfig } from './config';
 import type { SetterConfig } from './config';
@@ -91,6 +92,8 @@ export type LabState = {
 };
 
 export const OBJECTION_NOTE = 'not exposed: the Setter pipeline has no objection-handling step or field (only its prompt rules).';
+/** Shown on a lab turn the AI did not answer because a person owns the conversation (as live, task A-61). */
+export const LAB_WITH_PERSON_NOTE = 'A person is looking after this contact, so the AI did not reply (no model call).';
 export const BUDGET_NOTE = 'not asked: this Setter config has no budget question, and prices go to a person.';
 
 export function newLab(mode: OperatingMode = 'owner_approval', phone = LAB_PHONE): LabState {
@@ -433,7 +436,13 @@ export async function runLabTurnWith(state: LabState, input: { message: string; 
     turn.route = r.route.agent ? `${r.route.agent}: ${r.route.reason}` : `no agent: ${r.route.reason}`;
     turn.contactId = r.contact;
     turn.reply = r.reply;
-    if (setterContact) {
+    if (setterContact && withPerson(s.tables.handoffs.filter(h => h.contact_id === setterContact))) {
+      // Task A-61: live parity. The live routes pass the permission check, so runSetterTurn stays silent while a person
+      // owns the conversation (agent.ts withPerson). The lab does the same from its own handoff records: the message is
+      // stored, no model call, no reply, and the turn says why.
+      turn.reply = null;
+      turn.route = `${turn.route}. ${LAB_WITH_PERSON_NOTE}`;
+    } else if (setterContact) {
       const contactId: string = setterContact;
       const gated = gatedModel(m.base, s, db, contactId, turn.tools, p => { turn.booking = p; });
       // Task A-55: a failed model call no longer fails the turn. runSetterTurn sends the fixed fallback reply and hands

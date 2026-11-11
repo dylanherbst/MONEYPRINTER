@@ -326,7 +326,31 @@ test('S7 wants a human (H-AGENT, all three modes; H-LAB deal trigger): handed to
   }
 });
 test.todo('S7 G7: the Setter prompt has no plain "talk to a person" rule and the lab script has no "human" trigger (setter/prompt.ts:71-72, setter/lab.ts:273)');
-test.todo('S7 lab fidelity: the Setter Test Lab runs runSetterTurn without permissions (setter/lab.ts:426), so after a hand-off to a person the lab AI keeps replying, unlike production (agent.ts:94)');
+test('S7 lab fidelity (H-LAB, all three modes, A-61): after a hand-off to a person the lab AI stays quiet like production', async () => {
+  for (const mode of MODES) {
+    await rec.scenario({ id: 'S7-lab', operatingMode: mode, expected: 'lab: escalate_human; next inbound stored, no model call, no AI reply, no outbound; turn says a person is looking after this contact' }, async (c) => {
+      c.input('Can I talk to someone about a deal?', 'Hello? Anyone there?');
+      const s1 = await runLabTurn(newLab(mode), { message: 'Can I talk to someone about a deal?' });
+      assert.equal(s1.turns[0].handedTo, 'human');
+      const outBefore = s1.tables.messages.filter(m => m.direction === 'outbound').length;
+      let calls = 0;
+      const base = scriptedSetterModel();
+      const spy: Llm = async (req) => { calls++; return base(req); };
+      const s2 = await runLabTurnWith(s1, { message: 'Hello? Anyone there?' }, { base: spy, model: 'scripted' });
+      const t = s2.turns[1];
+      assert.equal(t.error, null);
+      assert.equal(t.reply, null, 'no AI reply');
+      assert.equal(calls, 0, 'model never called');
+      assert.deepEqual(t.tools, []);
+      assert.equal(s2.tables.messages.filter(m => m.direction === 'outbound').length, outBefore, 'nothing new outbound');
+      assert.equal(s2.tables.messages.filter(m => m.direction === 'inbound').at(-1)?.body, 'Hello? Anyone there?', 'the message is still stored');
+      assert.match(t.route, /A person is looking after this contact/);
+      labGlobals(s2);
+      c.output(s1.turns[0].reply, t.reply); c.tools(...labTools(s2)); c.db(labDb(s2));
+      c.actual(`second lab turn reply ${t.reply}, model calls ${calls}`);
+    });
+  }
+});
 
 // ---------------------------------------------------------------------------------------------------------------
 test('S8 interruption (H-AGENT + H-LAB, automatic): consecutive messages merge, answers kept and not re-asked, a replayed message id is a no-op', async () => {
