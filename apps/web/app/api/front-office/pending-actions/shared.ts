@@ -48,8 +48,8 @@ export function approvalChannel(env: Record<string, string | undefined>, channel
   return meta ? { auth: meta.auth, meta: meta.name } : null;
 }
 
-/** The rpc the executor and the Meta window check use: the fo_* channel functions check the channel key themselves. */
-/** The client is created on first use, so building the approve options never throws. */
+/** The rpc the executor and the Meta window check use: the fo_* channel functions check the channel key themselves.
+ * The client is created on first use, so building the approve options never throws. */
 function serviceRpc(): Rpc {
   let db: ReturnType<typeof createSupabaseClient> | null = null;
   return async (fn, args) => { db ??= createSupabaseClient(); const r = await db.rpc(fn, args); if (r.error) throw new Error(r.error.message); return r.data; };

@@ -32,7 +32,15 @@ function env(values: Partial<Record<typeof ENV_KEYS[number], string>>) {
 }
 const META_ENV = { FRONT_OFFICE_INSTAGRAM_CHANNEL_ID: IG, FRONT_OFFICE_INSTAGRAM_CHANNEL_KEY: KEY, FRONT_OFFICE_MESSENGER_CHANNEL_ID: MS, FRONT_OFFICE_MESSENGER_CHANNEL_KEY: KEY, META_GRAPH_VERSION: 'v23.0', INSTAGRAM_ACCESS_TOKEN: 'test-ig-token', MESSENGER_PAGE_ACCESS_TOKEN: 'test-page-token' };
 
+// A-40: plain (non-Meta) channels, one per runner channel kind.
+const SMS_CH = '11111111-1111-4111-8111-111111111111', CHAT_CH = '22222222-2222-4222-8222-222222222222', EMAIL_CH = '33333333-3333-4333-8333-333333333333';
+const SMS_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1', CHAT_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', EMAIL_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3';
+const PLAIN_ENV = { FRONT_OFFICE_CHANNEL_ID: SMS_CH, FRONT_OFFICE_CHANNEL_KEY: KEY, FRONT_OFFICE_CHAT_CHANNEL_ID: CHAT_CH, FRONT_OFFICE_CHAT_CHANNEL_KEY: KEY, FRONT_OFFICE_EMAIL_CHANNEL_ID: EMAIL_CH, FRONT_OFFICE_EMAIL_CHANNEL_KEY: KEY };
+
 type Row = Record<string, unknown> & { id: string; status: string };
+function plainRow(id: string, channel: 'sms' | 'web-chat' | 'email', channelId: string): Row {
+  return { ...row(id, 'instagram', 'send'), payload: { kind: 'send', channel, body: BODY, promptVersion: 'setter/follow-up@1' }, summary: `Send a ${channel} message to Sam`, channel_id: channelId };
+}
 function row(id: string, channel: 'instagram' | 'messenger', kind: 'send' | 'follow_up'): Row {
   const t = Date.now();
   return {
@@ -44,8 +52,9 @@ function row(id: string, channel: 'instagram' | 'messenger', kind: 'send' | 'fol
 }
 
 /** A fake Supabase for the owner of W. lastInbound: what fo_social_window returns; queueFails: fo_queue_outbound errors. */
-function world(opts: { lastInbound: string | null; queueFails?: boolean; windowFails?: boolean }) {
-  const rows = [row(SEND, 'instagram', 'send'), row(FOLLOW, 'messenger', 'follow_up')];
+/** optedOut: what fo_social_window reports for the contact (A-40). */
+function world(opts: { lastInbound: string | null; queueFails?: boolean; windowFails?: boolean; optedOut?: boolean }) {
+  const rows = [row(SEND, 'instagram', 'send'), row(FOLLOW, 'messenger', 'follow_up'), plainRow(SMS_ID, 'sms', SMS_CH), plainRow(CHAT_ID, 'web-chat', CHAT_CH), plainRow(EMAIL_ID, 'email', EMAIL_CH)];
   const rpc: { fn: string; args: Record<string, unknown> }[] = [];
   const hosts: string[] = [];
   const real = globalThis.fetch;
@@ -60,7 +69,7 @@ function world(opts: { lastInbound: string | null; queueFails?: boolean; windowF
     const fn = url.pathname.slice('/rest/v1/rpc/'.length);
     const a = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
     rpc.push({ fn, args: a });
-    const channelOk = () => (a.channel === IG || a.channel === MS) && a.channel_key === KEY;
+    const channelOk = () => [IG, MS, SMS_CH, CHAT_CH, EMAIL_CH].includes(a.channel as string) && a.channel_key === KEY;
     switch (fn) {
       case 'session_active': return json(200, true);
       case 'fo_expire_actions': return json(200, 0);
@@ -81,7 +90,7 @@ function world(opts: { lastInbound: string | null; queueFails?: boolean; windowF
       case 'fo_social_window':
         if (!channelOk()) return err('Channel not recognised.');
         if (opts.windowFails) return err('connection reset by peer, secret=do-not-store');
-        return json(200, { recipient: '17841400000000001', optedOut: false, lastInbound: opts.lastInbound });
+        return json(200, { recipient: '17841400000000001', optedOut: opts.optedOut === true, lastInbound: opts.lastInbound });
       case 'fo_queue_outbound':
         if (!channelOk()) return err('Channel not recognised.');
         return opts.queueFails ? err('relation fo_outbox is locked, token=do-not-store') : json(200, null);
@@ -179,6 +188,51 @@ test('approve route: a Meta item whose channel is not connected stays pending (n
     assert.equal(count(w, 'fo_decide_action'), 0);
   } finally { w.restore(); restoreEnv(); }
 });
+
+// A-40: an opted-out contact. fo_social_window reports optedOut, so socialWindowCheck counts the window as closed even
+// when the last inbound message is recent, and onClosed does not queue an owner task for an opted-out contact.
+for (const [id, label] of [[SEND, 'Instagram send'], [FOLLOW, 'Messenger follow-up step 2']] as const) {
+  test(`approve route, opted-out contact (${label}): refused even inside the window, no owner task, executor never runs`, async () => {
+    const restoreEnv = env(META_ENV);
+    const w = world({ lastInbound: at(Date.now() - 2 * HOUR), optedOut: true });
+    try {
+      const r = await approve(id);
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+      assert.equal(r.body.outcome, 'failed');
+      assert.equal(r.body.item.status, 'failed');
+      assert.equal(r.body.item.note, META_WINDOW_CLOSED_AT_APPROVAL);
+      assert.ok(count(w, 'fo_social_window') >= 1, 'the contact was checked');
+      assert.equal(count(w, 'fo_queue_outbound'), 0, 'no send or owner task queued for an opted-out contact');
+      assert.equal(count(w, 'fo_channel_settings'), 0, 'the executor never ran');
+      assert.equal(w.rows.find(x => x.id === id)!.committed_at, null, 'never performed');
+      assert.ok(w.hosts.every(h => h === '127.0.0.1:54321'), 'no Meta call');
+    } finally { w.restore(); restoreEnv(); }
+  });
+}
+
+// A-40: SMS, web chat and email items are not Meta messages: approval never reads the Meta window and a "closed" window
+// (last inbound 30 hours ago) does not block them. They go through the executor as before (a held send is marked
+// approved for the runner's next check), and nothing is sent from the approval itself.
+for (const [id, label, ch] of [[SMS_ID, 'sms', SMS_CH], [CHAT_ID, 'web-chat', CHAT_CH], [EMAIL_ID, 'email', EMAIL_CH]] as const) {
+  test(`approve route, ${label} send: not subject to the Meta 24-hour window guard`, async () => {
+    const restoreEnv = env({ ...META_ENV, ...PLAIN_ENV });
+    const w = world({ lastInbound: at(Date.now() - 30 * HOUR) });
+    try {
+      const r = await approve(id);
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+      assert.equal(r.body.outcome, 'performed');
+      assert.equal(r.body.item.status, 'performed');
+      assert.notEqual(r.body.item.note, META_WINDOW_CLOSED_AT_APPROVAL);
+      assert.match(r.body.item.note, /goes out at its next scheduled check/);
+      assert.equal(count(w, 'fo_social_window'), 0, 'the Meta window is never read');
+      assert.equal(count(w, 'fo_queue_outbound'), 0, 'no Meta owner task');
+      const settings = w.rpc.filter(c => c.fn === 'fo_channel_settings');
+      assert.equal(settings.length, 1, 'the executor ran once');
+      assert.equal(settings[0].args.channel, ch, 'on the item’s own channel');
+      assert.ok(w.hosts.every(h => h === '127.0.0.1:54321'), 'nothing sent anywhere');
+    } finally { w.restore(); restoreEnv(); }
+  });
+}
 
 // Acceptance 2: the runner stays a dry run with FRONT_OFFICE_META_AUTOSEND off even when Meta is configured.
 test('jobs runner: in-window Instagram job with Meta configured and autosend off is logged, not sent; autosend on sends (control)', async () => {
