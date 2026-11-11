@@ -54,7 +54,7 @@ test('FAQ: answered only from the business’s own FAQ; spoken reply logged with
   assert.match(String(faq.result), /5 am to 9 pm on weekdays/);
   assert.equal(r.turns[1].said, 'We are open 5 am to 9 pm on weekdays and 7 am to 1 pm on weekends.');
   assert.deepEqual(call(r).outcomes, ['faq']);
-  assert.ok(r.tables.fo_messages.some(m => m.direction === 'outbound' && m.prompt_version === 'receptionist/voice@1' && /5 am/.test(m.body)));
+  assert.ok(r.tables.fo_messages.some(m => m.direction === 'outbound' && m.prompt_version === 'receptionist/voice@2' && /5 am/.test(m.body)));
   assert.ok(r.tables.fo_messages.some(m => m.direction === 'inbound' && m.provider_id === 'vapi:call_sim_faq:1'));
   assert.deepEqual(actions(r), [{ name: 'endCall', args: {} }]);
   assert.equal(r.endOfCall.endedReason, 'assistant-ended-call');
@@ -160,12 +160,12 @@ test('transfer: Vapi gets a transferCall to the business number; with no number 
   assert.equal(r.endOfCall.endedReason, 'customer-ended-call');
 });
 
-test('urgent situation: put through first, else an urgent message; GAP: no emergency-services guidance in the prompt', async () => {
+test('urgent situation: put through first, else an urgent message; the prompt tells a caller in danger to call 000 (A-57)', async () => {
   let r = await run('urgent');
   assert.match(String(tools(r, 'transfer')[0].input.reason), /^Urgent/);
   assert.deepEqual(actions(r), [{ name: 'transferCall', args: { destination: '+61890000001' } }]);
-  // Today's prompt routes injuries to transfer or take_message; it never tells the caller to ring emergency services.
-  assert.equal(/emergency services|\b000\b|triple zero/i.test(String(r.turns[1].system)), false);
+  // Injuries that are not life-threatening go to transfer or take_message; a caller in danger is told to call 000 (A-57).
+  assert.match(String(r.turns[1].system), /hang up and call 000 now/);
   r = await run('urgent', { transfer: false });
   assert.equal(tools(r, 'take_message')[0].input.urgent, true);
   assert.equal(r.tables.handoffs[0].intent, 'urgent call back');
