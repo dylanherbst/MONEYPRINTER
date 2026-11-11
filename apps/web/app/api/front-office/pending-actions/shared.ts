@@ -6,6 +6,8 @@ import type { ActionExecutor, ApproveOptions, PendingActionRecord, PendingAction
 import type { ChannelAuth, Rpc } from '../../../../lib/front-office/orchestrator';
 import { createJobsExecutor, metaRunnerChannels, runnerChannels, socialWindowCheck } from '../../../../lib/front-office/jobs';
 import type { MetaKind } from '../../../../lib/front-office/meta';
+import { isChannelKind } from '../../../../lib/front-office/contracts';
+import type { Channel } from '../../../../lib/front-office/handoff';
 import { createSetterExecutor } from '../../../../lib/front-office/setter/actions';
 import { loadSetter } from '../../../../lib/front-office/settings';
 import { senderFromEnv } from '../../../../lib/front-office/sms-send';
@@ -40,12 +42,14 @@ export function queueError(e: unknown) {
 
 /** Every channel an approved item can be performed on: the runner's SMS, chat, email and voice channels, plus the
  * Instagram and Messenger channels (A-37; FRONT_OFFICE_INSTAGRAM_CHANNEL_* / FRONT_OFFICE_MESSENGER_CHANNEL_*). */
-export function approvalChannel(env: Record<string, string | undefined>, channelId: string | null): { auth: ChannelAuth; meta: MetaKind | null } | null {
+/** kind: what that channel is (the customer's channel for the follow-up consent rule, A-47); null when it is not one we
+ * know, which fails closed. */
+export function approvalChannel(env: Record<string, string | undefined>, channelId: string | null): { auth: ChannelAuth; meta: MetaKind | null; kind: Channel | null } | null {
   if (!channelId) return null;
   const plain = runnerChannels(env).find(c => c.auth.channel === channelId);
-  if (plain) return { auth: plain.auth, meta: null };
+  if (plain) return { auth: plain.auth, meta: null, kind: isChannelKind(plain.name) ? plain.name : null };
   const meta = metaRunnerChannels(env).find(c => c.auth.channel === channelId);
-  return meta ? { auth: meta.auth, meta: meta.name } : null;
+  return meta ? { auth: meta.auth, meta: meta.name, kind: meta.name } : null;
 }
 
 /** The rpc the executor and the Meta window check use: the fo_* channel functions check the channel key themselves.
@@ -83,7 +87,9 @@ export function approvalExecutor(env: Record<string, string | undefined>): Actio
     const rpc = serviceRpc();
     const gcal = googleConfigFromEnv(env);
     const config = (await loadSetter(rpc, c.auth)).config;
-    const setter = createSetterExecutor({ rpc, auth: c.auth, calendar: gcal ? googleCalendar(gcal) : null, config, now: Date.now(), send: senderFromEnv(env) });
+    // via: the channel the held item came from (its channelId, stored server-side with the item when it was held), so an
+    // approved follow-up uses the same consent rule as a direct one: a same-channel SMS/email reply, otherwise a grant.
+    const setter = createSetterExecutor({ rpc, auth: c.auth, calendar: gcal ? googleCalendar(gcal) : null, config, now: Date.now(), send: senderFromEnv(env), via: c.kind });
     return createJobsExecutor(setter)(action);
   };
 }

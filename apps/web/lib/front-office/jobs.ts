@@ -18,6 +18,7 @@ import { formatSlot } from './calendar/slots';
 import { DEFAULT_OPERATING_MODE, hasConsent } from './contracts';
 import type { ContactConsent, PendingActionPayload } from './contracts';
 import type { ChannelAuth, Rpc } from './orchestrator';
+import type { Channel } from './handoff';
 import { DEFAULT_TTL_MINUTES, gate } from './pending-actions';
 import type { ActionExecutor, ApproveOptions, PendingActionStore } from './pending-actions';
 import type { QuietHours, SetterPermissions } from './setter/actions';
@@ -111,13 +112,18 @@ export function approvalWindow(kind: Job['kind'], step: number): number {
   return kind === 'follow-up' ? Math.max(DAY, gapBefore(step + 1)) : DAY;
 }
 
-/** Why a job may not go out under the business rules, or null. Same rules as setter/actions.ts checkFollowUp. */
-function jobBlocked(job: Job, ctx: Ctx): string | null {
+/** Why a job may not go out under the business rules, or null. Same rules as setter/actions.ts checkFollowUp.
+ * via: the channel the conversation is on (the runner channel the job belongs to; null when not known). by: the channel
+ * this job would go out on. A follow-up needs an inbound message on that same channel (A-47: an inbound on another
+ * channel, such as website chat, does not count) or an open consent grant for it; an unknown via needs the grant. */
+function jobBlocked(job: Job, ctx: Ctx, via: Channel | null, by: 'sms' | 'email' | MetaKind): string | null {
   if (ctx.handoffs?.at(-1)?.owner === 'human') return 'A person is looking after this contact.';
-  // Consent for a follow-up: the contact messaged the business, or an explicit grant (A-38) for the channel it goes by.
-  const by = ctx.contact.phone ? 'sms' : 'email';
-  if (job.kind === 'follow-up' && !(ctx.messages ?? []).some(m => m.direction === 'inbound') && !hasConsent(ctx.contact.consent, by)) return 'No recorded consent: the contact has not messaged the business.';
-  return null;
+  if (job.kind !== 'follow-up') return null;
+  const inbound = (ctx.messages ?? []).some(m => m.direction === 'inbound');
+  if (inbound && via !== null && via === by) return null;
+  if ((by === 'sms' || by === 'email') && hasConsent(ctx.contact.consent, by)) return null;
+  if (!inbound) return 'No recorded consent: the contact has not messaged the business.';
+  return `No recorded consent for ${by === 'sms' ? 'texts' : by === 'email' ? 'email' : by}: the contact messaged on ${via ?? 'a channel that is not known'} and has not agreed to be contacted another way.`;
 }
 /** When the contact last messaged the business (0 if unknown): a new conversation starts a new follow-up ladder. */
 function lastInbound(ctx: Ctx): number {
@@ -169,10 +175,12 @@ function failSafe(s: PendingActionStore): PendingActionStore {
 /** Texts go by SMS when the contact has a mobile, otherwise by email when an email sender is given. */
 /** config: the business's Setter texts, or a loader that is only called when there are jobs to run. */
 /** permissions: the Setter's approval queue and mode (live runner: channelPermissions()); see the note at the top. */
+/** via: what this channel is ('sms', 'web-chat', 'email', 'voice'; runnerChannels() name), for the follow-up consent
+ * check (jobBlocked). Instagram and Messenger use meta.kind. Not given: unknown, so a follow-up needs a consent grant. */
 /** meta: set when this channel is Instagram or Messenger. Every job then goes through metaRoute(): Meta inside the
  * 24-hour window, consented SMS/email outside it, otherwise the text is queued for the owner (fo_queue_outbound) and
  * the ladder stops. gate() checks the window again for a Meta payload. */
-export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: SmsSender; email?: EmailSender; config: SetterConfig | (() => Promise<SetterConfig>); now: number; max?: number; permissions?: SetterPermissions; meta?: { kind: MetaKind; send: MetaSender } }): Promise<JobOutcome[]> {
+export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: SmsSender; email?: EmailSender; config: SetterConfig | (() => Promise<SetterConfig>); now: number; max?: number; permissions?: SetterPermissions; meta?: { kind: MetaKind; send: MetaSender }; via?: Channel }): Promise<JobOutcome[]> {
   const a = { channel: input.auth.channel, channel_key: input.auth.key };
   const jobs = await input.rpc('fo_claim_jobs', { ...a, max_jobs: input.max ?? 25 }) as Job[];
   if (!jobs.length) return [];
@@ -267,7 +275,7 @@ export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: Sms
   async function checkJob(s: PendingActionStore, job: Job, ctx: Ctx, text: string, prompt: string, channel: 'sms' | 'email' | MetaKind, socialInbound: string | null): Promise<{ note: string; move?: number } | null> {
     const label = job.kind === 'follow-up' ? 'No follow-up' : job.kind === 'no-show-rescue' ? 'No missed-call message' : 'No reminder';
     const what = job.kind === 'follow-up' ? `follow-up ${job.step}` : job.kind === 'no-show-rescue' ? `missed-call message ${job.step}` : 'reminder';
-    const blocked = jobBlocked(job, ctx);
+    const blocked = jobBlocked(job, ctx, input.via ?? input.meta?.kind ?? null, channel);
     if (blocked) return { note: `${label}: ${blocked}` };
     const start = job.appointment && ctx.appointment ? Date.parse(ctx.appointment.starts) : null;
     const late = (t: number) => start !== null && t >= start;

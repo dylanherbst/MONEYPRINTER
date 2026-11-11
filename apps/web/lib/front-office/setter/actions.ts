@@ -13,7 +13,8 @@
 //   follow-up is only allowed on the same channel the customer messaged the business on (an SMS conversation followed up
 //   by SMS, an email one by email): that continues their own conversation, it is not marketing, so their inbound message
 //   is the evidence. Moving to a different channel (website chat, Instagram or Messenger to SMS/email, or SMS to email)
-//   needs the explicit grant for that channel. An opt-out always wins over any grant.
+//   needs the explicit grant for that channel. An opt-out always wins over any grant. When the customer's channel is
+//   not known, only a grant counts (A-47: fail closed).
 // - Opt-out stops everything (the turn never runs; a held follow-up is not performed; jobs.ts cancels due ones).
 // - Channel rules: follow-ups go by SMS (a mobile on record) or email, never into website chat, Instagram or Messenger
 //   (a closed chat cannot be reached and Meta only allows replies within 24 hours of the customer's last message).
@@ -79,8 +80,9 @@ export type SetterActionDeps = {
   rpc: Rpc; auth: ChannelAuth; calendar: CalendarProvider | null; config: SetterConfig; now: number; send: SmsSender;
   /** The conversation's channel, for handoff records. Default: sms when there is a mobile, else email, else web-chat. */
   channel?: Channel;
-  /** The channel the customer messaged on, for the follow-up consent rule (checkFollowUp). Not set: channel is used.
-   * null: not known (the follow-up channel is assumed to be the conversation's, as before A-45). */
+  /** The channel the customer messaged on, for the follow-up consent rule (checkFollowUp). Not set or null: not known,
+   * which fails closed (A-47): only an explicit consent grant allows a follow-up. Every live caller sets it (setter/agent.ts
+   * from the conversation, the approval queue from the channel the held item came from). */
   via?: Channel | null;
   quietHours?: QuietHours;
 };
@@ -115,8 +117,8 @@ const NO_FOLLOW_UP: readonly ContactState[] = ['booked', 'disqualified', 'custom
 export type FollowUpCheck = { ok: true; channel: 'sms' | 'email'; consent: string } | { ok: false; why: string };
 
 /** Whether this contact may get the follow-up ladder at all, and on which channel. Pure.
- * via: the channel the customer is talking on. Not given (older callers): the channel the follow-up would use (a mobile,
- * else email), i.e. the conversation is assumed to be on it, as before A-45.
+ * via: the channel the customer is talking on. Not given (unknown): fails closed (A-47), so only an explicit consent grant
+ * allows a follow-up; the conversation is never assumed to be on the follow-up's channel.
  * Rule (see the note at the top): opt-out wins; then a reply on the customer's own SMS/email channel after they
  * messaged; otherwise only an explicit consent grant for SMS (mobile on record) or email (address on record). */
 export function checkFollowUp(ctx: SetterContext, via?: Channel): FollowUpCheck {
@@ -125,7 +127,7 @@ export function checkFollowUp(ctx: SetterContext, via?: Channel): FollowUpCheck 
   if (NO_FOLLOW_UP.includes(c.state)) return { ok: false, why: `The contact is ${c.state}.` };
   if (withPerson(ctx.handoffs)) return { ok: false, why: 'A person is looking after this contact.' };
   const reach = (ch: 'sms' | 'email') => ch === 'sms' ? !!c.phone : !!c.email;
-  const own = via ?? (c.phone ? 'sms' : c.email ? 'email' : null);
+  const own = via === 'sms' || via === 'email' ? via : null;
   // NOTE: fo_contact_context returns only the latest 40 messages, so a long thread of only outbound messages could hide
   // the contact's inbound message; that fails safe (no same-channel follow-up). Explicit consent is not affected.
   const first = ctx.messages.find(m => m.direction === 'inbound');
@@ -137,7 +139,7 @@ export function checkFollowUp(ctx: SetterContext, via?: Channel): FollowUpCheck 
   }
   if (!first) return { ok: false, why: 'No recorded consent: the contact has not messaged the business.' };
   if (!c.phone && !c.email) return { ok: false, why: 'No mobile or email on record. Follow-ups never go into website chat, Instagram or Messenger.' };
-  return { ok: false, why: `No recorded consent for ${c.phone ? 'texts' : 'email'}: the contact messaged on ${own ?? 'another channel'} and has not agreed to be contacted another way.` };
+  return { ok: false, why: `No recorded consent for ${c.phone ? 'texts' : 'email'}: the contact messaged on ${via ?? 'a channel that is not known'} and has not agreed to be contacted another way.` };
 }
 
 function localMinutes(t: number, timeZone: string): number {
@@ -229,7 +231,8 @@ export async function performBook(x: SetterActionDeps, contactId: string, start:
  * jobs.ts sends it (and the later steps) when due. */
 export async function performFollowUp(x: SetterActionDeps, contactId: string, channel: 'sms' | 'email' | null): Promise<ExecutionResult> {
   const ctx = await readContext(x, contactId);
-  const chk = checkFollowUp(ctx, x.via === undefined ? x.channel : x.via ?? undefined);
+  // Unknown via fails closed (A-47): x.channel (the record's channel) is never taken as the customer's own channel.
+  const chk = checkFollowUp(ctx, x.via ?? undefined);
   if (!chk.ok) return { ok: false, note: `No follow-up: ${chk.why}` };
   if (channel && channel !== chk.channel) return { ok: false, note: `No follow-up: the contact can no longer be reached by ${channel === 'sms' ? 'text' : 'email'}.` };
   const tz = x.config.availability.timeZone;

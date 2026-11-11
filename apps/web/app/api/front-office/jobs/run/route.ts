@@ -4,6 +4,7 @@ import { supabaseConfigured } from '../../../../../lib/workspace-route';
 import { metaRunnerChannels, runDueJobs, runnerAuthorized, runnerChannels, runnerSecrets } from '../../../../../lib/front-office/jobs';
 import type { ChannelAuth, Rpc } from '../../../../../lib/front-office/orchestrator';
 import { metaJobSender } from '../../../../../lib/front-office/meta';
+import { isChannelKind } from '../../../../../lib/front-office/contracts';
 import type { MetaKind } from '../../../../../lib/front-office/meta';
 import { senderFromEnv } from '../../../../../lib/front-office/sms-send';
 import { emailSenderFromEnv } from '../../../../../lib/front-office/email';
@@ -26,6 +27,8 @@ async function run(req: NextRequest) {
   if (!secrets.length) return reply({ error: 'Job runner is not configured.', configured: false }, 503);
   if (!runnerAuthorized(req.headers.get('authorization'), secrets)) return reply({ error: 'Not allowed.' }, 401);
   // Instagram / Messenger channels run with meta set: Meta's 24-hour window decides every job (jobs.ts metaRoute).
+  // via: what each channel is, for the follow-up consent rule (A-47); a name that is not a known channel kind is left
+  // out, so a follow-up there needs a consent grant (fail closed).
   const channels: { name: string; auth: ChannelAuth; meta?: MetaKind }[] = [...runnerChannels(process.env), ...metaRunnerChannels(process.env).map(c => ({ ...c, meta: c.name }))];
   if (!supabaseConfigured() || !channels.length) return reply({ error: 'Front office channel is not configured.', configured: false }, 503);
   const db = createSupabaseClient();
@@ -35,7 +38,7 @@ async function run(req: NextRequest) {
   let failed = 0;
   for (const c of channels) {
     try {
-      for (const r of await runDueJobs({ rpc, auth: c.auth, send, email, config: async () => (await loadSetter(rpc, c.auth)).config, now, permissions: channelPermissions(rpc, c.auth), ...(c.meta ? { meta: { kind: c.meta, send: metaSend } } : {}) })) results.push({ channel: c.name, kind: r.kind, outcome: r.outcome, note: r.note, sent: r.sent });
+      for (const r of await runDueJobs({ rpc, auth: c.auth, send, email, config: async () => (await loadSetter(rpc, c.auth)).config, now, permissions: channelPermissions(rpc, c.auth), ...(isChannelKind(c.name) ? { via: c.name } : {}), ...(c.meta ? { meta: { kind: c.meta, send: metaSend } } : {}) })) results.push({ channel: c.name, kind: r.kind, outcome: r.outcome, note: r.note, sent: r.sent });
     } catch { failed++; }
   }
   if (failed === channels.length) return reply({ error: 'Front office storage is unavailable.' }, 503);

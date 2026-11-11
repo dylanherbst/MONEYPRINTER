@@ -14,7 +14,9 @@ import type { SetterContext } from '../lib/front-office/setter/actions.ts';
 
 const { checkFollowUp, createSetterExecutor } = await import('../lib/front-office/setter/actions.ts');
 const { handleInbound, handleInboundSms } = await import('../lib/front-office/orchestrator.ts');
-const { metaRoute } = await import('../lib/front-office/jobs.ts');
+const { metaRoute, runDueJobs } = await import('../lib/front-office/jobs.ts');
+const { createMemoryPendingActionStore } = await import('../lib/front-office/pending-actions.ts');
+const { approvalChannel } = await import('../app/api/front-office/pending-actions/shared.ts');
 const { ventraSetterConfig } = await import('../lib/front-office/setter/config.ts');
 
 const CID = '33333333-3333-4333-8333-333333333333';
@@ -41,8 +43,8 @@ test('follow-up consent: website chat to SMS needs a grant; a missing consent fi
 test('follow-up consent: replying on the channel the customer used is still allowed without a grant', () => {
   assert.deepEqual(checkFollowUp(base(), 'sms'), { ok: true, channel: 'sms', consent: 'The contact messaged the business first (2026-11-10T01:00:00Z).' });
   assert.deepEqual(checkFollowUp(base({ phone: null, email: 'sam@example.com' }), 'email'), { ok: true, channel: 'email', consent: 'The contact messaged the business first (2026-11-10T01:00:00Z).' });
-  // No channel given (older callers): the follow-up channel is taken as the conversation's, exactly as before A-45.
-  assert.equal(checkFollowUp(base()).ok, true);
+  // No channel given: unknown fails closed (A-47); see the dedicated test below.
+  assert.equal(checkFollowUp(base()).ok, false);
   // No inbound message and no grant: no consent at all.
   assert.deepEqual(checkFollowUp(base({}, false), 'sms'), { ok: false, why: 'No recorded consent: the contact has not messaged the business.' });
   // An explicit grant is consent even before the contact has messaged.
@@ -66,6 +68,85 @@ test('performFollowUp from website chat: no grant schedules nothing; a grant sch
     if (consent) { assert.equal(r.ok, true); assert.ok(calls.includes('fo_schedule_job')); }
     else { assert.equal(r.ok, false); assert.match(r.note ?? '', /No follow-up: No recorded consent for texts/); assert.ok(!calls.includes('fo_schedule_job')); }
   }
+});
+
+test('A-47: an unknown customer channel fails closed in checkFollowUp and performFollowUp; only a grant allows the follow-up', async () => {
+  // Before A-47 both of these were ok (the conversation was assumed to be on the follow-up channel).
+  const unknown = checkFollowUp(base());
+  assert.equal(unknown.ok, false);
+  assert.match(!unknown.ok ? unknown.why : '', /No recorded consent for texts: the contact messaged on a channel that is not known/);
+  assert.equal(checkFollowUp(base(), undefined).ok, false);
+  assert.equal(checkFollowUp(base({ phone: null, email: 'sam@example.com' })).ok, false);
+  assert.deepEqual(checkFollowUp(base({ consent: { sms: true, email: false } })), { ok: true, channel: 'sms', consent: 'The contact gave recorded consent to be contacted by text.' });
+  const payload = { kind: 'follow_up', channel: 'sms', body: 'Hi Sam', promptVersion: 'setter/follow-up@1', step: 1 };
+  for (const deps of [{}, { via: null }, { channel: 'sms' as const }, { channel: 'sms' as const, via: null }]) {
+    const calls: string[] = [];
+    const rpc = async (fn: string) => { calls.push(fn); return fn === 'fo_contact_context' ? base() : null; };
+    const exec = createSetterExecutor({ rpc, auth: { channel: 'ch', key: 'k' }, calendar: null, config: ventraSetterConfig, now: Date.parse('2026-11-10T02:00:00Z'), send: async () => ({ sent: false, sid: null }), ...deps });
+    const r = await exec({ product: 'setter', contactId: CID, pendingActionId: 'p1', payload } as Parameters<typeof exec>[0]);
+    assert.equal(r.ok, false, `deps ${JSON.stringify(deps)}: the record's channel is never taken as the customer's own`);
+    assert.ok(!calls.includes('fo_schedule_job'));
+  }
+  // Known SMS conversation: a same-channel reply is still allowed without a grant.
+  const calls: string[] = [];
+  const rpc = async (fn: string) => { calls.push(fn); return fn === 'fo_contact_context' ? base() : null; };
+  const exec = createSetterExecutor({ rpc, auth: { channel: 'ch', key: 'k' }, calendar: null, config: ventraSetterConfig, now: Date.parse('2026-11-10T02:00:00Z'), send: async () => ({ sent: false, sid: null }), via: 'sms' });
+  assert.equal((await exec({ product: 'setter', contactId: CID, pendingActionId: 'p1', payload } as Parameters<typeof exec>[0])).ok, true);
+  assert.ok(calls.includes('fo_schedule_job'));
+});
+
+test('A-47: the approval queue performs a held follow-up with the channel the item came from', async () => {
+  const env = {
+    FRONT_OFFICE_CHANNEL_ID: '44444444-4444-4444-8444-444444444441', FRONT_OFFICE_CHANNEL_KEY: 's'.repeat(40),
+    FRONT_OFFICE_CHAT_CHANNEL_ID: '44444444-4444-4444-8444-444444444442', FRONT_OFFICE_CHAT_CHANNEL_KEY: 'c'.repeat(40),
+    FRONT_OFFICE_INSTAGRAM_CHANNEL_ID: '44444444-4444-4444-8444-444444444443', FRONT_OFFICE_INSTAGRAM_CHANNEL_KEY: 'i'.repeat(40),
+  };
+  assert.equal(approvalChannel(env, env.FRONT_OFFICE_CHANNEL_ID)?.kind, 'sms');
+  assert.equal(approvalChannel(env, env.FRONT_OFFICE_CHAT_CHANNEL_ID)?.kind, 'web-chat');
+  assert.equal(approvalChannel(env, env.FRONT_OFFICE_INSTAGRAM_CHANNEL_ID)?.kind, 'instagram');
+  assert.equal(approvalChannel(env, '44444444-4444-4444-8444-444444444449'), null, 'an unknown channel is not performed at all');
+});
+
+const JOB_NOW = Date.parse('2026-11-10T02:00:00Z');
+const runFollowUp = async (ctx: SetterContext, via?: 'sms' | 'web-chat') => {
+  const calls: string[] = []; const sent: string[] = [];
+  const rpc = async (fn: string) => {
+    calls.push(fn);
+    if (fn === 'fo_claim_jobs') return [{ id: 'j1', contact: CID, kind: 'follow-up', step: 2, appointment: null }];
+    if (fn === 'fo_contact_context') return ctx;
+    return null;
+  };
+  const store = createMemoryPendingActionStore({ workspaceId: '55555555-5555-4555-8555-555555555555', modes: () => ({ setter: 'automatic', receptionist: 'enquiry_only' }), owners: [], now: () => JOB_NOW });
+  const out = await runDueJobs({ rpc, auth: { channel: 'ch', key: 'k' }, send: async (to: string) => { sent.push(to); return { sent: false, sid: null }; }, config: ventraSetterConfig, now: JOB_NOW, permissions: { store, quietHours: { start: 0, end: 0 } }, ...(via ? { via } : {}) });
+  return { out: out[0], calls, sent };
+};
+
+test('A-47 jobs: grant -> follow-up scheduled from website chat -> grant withdrawn -> the due job is blocked (inbound only on web chat)', async () => {
+  // 1. The grant lets the Setter schedule follow-up 1 by text from a website chat.
+  let ctx = base({ consent: { sms: true, email: false } });
+  const calls: string[] = [];
+  const rpc = async (fn: string) => { calls.push(fn); return fn === 'fo_contact_context' ? ctx : null; };
+  const exec = createSetterExecutor({ rpc, auth: { channel: 'ch', key: 'k' }, calendar: null, config: ventraSetterConfig, now: JOB_NOW, send: async () => ({ sent: false, sid: null }), via: 'web-chat' });
+  assert.equal((await exec({ product: 'setter', contactId: CID, pendingActionId: 'p1', payload: { kind: 'follow_up', channel: 'sms', body: 'Hi', promptVersion: 'setter/follow-up@1', step: 1 } } as Parameters<typeof exec>[0])).ok, true);
+  assert.ok(calls.includes('fo_schedule_job'));
+  // While the grant is open the web-chat runner sends it.
+  const open = await runFollowUp(ctx, 'web-chat');
+  assert.equal(open.out.outcome, 'done'); assert.equal(open.sent.length, 1);
+  // 2. The grant is withdrawn; the only inbound message is the website chat. Before A-47 any inbound let it through.
+  ctx = base({ consent: { sms: false, email: false } });
+  const r = await runFollowUp(ctx, 'web-chat');
+  assert.equal(r.out.outcome, 'cancelled');
+  assert.match(r.out.note, /No follow-up: No recorded consent for texts: the contact messaged on web-chat/);
+  assert.equal(r.sent.length, 0); assert.ok(!r.calls.includes('fo_log_outbound'));
+  // The runner without a known channel fails closed too.
+  const u = await runFollowUp(ctx);
+  assert.equal(u.out.outcome, 'cancelled'); assert.equal(u.sent.length, 0);
+  // An SMS conversation (inbound on the SMS channel) is still followed up by SMS without a grant.
+  const s = await runFollowUp(ctx, 'sms');
+  assert.equal(s.out.outcome, 'done'); assert.equal(s.sent.length, 1);
+  // No inbound at all and no grant: the original wording.
+  const none = await runFollowUp(base({}, false), 'sms');
+  assert.match(none.out.note, /No recorded consent: the contact has not messaged the business/);
 });
 
 test('Meta out-of-window reroute reads contact.consent: SMS with a grant, owner task without one or with an older database', () => {
@@ -94,40 +175,67 @@ const scripted = (opts: { optedOut: boolean; withdrawFails?: boolean }) => {
 
 test('STOP by SMS: opts out, confirms and withdraws SMS consent with an inbound STOP source', async () => {
   const s = scripted({ optedOut: true });
-  const r = await handleInboundSms(s.rpc, { channel: 'ch', key: 'k' }, MSG, {}, { withdrawConsent: true });
+  const r = await handleInboundSms(s.rpc, { channel: 'ch', key: 'k' }, MSG);
   assert.equal(r.optedOut, true); assert.match(r.reply ?? '', /unsubscribed/);
   assert.deepEqual(s.calls.map(c => c.fn), ['fo_ingest_sms', 'fo_log_outbound', 'fo_withdraw_consent']);
   assert.equal(s.calls[0].args.opt_out, true);
   assert.deepEqual(s.calls[2].args, { channel: 'ch', channel_key: 'k', contact: 'c1', consent_channel: 'sms', source: 'inbound STOP (sms)', withdrawn: null });
 });
 
-test('STOP by email withdraws email consent; web chat, a normal message or no option never calls withdraw', async () => {
+test('STOP by email withdraws email consent; web chat or a normal message never calls withdraw', async () => {
   const e = scripted({ optedOut: true });
-  await handleInbound(e.rpc, { channel: 'ch', key: 'k' }, { via: 'email', sender: 'sam@example.com', body: 'Subject: Re\n\nunsubscribe', checkText: 'STOP', messageId: 'm1' }, {}, { withdrawConsent: true });
+  await handleInbound(e.rpc, { channel: 'ch', key: 'k' }, { via: 'email', sender: 'sam@example.com', body: 'Subject: Re\n\nunsubscribe', checkText: 'STOP', messageId: 'm1' });
   const w = e.calls.find(c => c.fn === 'fo_withdraw_consent');
   assert.equal(w?.args.consent_channel, 'email'); assert.equal(w?.args.source, 'inbound STOP (email)');
   const chat = scripted({ optedOut: true });
-  await handleInbound(chat.rpc, { channel: 'ch', key: 'k' }, { via: 'web-chat', sender: 'v1', body: 'STOP', messageId: 'w1' }, {}, { withdrawConsent: true });
+  await handleInbound(chat.rpc, { channel: 'ch', key: 'k' }, { via: 'web-chat', sender: 'v1', body: 'STOP', messageId: 'w1' });
   assert.ok(!chat.calls.some(c => c.fn === 'fo_withdraw_consent'), 'website chat has no SMS/email consent to withdraw');
   const hi = scripted({ optedOut: false });
-  await handleInboundSms(hi.rpc, { channel: 'ch', key: 'k' }, { ...MSG, body: 'Hi' }, {}, { withdrawConsent: true });
+  await handleInboundSms(hi.rpc, { channel: 'ch', key: 'k' }, { ...MSG, body: 'Hi' });
   assert.ok(!hi.calls.some(c => c.fn === 'fo_withdraw_consent'));
-  const off = scripted({ optedOut: true });
-  await handleInboundSms(off.rpc, { channel: 'ch', key: 'k' }, MSG);
-  assert.ok(!off.calls.some(c => c.fn === 'fo_withdraw_consent'));
+  // A STOP the database did not record as an opt-out does not withdraw either.
+  const notOut = scripted({ optedOut: false });
+  await handleInboundSms(notOut.rpc, { channel: 'ch', key: 'k' }, MSG);
+  assert.ok(!notOut.calls.some(c => c.fn === 'fo_withdraw_consent'));
+});
+
+test('A-47: STOP withdraw is on by default (no option): plain handleInboundSms and handleInbound withdraw', async () => {
+  // Before A-47 a caller without { withdrawConsent: true } never withdrew.
+  const s = scripted({ optedOut: true });
+  await handleInboundSms(s.rpc, { channel: 'ch', key: 'k' }, MSG);
+  assert.deepEqual(s.calls.map(c => c.fn), ['fo_ingest_sms', 'fo_log_outbound', 'fo_withdraw_consent']);
+  const e = scripted({ optedOut: true });
+  await handleInbound(e.rpc, { channel: 'ch', key: 'k' }, { via: 'email', sender: 'sam@example.com', body: 'STOP', messageId: 'm2' }, {});
+  assert.equal(e.calls.at(-1)?.fn, 'fo_withdraw_consent');
 });
 
 test('a failing withdraw never breaks or changes the opt-out', async () => {
   const ok = scripted({ optedOut: true });
-  const expected = await handleInboundSms(ok.rpc, { channel: 'ch', key: 'k' }, MSG, {}, { withdrawConsent: true });
+  const expected = await handleInboundSms(ok.rpc, { channel: 'ch', key: 'k' }, MSG);
   const bad = scripted({ optedOut: true, withdrawFails: true });
-  const warn = console.warn; const warned: unknown[] = []; console.warn = (...a: unknown[]) => { warned.push(a); };
+  const warn = console.warn; const warned: unknown[][] = []; console.warn = (...a: unknown[]) => { warned.push(a); };
   try {
-    const r = await handleInboundSms(bad.rpc, { channel: 'ch', key: 'k' }, MSG, {}, { withdrawConsent: true });
+    const r = await handleInboundSms(bad.rpc, { channel: 'ch', key: 'k' }, MSG);
     assert.deepEqual(r, expected, 'same result, same opt-out confirmation');
     assert.deepEqual(bad.calls.map(c => c.fn), ['fo_ingest_sms', 'fo_log_outbound', 'fo_withdraw_consent']);
   } finally { console.warn = warn; }
   assert.equal(warned.length, 1, 'the failure is logged once');
+});
+
+test('A-47: a failed withdraw logs a fixed text plus the error name/code only, never the error message', async () => {
+  const leaky = Object.assign(new Error('relation fo_contact_consents: contact +61411111111 secret-detail'), { code: '42883' });
+  const calls: string[] = [];
+  const rpc = async (fn: string) => {
+    calls.push(fn);
+    if (fn === 'fo_ingest_sms') return { contact: 'c1', state: 'qualifying', created: false, duplicate: false, optedOut: true };
+    if (fn === 'fo_withdraw_consent') throw leaky;
+    return null;
+  };
+  const warn = console.warn; const warned: unknown[][] = []; console.warn = (...a: unknown[]) => { warned.push(a); };
+  try { await handleInboundSms(rpc, { channel: 'ch', key: 'k' }, MSG); } finally { console.warn = warn; }
+  assert.deepEqual(warned, [['fo_withdraw_consent failed after an opt-out; the opt-out stands.', { channel: 'sms', error: 'Error', code: '42883' }]]);
+  const text = JSON.stringify(warned);
+  assert.ok(!text.includes('secret-detail') && !text.includes('+61411111111'), 'no error message or phone number in the log');
 });
 
 // --- Real SQL: grant, STOP through the orchestrator, context and history ------------------------------------------------
@@ -162,12 +270,12 @@ test('PGlite: a granted SMS consent is closed by an inbound STOP; the contact is
       return one<unknown>(`select public.${fn}(${keys.map((k, n) => `${k} => $${n + 1}`).join(', ')}) as r`, keys.map(k => args[k]));
     };
     const auth = { channel: ch, key: KEY };
-    const first = await handleInboundSms(rpc, auth, { ...MSG, body: 'Hi', messageSid: 'SM00000000000000000000000000000010' }, {}, { withdrawConsent: true });
+    const first = await handleInboundSms(rpc, auth, { ...MSG, body: 'Hi', messageSid: 'SM00000000000000000000000000000010' });
     await rpc('fo_grant_consent', { channel: ch, channel_key: KEY, contact: first.contact, consent_channel: 'sms', source: 'Website form, SMS box', given_at: null });
     const before = await rpc('fo_contact_context', { channel: ch, channel_key: KEY, contact: first.contact }) as SetterContext;
     assert.deepEqual(before.contact.consent, { sms: true, email: false });
     assert.equal(checkFollowUp(before, 'web-chat').ok, true, 'the recorded grant allows a text follow-up from another channel');
-    const stop = await handleInboundSms(rpc, auth, { ...MSG, messageSid: 'SM00000000000000000000000000000011' }, {}, { withdrawConsent: true });
+    const stop = await handleInboundSms(rpc, auth, { ...MSG, messageSid: 'SM00000000000000000000000000000011' });
     assert.equal(stop.optedOut, true); assert.match(stop.reply ?? '', /unsubscribed/);
     const after = await rpc('fo_contact_context', { channel: ch, channel_key: KEY, contact: first.contact }) as SetterContext;
     assert.equal(after.contact.optedOut, true);

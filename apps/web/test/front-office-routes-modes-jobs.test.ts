@@ -49,7 +49,8 @@ function setup(mode: Mode | (() => never), opts: { step?: number; inbound?: bool
     if (fn === 'fo_schedule_job' && String(args.job_kind).startsWith('reminder') && s.db.jobs.some(j => j.appointment === args.appointment && j.kind === args.job_kind && j.status !== 'cancelled')) return null;
     return s.rpc(fn, args);
   };
-  const run = (now = clock.t) => { clock.t = now; return runDueJobs({ rpc, auth, send, config, now, permissions: { store: pending } }); };
+  // via: an SMS channel, where the contact's inbound message was (A-47: the follow-up consent rule needs the channel).
+  const run = (now = clock.t) => { clock.t = now; return runDueJobs({ rpc, auth, send, config, now, permissions: { store: pending }, via: 'sms' }); };
   const nextJobs = () => s.db.jobs.filter(j => j.id !== 'j-due' && j.status === 'pending');
   const approve = (id: string) => approvePendingAction(pending, id, OWNER, createJobsExecutor(async () => { throw new Error('the Setter executor is not used for held jobs'); }));
   return { ...s, pending, sent, run, nextJobs, calls, clock, approve };

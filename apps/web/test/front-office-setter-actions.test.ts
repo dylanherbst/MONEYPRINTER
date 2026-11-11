@@ -6,6 +6,7 @@
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import './helpers/route-harness.ts';
+import type { SetterContext } from '../lib/front-office/setter/actions.ts';
 
 const { store } = await import('./helpers/front-office-store.ts');
 const { runSetterTurn } = await import('../lib/front-office/setter/agent.ts');
@@ -69,8 +70,9 @@ function setup(mode: Mode, s = lead()) {
   const calendar = fakeCalendar();
   const sent: { to: string; body: string }[] = [];
   const send = async (to: string, body: string) => { sent.push({ to, body }); return { sent: false, sid: null }; };
-  const deps = (llm: Llm, extra: Record<string, unknown> = {}) => ({ llm, rpc: s.rpc, auth, calendar, send, config, now: NOW, permissions: { store: pending }, ...extra });
-  const executor = (now = NOW + 60_000) => createSetterExecutor({ rpc: s.rpc, auth, calendar, config, now, send });
+  // channel / via: an SMS conversation (A-47: the follow-up consent rule needs the customer's channel; unknown fails closed).
+  const deps = (llm: Llm, extra: Record<string, unknown> = {}) => ({ llm, rpc: s.rpc, auth, calendar, send, config, now: NOW, permissions: { store: pending }, channel: 'sms' as const, ...extra });
+  const executor = (now = NOW + 60_000) => createSetterExecutor({ rpc: s.rpc, auth, calendar, config, now, send, via: 'sms' });
   return { ...s, pending, calendar, sent, deps, executor };
 }
 const firstSlot = async (calendar: ReturnType<typeof fakeCalendar>) => (await offerTimes(calendar, config.availability, NOW))[0];
@@ -314,7 +316,11 @@ test('channel rules and quiet hours: no follow-up into a chat with no mobile or 
   const q = setup('automatic', lead('qualifying'));
   await runSetterTurn(CID, { ...q.deps(scripted([[say('Which suburb?')]]).llm), permissions: { store: q.pending, quietHours: { start: 8, end: 10 } } });
   assert.deepEqual(followUpJobs(q.db).map(j => (j as unknown as { due: string }).due), ['2026-11-09T02:00:00.000Z']);
-  assert.deepEqual(checkFollowUp({ contact: { id: CID, name: null, phone: null, email: 'a@b.co', state: 'new', optedOut: false, answers: {} }, messages: [{ direction: 'inbound', body: 'x', agent: null, at: '' }], appointment: null, handoffs: [] }), { ok: true, channel: 'email', consent: 'The contact messaged the business first.' });
+  const emailLead: SetterContext = { contact: { id: CID, name: null, phone: null, email: 'a@b.co', state: 'new', optedOut: false, answers: {} }, messages: [{ direction: 'inbound', body: 'x', agent: null, at: '' }], appointment: null, handoffs: [] };
+  // A-47: no channel given is unknown and fails closed (no grant on record).
+  assert.equal(checkFollowUp(emailLead).ok, false);
+  assert.deepEqual(checkFollowUp(emailLead, 'email'), { ok: true, channel: 'email', consent: 'The contact messaged the business first.' });
+  assert.deepEqual(checkFollowUp({ ...emailLead, contact: { ...emailLead.contact, phone: '+61411111111', email: null } }, 'sms'), { ok: true, channel: 'sms', consent: 'The contact messaged the business first.' });
 });
 
 test('hand-off to a person in every mode: fo_handoffs record, the AI stops replying until a person hands it back', async () => {

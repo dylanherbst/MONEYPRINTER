@@ -62,7 +62,8 @@ test('orchestrator: records, routes and logs; opt-out sends one logged confirmat
   calls.length = 0;
   r = await handleInboundSms(rpc({ contact: 'c1', state: 'qualifying', created: false, duplicate: false, optedOut: true }), { channel: CH, key: KEY }, { ...msg, body: 'STOP' });
   assert.equal(r.route.agent, null); assert.match(r.reply ?? '', /unsubscribed/);
-  assert.deepEqual(calls.map(c => c.fn), ['fo_ingest_sms', 'fo_log_outbound']);
+  // A-47 (owner-coordinator approved): a STOP by SMS also closes the SMS consent record, always.
+  assert.deepEqual(calls.map(c => c.fn), ['fo_ingest_sms', 'fo_log_outbound', 'fo_withdraw_consent']);
   assert.equal(calls[0].args.opt_out, true); assert.equal(calls[1].args.prompt, 'system/opt-out-confirmation@1');
   const hooked: string[] = [];
   await handleInboundSms(rpc({ contact: 'c7', state: 'qualifying', created: false, duplicate: false, optedOut: false }), { channel: CH, key: KEY }, msg, { setter: c => hooked.push(c) });
