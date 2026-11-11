@@ -15,6 +15,18 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
+- Last cycle: c-a8a636ff at 2026-11-12 01:33 AWST · 3 dispatched to build (A-48, A-49, A-57) + 1 QA spec (A-28) + 3 reviews · 3 verified and committed · 2 new owner decisions
+- Integration branch: agent/develop @ 975dcf85 (ea570fea A-48 · 570d55fd A-49 · 975dcf85 A-57); board commit follows
+- Verification: npm --prefix apps/web test 1058 total, 1054 pass, 4 todo, 0 fail (was 1033 at start); lint 0; typecheck 0. ventra-verify not run (no persistence/route change). Reviews: A-48, A-49, A-57 approve with nits (-> A-50, A-62, A-63).
+- QA scenario spec saved: docs/agents/briefs/A-28_QA_SCENARIOS.md (S1-S12, R1-R13, X1-X8, gaps G1-G8). Setter suite done (A-49); Receptionist (A-51), security incl. cross-tenant chat (A-52), live file (A-53) queued.
+- Behaviour changes: (A-48) on the email runner, follow-ups, reminders and rescues for a contact with phone and email go by email. (A-57) Receptionist prompt voice@2 tells a caller in danger to hang up and call 000; asks to repeat; reads back details. The owner may want to review that wording.
+- Found: Setter Lab keeps replying after a hand-off to a person while live goes quiet (A-61). Gaps planned: A-54 returning booked customer, A-55 Setter API-failure recovery, A-56 Receptionist modes for bookings (waits A-14), A-58 dropped-call call-back, A-59 "real person" rule.
+- Running / implemented (needs reconciling next cycle): none. Backup not refreshed (P0-10 still broken).
+- Blocked, needs the owner: NEW A-12 (Google OAuth app + where each business's calendar token is stored; env single-account calendar already works), NEW A-60 (may the AI give price estimates?). Unchanged: W-1 browser check (blocks every W- task; curl to localhost:3020 still refused this cycle), P0-10 backup script, A-34 lab key secret, A-14 transfer rule (blocks A-7, A-56), P0-7.
+- Next up: A-61 (lab hand-off parity), A-54, A-55, A-51, A-52 (all ventra-voice, one at a time), A-50/A-62/A-63 nits, A-18 (backend; touches voice files, plan with care), A-20.
+
+### Previous cycle c-08120d7a
+
 - Last cycle: c-08120d7a at 2026-11-12 00:56 AWST · 7 dispatched (A-43, A-38, A-6, A-44, A-46, A-45, A-47) + 3 reviews · 6 verified and committed · 0 new owner blockers
 - Integration branch: agent/develop @ 28b651db (576c9dd1 A-43 · 8fced048 A-38 · 22732105 A-46 · 46268b2c A-44 · fd0073e5 A-45 · 28b651db A-47); board commit follows
 - Verification: npm --prefix apps/web test 1030/1030 (was 990 at start of the previous cycle), lint 0, typecheck 0. ventra-verify (after A-38): lint/typecheck/unit/build/workspace-integration PASSED; course + launcher FAILED as frozen (P0-7). Reviews: A-38, A-45, A-47 approve with nits (A-38/A-45 nits closed by A-46/A-47; A-47 nits -> A-48).
@@ -161,10 +173,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-12 01:32 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-12 01:54 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `28b651d fix(setter): consent rule applied everywhere follow-ups are decided: approved held follow-ups and the job runner pass the channel (via), send time needs same-channel inbound or an open grant, unknown channel fails closed; STOP withdraw always on; warn log without error text [A-47]`
-- Lock: coordinator (pid 15671, 36 min old)
+- HEAD: `975dcf8 feat(receptionist): prompt voice@2 adds safety and clarity rules: a caller in danger is told to hang up and call 000 (not replaced by a booking or message), urgent-but-not-life-threatening keeps transfer/take_message, ask to repeat instead of guessing, read back names, numbers and times; lab test now asserts the 000 rule [A-57]`
+- Lock: coordinator (pid 26274, 21 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -183,7 +195,6 @@ _Generated 2026-11-12 01:32 by `ventra-handoff snapshot`. Do not hand-edit this 
  D apps/web/app/lab/page.tsx
  M apps/web/package-lock.json
  M apps/web/package.json
- M docs/agents/API_CONTRACTS.md
  M docs/agents/TASKS.md
  M docs/agents/TASK_BOARD.json
  D docs/design/LIQUID_GLASS_SPEC.md
@@ -207,6 +218,7 @@ _Generated 2026-11-12 01:32 by `ventra-handoff snapshot`. Do not hand-edit this 
 ?? .claude/agents/ventra-web-design.md
 ?? .codex/agents/ventra-marketing.toml
 ?? .codex/agents/ventra-store.toml
+?? .codex/agents/ventra-voice.toml
 ```
 - Diff stat vs HEAD:
 ```text
@@ -224,15 +236,15 @@ _Generated 2026-11-12 01:32 by `ventra-handoff snapshot`. Do not hand-edit this 
  scripts/agents/install.sh                         |   2 +-
  scripts/agents/ventra-backup                      |   3 +
  scripts/agents/ventra-verify                      |  11 +-
- 33 files changed, 199 insertions(+), 1695 deletions(-)
+ 32 files changed, 256 insertions(+), 1687 deletions(-)
 ```
 - Recent commits:
 ```text
+975dcf8 feat(receptionist): prompt voice@2 adds safety and clarity rules: a caller in danger is told to hang up and call 000 (not replaced by a booking or message), urgent-but-not-life-threatening keeps transfer/take_message, ask to repeat instead of guessing, read back names, numbers and times; lab test now asserts the 000 rule [A-57]
+570d55f test(setter): QA scenario suite S1-S12 in Demo mode (lab, direct agent and real-SQL chat route harnesses; S5 in all three modes) with a per-scenario recorder; known gaps G1, G2, G7 and lab hand-off parity as test.todo [A-49]
+ea570fe fix(setter): on the email runner a contact with phone and email is followed up by email (same-channel, no SMS grant needed); other channels still need a grant, opt-out wins, unknown via fails closed; jobBlocked comment states the full rule; jobs/run route test pins via per channel [A-48]
+1aaf06e chore(coordinator): cycle c-08120d7a board and handoff
 28b651d fix(setter): consent rule applied everywhere follow-ups are decided: approved held follow-ups and the job runner pass the channel (via), send time needs same-channel inbound or an open grant, unknown channel fails closed; STOP withdraw always on; warn log without error text [A-47]
-fd0073e feat(setter): follow-ups use recorded consent (opt-out wins; same-channel reply allowed; other channel needs an open grant; missing = no consent); SMS/email STOP also withdraws that channel's consent (non-fatal); Meta reroute uses hasConsent [A-45]
-46268b2 test(setter): end-to-end website chat through the real route and real fo_* SQL in PGlite for automatic, owner approval, enquiry only and not-live, asserting contacts, messages, pending actions, appointments and handoffs; accurate Receptionist Lab mode test label [A-44]
-2273210 test(crm): consent grant on an opted-out contact keeps optedOut true; anon/authenticated cannot execute fo_consent_input or the guard trigger function [A-46]
-8fced04 feat(crm): per-channel consent records fo_contact_consents (sms/email, grant/withdraw source+time, RLS read-only for members, guard trigger), fo_grant_consent/fo_withdraw_consent RPCs, fo_contact_context returns contact.consent; local/PGlite only [A-38]
 ```
 <!-- git-state:end -->
 
