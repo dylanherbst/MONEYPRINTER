@@ -15,6 +15,14 @@ Dylan asked for the mobile app preview link to be sent to him on Telegram. Send 
 
 ## Master Coordinator (auto)
 
+- Last cycle: c-8409421c at 2026-11-12 03:06 AWST · 1 dispatched (A-58, ventra-voice) · 0 verified/committed · 0 new owner blockers (spend cap reached before review)
+- Integration branch: agent/develop @ 6a63a3e; board commit follows
+- Running / implemented (needs reconciling next cycle): A-58 implemented, uncommitted: apps/web/lib/front-office/receptionist/dropped.ts (new), apps/web/lib/front-office/vapi-route.ts (+7/-1), apps/web/test/front-office-receptionist-dropped.test.ts (new). Coordinator checked: 4/4 new tests pass, typecheck clean. Needs ventra-review (Vapi webhook) + full test/lint, then commit.
+- Blocked, needs the owner: unchanged (A-64, W-1 browser check, A-12, A-60, A-14, A-34, P0-10, P0-7).
+- Next up: A-58 review+commit, then A-65 (also turn R12/G5 todo at scenarios-receptionist.test.ts:400 into a passing check), A-52, A-59.
+
+### Previous cycle c-b5e908f2
+
 - Last cycle: c-b5e908f2 at 2026-11-12 02:35 AWST · 1 dispatched (A-51, ventra-voice) + 1 review · 1 verified and committed · 0 new owner blockers (small spend cap, one task only)
 - Integration branch: agent/develop @ fa0e99ad (A-51); board commit follows
 - Verification: npm --prefix apps/web test 1096 total, 1091 pass, 5 todo, 0 fail (was 1078); lint 0; typecheck 0. ventra-verify not run (tests only, no persistence/route change). Review: approve with nits -> A-65.
@@ -193,10 +201,10 @@ Tracker Phase 0: 0.1 scope freeze, 0.2 orchestrator, 0.3 lead store + state mach
 ## Git state (auto)
 
 <!-- git-state:start -->
-_Generated 2026-11-12 02:45 by `ventra-handoff snapshot`. Do not hand-edit this block._
+_Generated 2026-11-12 03:10 by `ventra-handoff snapshot`. Do not hand-edit this block._
 - Branch: `agent/develop`
-- HEAD: `fa0e99a test(receptionist): QA scenario suite R1-R13 + X5 in Demo mode (scripted model, no network, nothing sent); R6 000 rule now a passing check (G4 fixed by A-57); R9/R10 audio, G3 operating modes and G5 dropped-call call-back as labelled todos [A-51]`
-- Lock: coordinator (pid 39420, 10 min old)
+- HEAD: `6a63a3e chore(coordinator): cycle c-b5e908f2 board and handoff`
+- Lock: coordinator (pid 43613, 3 min old)
 - Uncommitted changes:
 ```text
  M .claude/agents/ventra-backend.md
@@ -213,6 +221,7 @@ _Generated 2026-11-12 02:45 by `ventra-handoff snapshot`. Do not hand-edit this 
  M apps/web/app/glass-showcase/page.tsx
  D apps/web/app/lab/lab.css
  D apps/web/app/lab/page.tsx
+ M apps/web/lib/front-office/vapi-route.ts
  M apps/web/package-lock.json
  M apps/web/package.json
  M docs/agents/TASKS.md
@@ -238,7 +247,6 @@ _Generated 2026-11-12 02:45 by `ventra-handoff snapshot`. Do not hand-edit this 
 ?? .claude/agents/ventra-web-design.md
 ?? .codex/agents/ventra-marketing.toml
 ?? .codex/agents/ventra-store.toml
-?? .codex/agents/ventra-voice.toml
 ```
 - Diff stat vs HEAD:
 ```text
@@ -256,15 +264,15 @@ _Generated 2026-11-12 02:45 by `ventra-handoff snapshot`. Do not hand-edit this 
  scripts/agents/install.sh                         |   2 +-
  scripts/agents/ventra-backup                      |   3 +
  scripts/agents/ventra-verify                      |  11 +-
- 32 files changed, 97 insertions(+), 1673 deletions(-)
+ 33 files changed, 78 insertions(+), 1668 deletions(-)
 ```
 - Recent commits:
 ```text
+6a63a3e chore(coordinator): cycle c-b5e908f2 board and handoff
 fa0e99a test(receptionist): QA scenario suite R1-R13 + X5 in Demo mode (scripted model, no network, nothing sent); R6 000 rule now a passing check (G4 fixed by A-57); R9/R10 audio, G3 operating modes and G5 dropped-call call-back as labelled todos [A-51]
 2d3ff9c chore(coordinator): cycle c-4735b672 board and handoff
 7ddb32f fix(setter-lab): after a hand-off to a person the Setter Lab goes quiet like the live routes (same withPerson check on the lab's handoff records; message stored, no model call, no reply, route shows why); A-49 lab-fidelity todo now a passing test in all three modes [A-61]
 890222e feat(setter): returning booked contacts on web chat and the Setter Lab get a reply with their stored booking (time, zone, where; built in code) via setter/returning-booked@1; only handoff tools allowed (server-enforced); move/cancel and any hand-off end on fixed lines; model text claiming a booking change is never sent; no upcoming booking -> code-recorded hand-off; SMS/email/Meta unchanged; S9 G1 todo now passing [A-54]
-1601301 feat(setter): model/API failure falls back to a fixed 'someone will get back to you' reply (setter/fallback@1), records a human handoff through the permission check, books nothing, logs only a short code (no key or provider body); DB errors still fail the turn; S12 G2 todo now a real chat-route test in all three modes [A-55]
 ```
 <!-- git-state:end -->
 

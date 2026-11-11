@@ -3767,12 +3767,12 @@
     },
     {
       "id": "A-58", "title": "G5: dropped call mid-booking creates a call-back handoff for staff (caller number, what was captured, where it stopped)",
-      "phase": "A", "module": "receptionist", "owner": "ventra-voice", "state": "queued", "priority": 3, "dependsOn": [],
+      "phase": "A", "module": "receptionist", "owner": "ventra-voice", "state": "implemented", "priority": 3, "dependsOn": [],
       "scope": ["apps/web/lib/front-office/receptionist/**", "apps/web/lib/front-office/vapi-route.ts", "apps/web/test/front-office-receptionist-dropped*.test.ts"],
       "acceptance": ["customer-ended-call or error endedReason before a booking/message -> one call-back handoff (idempotent)", "Completed calls create none"],
       "plan": "A-28 spec G5", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": "c-a8a636ff", "runIds": ["c-a8a636ff"], "commits": [],
-      "evidence": [], "blocker": null, "notes": "", "updatedAt": "2026-11-11T17:41:00Z"
+      "startedAt": "2026-11-11T19:10:00Z", "finishedAt": null, "lastRunId": "c-8409421c", "runIds": ["c-a8a636ff", "c-8409421c"], "commits": [],
+      "evidence": [{"at": "2026-11-11T19:20:00Z", "kind": "diff", "detail": "c-8409421c: new apps/web/lib/front-office/receptionist/dropped.ts (recordDroppedCall, reuses checkedHandoff + fo_record_handoff, marks 'message' outcome via fo_voice_outcome for idempotency); vapi-route.ts +7/-1 in end-of-call-report; new apps/web/test/front-office-receptionist-dropped.test.ts. No migration."}, {"at": "2026-11-11T19:22:00Z", "kind": "test", "detail": "c-8409421c (coordinator ran): node --test dropped.test.ts 4 pass 0 fail; npm --prefix apps/web run typecheck clean. Full suite/lint per specialist only (1095 pass, 0 fail, 5 todo), not yet re-run by coordinator."}], "blocker": null, "notes": "Next cycle: ventra-review (touches Vapi webhook = external channel), then ventra-verify, then commit the 3 files. Follow-ups: scenarios-receptionist.test.ts:400 R12/G5 todo should become a passing check (A-65 scope); optional dedicated 'callback' outcome needs backend change to fo_voice_outcome.", "updatedAt": "2026-11-11T19:22:00Z"
     },
     {
       "id": "A-59", "title": "G7: Setter prompt rule for a plain 'can I talk to a person' request (escalate_human, never claim to be human); lab scripted model gets the trigger",
