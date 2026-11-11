@@ -9,7 +9,7 @@ import { BASE, USER, W, call, configuredEnv, installFakeSupabase, makeRequest, s
 
 const decideRoute = await import('../app/api/front-office/pending-actions/[id]/route.ts');
 const runRoute = await import('../app/api/front-office/jobs/run/route.ts');
-const { META_WINDOW_CLOSED_AT_APPROVAL, META_OWNER_TASK_FAILED, createMemoryPendingActionStore } = await import('../lib/front-office/pending-actions.ts');
+const { META_WINDOW_CLOSED_AT_APPROVAL, META_OPTED_OUT_AT_APPROVAL, META_OWNER_TASK_FAILED, createMemoryPendingActionStore } = await import('../lib/front-office/pending-actions.ts');
 const { runDueJobs } = await import('../lib/front-office/jobs.ts');
 const { metaJobSender } = await import('../lib/front-office/meta.ts');
 const { ventraSetterConfig } = await import('../lib/front-office/setter/config.ts');
@@ -200,7 +200,10 @@ for (const [id, label] of [[SEND, 'Instagram send'], [FOLLOW, 'Messenger follow-
       assert.equal(r.status, 200, JSON.stringify(r.body));
       assert.equal(r.body.outcome, 'failed');
       assert.equal(r.body.item.status, 'failed');
-      assert.equal(r.body.item.note, META_WINDOW_CLOSED_AT_APPROVAL);
+      // A-43: the note says the contact opted out, not the window-closed wording.
+      assert.equal(r.body.item.note, META_OPTED_OUT_AT_APPROVAL);
+      assert.match(r.body.item.note, /opted out/);
+      assert.doesNotMatch(r.body.item.note, /24-hour|reply window|Reply from the Instagram/);
       assert.ok(count(w, 'fo_social_window') >= 1, 'the contact was checked');
       assert.equal(count(w, 'fo_queue_outbound'), 0, 'no send or owner task queued for an opted-out contact');
       assert.equal(count(w, 'fo_channel_settings'), 0, 'the executor never ran');

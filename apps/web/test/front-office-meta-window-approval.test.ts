@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { call, configuredEnv, installFakeSupabase, setEnv } from './helpers/route-harness.ts';
 
 const { inReplyWindow, metaJobSender, REPLY_WINDOW_MS } = await import('../lib/front-office/meta.ts');
-const { gate, approvePendingAction, createMemoryPendingActionStore, META_WINDOW_CLOSED, META_WINDOW_CLOSED_AT_APPROVAL } = await import('../lib/front-office/pending-actions.ts');
+const { gate, approvePendingAction, createMemoryPendingActionStore, META_WINDOW_CLOSED, META_WINDOW_CLOSED_AT_APPROVAL, META_OPTED_OUT_AT_APPROVAL } = await import('../lib/front-office/pending-actions.ts');
 const { metaRoute, socialWindowCheck, createJobsExecutor, metaRunnerChannels, runDueJobs } = await import('../lib/front-office/jobs.ts');
 const { ventraSetterConfig } = await import('../lib/front-office/setter/config.ts');
 const route = await import('../app/api/front-office/jobs/run/route.ts');
@@ -134,6 +134,70 @@ test('approve: no window check given, a failing check, an opted-out contact or n
   const noId = held({ recipient: null });
   r = await approvePendingAction(noId.store, await noId.hold(), OWNER, noId.execute, null, { replyWindow: noId.window() });
   assert.equal(r.outcome, 'failed'); assert.equal(noId.executed.length, 0);
+});
+
+// A-43: the owner-facing note for an opted-out contact names the opt-out and says not to contact them; opted-in
+// contacts outside the window keep the window-closed note. Both are refused and nothing is queued or sent.
+for (const channel of ['instagram', 'messenger'] as const) {
+  for (const kind of ['send', 'follow_up'] as const) {
+    for (const [when, clock] of [['inside the window', NOW + 30 * MIN], ['after the window closed', NOW + 2 * HOUR]] as const) {
+      test(`approve, opted-out contact ${when} (${channel}, ${kind}): opt-out note, not sent, nothing queued`, async () => {
+        const t = held({ channel, kind, optedOut: true });
+        const id = await t.hold();
+        t.setClock(clock);
+        const r = await approvePendingAction(t.store, id, OWNER, t.execute, null, { replyWindow: t.window() });
+        assert.equal(r.outcome, 'failed');
+        assert.equal(r.item.status, 'failed');
+        assert.equal(r.item.note, META_OPTED_OUT_AT_APPROVAL);
+        assert.equal(r.item.note, 'Not sent: this contact opted out of messages. Do not contact them unless they message you again.');
+        assert.doesNotMatch(r.item.note ?? '', /24-hour|reply window|Reply from the Instagram/);
+        assert.equal(t.executed.length, 0, 'the executor never ran');
+        assert.equal(t.calls.some(c => c.fn === 'fo_queue_outbound'), false, 'nothing queued for an opted-out contact');
+        assert.ok(t.calls.some(c => c.fn === 'fo_social_window'), 'the contact was checked');
+        // A second approve changes nothing and still does not send or queue.
+        assert.equal((await approvePendingAction(t.store, id, OWNER, t.execute, null, { replyWindow: t.window() })).outcome, 'already_decided');
+        assert.equal(t.executed.length, 0);
+        assert.equal(t.calls.some(c => c.fn === 'fo_queue_outbound'), false);
+      });
+    }
+  }
+}
+
+test('approve, opted-in contact after the window closed: window-closed note unchanged, no opt-out wording', async () => {
+  const t = held({ optedOut: false });
+  const id = await t.hold();
+  t.setClock(NOW + 2 * HOUR);
+  const r = await approvePendingAction(t.store, id, OWNER, t.execute, null, { replyWindow: t.window() });
+  assert.equal(r.outcome, 'failed');
+  assert.equal(r.item.note, META_WINDOW_CLOSED_AT_APPROVAL);
+  assert.doesNotMatch(r.item.note ?? '', /opted out/);
+  assert.equal(t.executed.length, 0);
+  assert.equal(t.calls.filter(c => c.fn === 'fo_queue_outbound').length, 1, 'owner task to reply from the app, as before');
+});
+
+test('approve: a failing opt-out check falls back to the window check and still never sends', async () => {
+  const t = held({ optedOut: true });
+  const id = await t.hold();
+  t.setClock(NOW + 30 * MIN);
+  const w = t.window();
+  const r = await approvePendingAction(t.store, id, OWNER, t.execute, null, { replyWindow: { ...w, optedOut: async () => { throw new Error('db down'); } } });
+  assert.equal(r.outcome, 'failed');
+  assert.equal(r.item.note, META_WINDOW_CLOSED_AT_APPROVAL, 'opt-out unconfirmed: the window check (which also reads the opt-out) refuses');
+  assert.equal(t.executed.length, 0);
+  assert.equal(t.calls.some(c => c.fn === 'fo_queue_outbound'), false);
+});
+
+test('approve: an opt-out check returning true on an SMS item does not change SMS handling', async () => {
+  const store = createMemoryPendingActionStore({ workspaceId: WS, modes: () => ({ setter: 'owner_approval', receptionist: 'enquiry_only' }), owners: [OWNER], now: () => NOW });
+  let performed = 0, asked = 0;
+  const execute = async () => { performed++; return { ok: true, note: 'Sent.' }; };
+  const g = await gate({ store, product: 'setter', action: 'send', request: { payload: { kind: 'send', channel: 'sms', body: 'Hi Sam', promptVersion: 'setter/follow-up@1' }, summary: 'SMS', idempotencyKey: 'a43:sms:optout', contactId: CID }, execute });
+  assert.equal(g.decision, 'hold_for_approval');
+  const id = g.decision === 'hold_for_approval' ? g.item.id : '';
+  const r = await approvePendingAction(store, id, OWNER, execute, null, { replyWindow: { lastInbound: async () => null, optedOut: async () => { asked++; return true; } } });
+  assert.equal(r.outcome, 'performed', 'SMS opt-out is enforced by the executor, not the Meta check');
+  assert.equal(asked, 0, 'the Meta opt-out check is not read for SMS');
+  assert.equal(performed, 1);
 });
 
 test('approve: an SMS item is not affected by the Meta window', async () => {

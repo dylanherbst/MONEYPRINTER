@@ -343,15 +343,28 @@ export function metaRunnerChannels(env: Record<string, string | undefined>): { n
 /** The approval-time window check for approvePendingAction (A-32) on an Instagram or Messenger channel: reads
  * fo_social_window for the item's contact; an opted-out contact or one without a Meta id counts as outside the window.
  * onClosed queues the held text for the owner to send from the Instagram or Facebook app (fo_queue_outbound), the same
- * owner task the runner creates, unless the contact opted out. */
+ * owner task the runner creates, unless the contact opted out. optedOut lets the approval note say the contact opted
+ * out (A-43) instead of the window-closed wording. */
 export function socialWindowCheck(rpc: Rpc, auth: ChannelAuth, now: () => number = Date.now): NonNullable<ApproveOptions['replyWindow']> {
   const a = { channel: auth.channel, channel_key: auth.key };
   const read = async (contact: string) => await rpc('fo_social_window', { ...a, contact }) as SocialWindow | null;
+  // optedOut's read is handed to the lastInbound call that follows it for the same item, so approval still reads
+  // fo_social_window once (A-43). onClosed always reads again before queuing anything.
+  let handoff: { id: string; w: SocialWindow | null } | null = null;
   return {
     now,
-    async lastInbound(item) {
-      if (!item.contactId) return null;
+    async optedOut(item) {
+      handoff = null;
+      if (!item.contactId) return false;
       const w = await read(item.contactId);
+      handoff = { id: item.id, w };
+      return w?.optedOut === true;
+    },
+    async lastInbound(item) {
+      const kept = handoff && handoff.id === item.id ? handoff : null;
+      handoff = null;
+      if (!item.contactId) return null;
+      const w = kept ? kept.w : await read(item.contactId);
       return w && w.recipient && !w.optedOut ? w.lastInbound : null;
     },
     async onClosed(item) {

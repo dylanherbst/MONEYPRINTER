@@ -200,6 +200,8 @@ function outcomeOf(item: PendingActionRecord, changed: boolean): DecideResult {
 export const META_WINDOW_CLOSED_AT_APPROVAL = 'Meta’s 24-hour reply window had closed by the time this was approved (or it could not be confirmed), so nothing was sent. Reply from the Instagram or Facebook app.';
 /** Added to META_WINDOW_CLOSED_AT_APPROVAL when the owner task for a closed window could not be saved (A-37). */
 export const META_OWNER_TASK_FAILED = 'The reminder to reply could not be saved either.';
+/** Why an approved Instagram or Messenger item for an opted-out contact was closed without sending (A-43). */
+export const META_OPTED_OUT_AT_APPROVAL = 'Not sent: this contact opted out of messages. Do not contact them unless they message you again.';
 
 /** True for an automated send or follow-up on Instagram or Messenger: these are bound by Meta's 24-hour reply window. */
 export function isMetaMessage(p: PendingActionPayload | null | undefined): boolean {
@@ -211,8 +213,10 @@ export type ApproveOptions = {
    * messaged the business on Instagram or Messenger (jobs.ts socialWindowCheck reads fo_social_window). Without it, or
    * when it fails, an Instagram or Messenger item is treated as outside the window: closed as failed, never performed.
    * onClosed: the owner task for a closed window (for example fo_queue_outbound); if it fails, the item still closes as failed and
-   * the note adds META_OWNER_TASK_FAILED (no error details are stored). */
-  replyWindow?: { lastInbound: (item: PendingActionRecord) => Promise<string | number | null>; now?: () => number; onClosed?: (item: PendingActionRecord) => Promise<void> };
+   * the note adds META_OWNER_TASK_FAILED (no error details are stored).
+   * optedOut (A-43): true when the contact opted out. The item then closes as failed with META_OPTED_OUT_AT_APPROVAL,
+   * before the window is read and without an owner task; if it fails, the window check above decides as before. */
+  replyWindow?: { lastInbound: (item: PendingActionRecord) => Promise<string | number | null>; now?: () => number; onClosed?: (item: PendingActionRecord) => Promise<void>; optedOut?: (item: PendingActionRecord) => Promise<boolean> };
 };
 
 /** Owner approves: performs the original action exactly once. A repeat returns 'already_decided' (or 'expired') with the
@@ -227,6 +231,10 @@ export async function approvePendingAction(store: PendingActionStore, id: string
   if (a.invalid || !parsePendingAction(a).ok) return outcomeOf((await store.finish(a.id, false, INVALID_NOTE)).item, true);
   if (isMetaMessage(a.payload)) {
     const w = options.replyWindow;
+    // An opted-out contact is never messaged and gets no owner task; the note says why (A-43).
+    let optedOut = false;
+    if (w?.optedOut) { try { optedOut = (await w.optedOut(a)) === true; } catch { optedOut = false; } }
+    if (optedOut) return outcomeOf((await store.finish(a.id, false, META_OPTED_OUT_AT_APPROVAL)).item, true);
     let last: string | number | null;
     try { last = w ? await w.lastInbound(a) : null; } catch { last = null; }
     if (!inReplyWindow(last, w?.now ? w.now() : Date.now())) {
