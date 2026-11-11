@@ -80,7 +80,9 @@ The only task board. Update a row when its state changes, with evidence. States:
 | A-61 | Setter Lab keeps replying after a hand-off (live goes quiet) | `ventra-voice` | Assigned | — | c-a8a636ff, found by A-49 | lab differs from live |
 | A-62 | A-49 review nits | `ventra-voice` | Assigned | — | c-a8a636ff | — |
 | A-50 | A-48 nits: test email runner without sender; comment | `ventra-voice` | Assigned | — | c-a8a636ff | owner: keep time-critical reminders on SMS? |
-| A-51..A-53 | QA scenarios: Receptionist, security (cross-tenant chat), Live run file | `ventra-voice` | Assigned | — | c-a8a636ff | A-53 live run is chargeable (owner) |
+| A-51 | QA scenarios, Receptionist R1-R13 + X5 (Demo): 14 pass, 4 labelled todo (R9/R10 audio, G3, G5) | `ventra-voice` | Accepted by review (with nits -> A-65), committed `fa0e99ad`; suite 1096/1091 pass/5 todo/0 fail | — | c-b5e908f2 | — |
+| A-52, A-53 | QA scenarios: security (cross-tenant chat), Live run file | `ventra-voice` | Assigned | — | c-a8a636ff | A-53 live run is chargeable (owner) |
+| A-65 | A-51 review nits (X5 scripted prompt-leak label, R9 smoke label, version/fixture/date hardcoding) | `ventra-voice` | Assigned | — | c-b5e908f2 | — |
 | A-54..A-59 | Gaps from QA spec: Receptionist modes for bookings (G3, waits A-14), dropped-call call-back (G5), "real person" rule (G7) still open; G1, G2, G4 done (rows below) | `ventra-voice` | Assigned | — | c-a8a636ff | — |
 | A-55 | Setter model/API failure: fixed fallback reply + human hand-off, no secrets logged, DB errors still fail | `ventra-voice` | Accepted by review (nits -> A-64); verified locally (1066: 1063 pass, 3 todo, 0 fail; lint 0, typecheck 0) | `agent/develop` @ 1601301a | c-4735b672 | owner approves fallback wording (A-64) |
 | A-54 | Returning booked customer on web chat/Setter Lab told their booking; move/cancel to a person; code blocks false "booking changed" text | `ventra-voice` | Accepted by review (medium fixed in one round); verified locally (1077: 1075 pass, 2 todo, 0 fail; lint 0, typecheck 0) | `agent/develop` @ 890222e7 | c-4735b672 | owner approves fixed lines (A-64) |

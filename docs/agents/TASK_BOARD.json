@@ -1,12 +1,13 @@
 {
   "version": 1,
-  "updatedAt": "2026-11-11T19:00:00Z",
+  "updatedAt": "2026-11-11T18:49:00Z",
   "integrationBranch": "agent/develop",
   "lastRun": {
-    "id": "c-4735b672",
-    "startedAt": "2026-11-11T18:04:11Z",
-    "endedAt": "2026-11-11T19:00:00Z",
-    "summary": "3 committed: A-55 1601301a (Setter model/API failure -> fixed fallback reply + human handoff, no secrets logged), A-54 890222e7 (returning booked contact on web chat/lab told their booking; move/cancel to a person; code blocks any false 'booking changed' text), A-61 7ddb32f6 (Setter Lab goes quiet after a hand-off, as live). Full suite 1078 (1077 pass, 1 todo, 0 fail), lint 0, typecheck 0. Reviews: A-55, A-54 approve with nits (A-54 medium fixed in one round). New owner item A-64: approve the new fixed customer lines. W- still blocked by W-1 browser check (curl to localhost:3020 refused again); P0-10 backup still broken."
+    "id": "c-b5e908f2",
+    "startedAt": "2026-11-11T18:35:12Z",
+    "endedAt": "2026-11-11T18:50:00Z",
+    "summary": "1 committed: A-51 fa0e99ad (Receptionist QA scenarios R1-R13 + X5 in Demo mode; 14 pass, 4 labelled todo; R6 000 rule now a passing check). Full suite 1096 (1091 pass, 5 todo, 0 fail), lint 0, typecheck 0. Review approve with nits -> A-65. Small spend cap, so one task only. W- still blocked by W-1; P0-10 backup still broken; owner items unchanged (A-64, A-12, A-60, A-14, A-34, P0-7).",
+    "previousSummary": "c-4735b672: 3 committed: A-55 1601301a (Setter model/API failure -> fixed fallback reply + human handoff, no secrets logged), A-54 890222e7 (returning booked contact on web chat/lab told their booking; move/cancel to a person; code blocks any false 'booking changed' text), A-61 7ddb32f6 (Setter Lab goes quiet after a hand-off, as live). Full suite 1078 (1077 pass, 1 todo, 0 fail), lint 0, typecheck 0. Reviews: A-55, A-54 approve with nits (A-54 medium fixed in one round). New owner item A-64: approve the new fixed customer lines. W- still blocked by W-1 browser check (curl to localhost:3020 refused again); P0-10 backup still broken."
   },
   "tasks": [
     {
@@ -3673,12 +3674,28 @@
     },
     {
       "id": "A-51", "title": "QA scenarios, Receptionist (R1-R13 + X5) in Demo mode",
-      "phase": "A", "module": "receptionist", "owner": "ventra-voice", "state": "queued", "priority": 2, "dependsOn": ["A-49"],
+      "phase": "A", "module": "receptionist", "owner": "ventra-voice", "state": "done", "priority": 2, "dependsOn": ["A-49"],
       "scope": ["apps/web/test/front-office-scenarios-receptionist.test.ts", "apps/web/test/helpers/front-office-scenarios.ts"],
       "acceptance": ["R1-R13 and X5 per the A-28 spec; R9/R10 transport parts marked not testable in Demo", "Gaps G3-G5 as test.todo", "npm test, typecheck, lint pass; no production change"],
       "plan": "A-28 spec", "branch": "agent/develop", "worktree": null,
-      "startedAt": null, "finishedAt": null, "lastRunId": "c-a8a636ff", "runIds": ["c-a8a636ff"], "commits": [],
-      "evidence": [], "blocker": null, "notes": "", "updatedAt": "2026-11-11T17:41:00Z"
+      "startedAt": "2026-11-11T18:40:00Z", "finishedAt": "2026-11-11T18:46:00Z", "lastRunId": "c-b5e908f2", "runIds": ["c-a8a636ff", "c-b5e908f2"], "commits": ["fa0e99ad"],
+      "evidence": [
+        { "at": "2026-11-11T18:44:00Z", "kind": "diff", "detail": "git status: only the two scoped test files changed (new receptionist scenario file 475 lines; helper +66 lines, additions only); no apps/web/lib or app change from this task" },
+        { "at": "2026-11-11T18:55:00Z", "kind": "test", "detail": "node --test front-office-scenarios-receptionist.test.ts: 18 tests, 14 pass, 4 todo (R9 audio, R10 barge-in, G3, G5), 0 fail; Setter scenarios still 36/31 pass/5 todo/0 fail; npm --prefix apps/web test: 1096 total, 1091 pass, 5 todo, 0 fail (was 1078/1077/1 todo)" },
+        { "at": "2026-11-11T18:56:00Z", "kind": "typecheck", "detail": "npm --prefix apps/web run typecheck: no errors" },
+        { "at": "2026-11-11T18:56:00Z", "kind": "lint", "detail": "npm --prefix apps/web run lint (max-warnings 0): no errors" },
+        { "at": "2026-11-11T18:57:00Z", "kind": "review", "detail": "ventra-review: approve with nits (X5 prompt-leak check vacuous with scripted reply; R9 keyword-model smoke only; hardcoded voice@2 version, fixture ids and fixed dates) -> A-65" },
+        { "at": "2026-11-11T18:58:00Z", "kind": "commit", "detail": "fa0e99ad on agent/develop via ventra-git" }
+      ], "blocker": null, "notes": "G4 (000 rule) now a passing assertion in R6. G3 and G5 remain code gaps (A-56, A-58).", "updatedAt": "2026-11-11T18:58:00Z"
+    },
+    {
+      "id": "A-65", "title": "A-51 review nits: label X5 prompt-leak check as scripted (move real check to live suite A-53); mark R9 as keyword-model smoke; assert 000 rule not the voice@2 version string; derive R3/R4 seed ids and 'unoffered' times from the simulate fixtures/offered set; name turn indices",
+      "phase": "A", "module": "receptionist", "owner": "ventra-voice", "state": "queued", "priority": 4, "dependsOn": ["A-51"],
+      "scope": ["apps/web/test/front-office-scenarios-receptionist.test.ts"],
+      "acceptance": ["Each review nit addressed or explicitly declined with a reason", "No assertion weakened; npm test, typecheck, lint pass"],
+      "plan": "A-51 review", "branch": "agent/develop", "worktree": null,
+      "startedAt": null, "finishedAt": null, "lastRunId": "c-b5e908f2", "runIds": ["c-b5e908f2"], "commits": [],
+      "evidence": [], "blocker": null, "notes": "", "updatedAt": "2026-11-11T18:58:00Z"
     },
     {
       "id": "A-52", "title": "QA scenarios, security (X1-X4, X6-X8) incl. a real-SQL cross-tenant chat test (second workspace)",
