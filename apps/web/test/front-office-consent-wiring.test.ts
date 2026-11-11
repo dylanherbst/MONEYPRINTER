@@ -149,6 +149,59 @@ test('A-47 jobs: grant -> follow-up scheduled from website chat -> grant withdra
   assert.match(none.out.note, /No recorded consent: the contact has not messaged the business/);
 });
 
+// A-48: the email runner. Sends are recorded per channel; the SMS and email senders are fakes (nothing leaves).
+const runOn = async (ctx: SetterContext, via: 'sms' | 'web-chat' | 'email') => {
+  const calls: string[] = []; const texts: string[] = []; const emails: string[] = [];
+  const rpc = async (fn: string) => {
+    calls.push(fn);
+    if (fn === 'fo_claim_jobs') return [{ id: 'j1', contact: CID, kind: 'follow-up', step: 2, appointment: null }];
+    if (fn === 'fo_contact_context') return ctx;
+    return null;
+  };
+  const store = createMemoryPendingActionStore({ workspaceId: '55555555-5555-4555-8555-555555555555', modes: () => ({ setter: 'automatic', receptionist: 'enquiry_only' }), owners: [], now: () => JOB_NOW });
+  const out = await runDueJobs({ rpc, auth: { channel: 'ch', key: 'k' }, send: async (to: string) => { texts.push(to); return { sent: false, sid: null }; }, email: async (to: string) => { emails.push(to); return { sent: false, id: null }; }, config: ventraSetterConfig, now: JOB_NOW, permissions: { store, quietHours: { start: 0, end: 0 } }, via });
+  return { out: out[0], calls, texts, emails };
+};
+
+test('A-48 jobs: an email lead who also left a phone number gets a same-channel email follow-up without a grant', async () => {
+  const lead = base({ email: 'sam@example.com', consent: { sms: false, email: false } });
+  // Before A-48 the email runner picked SMS for this contact (phone present) and blocked it for want of an SMS grant.
+  const r = await runOn(lead, 'email');
+  assert.equal(r.out.outcome, 'done', r.out.note);
+  assert.deepEqual(r.emails, ['sam@example.com']);
+  assert.deepEqual(r.texts, [], 'no text to an email lead');
+  assert.ok(r.calls.includes('fo_log_outbound'));
+  // Older database (no consent field): still the same-channel reply.
+  assert.equal((await runOn(base({ email: 'sam@example.com' }), 'email')).out.outcome, 'done');
+});
+
+test('A-48 jobs: nothing looser; another channel still needs an open grant and an opt-out still wins', async () => {
+  // Email runner, phone only: the follow-up would be a text, another channel, so it needs an SMS grant.
+  const phoneOnly = await runOn(base({ consent: { sms: false, email: false } }), 'email');
+  assert.equal(phoneOnly.out.outcome, 'cancelled');
+  assert.match(phoneOnly.out.note, /No recorded consent for texts: the contact messaged on email/);
+  assert.equal(phoneOnly.texts.length + phoneOnly.emails.length, 0);
+  const granted = await runOn(base({ consent: { sms: true, email: false } }), 'email');
+  assert.equal(granted.out.outcome, 'done'); assert.equal(granted.texts.length, 1);
+  // Website chat runner, phone and email, no grant: still a text by default and still blocked (unchanged).
+  const chat = await runOn(base({ email: 'sam@example.com', consent: { sms: false, email: false } }), 'web-chat');
+  assert.equal(chat.out.outcome, 'cancelled'); assert.equal(chat.texts.length + chat.emails.length, 0);
+  // An email grant alone does not let the web-chat runner text them.
+  assert.equal((await runOn(base({ email: 'sam@example.com', consent: { sms: false, email: true } }), 'web-chat')).out.outcome, 'cancelled');
+  // SMS runner with phone and email: the text is the same channel, unchanged.
+  const sms = await runOn(base({ email: 'sam@example.com', consent: { sms: false, email: false } }), 'sms');
+  assert.equal(sms.out.outcome, 'done'); assert.equal(sms.texts.length, 1); assert.equal(sms.emails.length, 0);
+  // Opt-out wins on the email runner, even with both grants: nothing logged or sent.
+  for (const via of ['email', 'sms', 'web-chat'] as const) {
+    const out = await runOn(base({ email: 'sam@example.com', optedOut: true, consent: { sms: true, email: true } }), via);
+    assert.equal(out.out.outcome, 'cancelled');
+    assert.equal(out.texts.length + out.emails.length, 0);
+    assert.ok(!out.calls.includes('fo_log_outbound'));
+  }
+  // No inbound and no grant on the email runner: no consent at all.
+  assert.match((await runOn(base({ email: 'sam@example.com' }, false), 'email')).out.note, /No recorded consent: the contact has not messaged the business/);
+});
+
 test('Meta out-of-window reroute reads contact.consent: SMS with a grant, owner task without one or with an older database', () => {
   const w = { recipient: 'ig-1', optedOut: false, lastInbound: '2026-11-01T00:00:00Z' };
   const c = { name: null, phone: '+61411111111', email: 'sam@example.com', state: 'qualifying', optedOut: false };

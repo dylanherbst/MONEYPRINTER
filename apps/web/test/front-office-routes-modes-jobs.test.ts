@@ -4,9 +4,10 @@
 // network, nothing sent.
 import test, { before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import './helpers/route-harness.ts';
+import { call, configuredEnv, installFakeSupabase, setEnv } from './helpers/route-harness.ts';
 
 const { store } = await import('./helpers/front-office-store.ts');
+const runRoute = await import('../app/api/front-office/jobs/run/route.ts');
 const { runDueJobs, afterJobQuietHours, inJobQuietHours, approvalWindow, createJobsExecutor, FOLLOW_UP_PROMPT, REMINDER_PROMPT, RESCUE_PROMPT } = await import('../lib/front-office/jobs.ts');
 const { ventraSetterConfig } = await import('../lib/front-office/setter/config.ts');
 const { createMemoryPendingActionStore, approvePendingAction } = await import('../lib/front-office/pending-actions.ts');
@@ -284,6 +285,52 @@ test('the next step is never scheduled into quiet hours', async () => {
   const next = t.nextJobs();
   assert.equal(next.length, 1); assert.equal(next[0].step, 2);
   assert.equal(next[0].due, '2026-11-10T21:00:00.000Z'); // Wed 11 Nov 08:00 AEDT
+});
+
+// A-48: the jobs/run route passes each channel's kind as via (Meta channels: meta.kind). One contact with a phone and an
+// email who messaged in, no consent grants, follow-up step 2 due on every channel. Fake Supabase; nothing is sent.
+test('job runner route: via is each channel\'s kind; email runner follows up by email, Instagram in its window, website chat needs a grant', async () => {
+  const KEYS = ['CRON_SECRET', 'FRONT_OFFICE_CRON_SECRET', 'FRONT_OFFICE_CHANNEL_ID', 'FRONT_OFFICE_CHANNEL_KEY', 'FRONT_OFFICE_CHAT_CHANNEL_ID', 'FRONT_OFFICE_CHAT_CHANNEL_KEY', 'FRONT_OFFICE_EMAIL_CHANNEL_ID', 'FRONT_OFFICE_EMAIL_CHANNEL_KEY', 'FRONT_OFFICE_VOICE_CHANNEL_ID', 'FRONT_OFFICE_VOICE_CHANNEL_KEY', 'FRONT_OFFICE_INSTAGRAM_CHANNEL_ID', 'FRONT_OFFICE_INSTAGRAM_CHANNEL_KEY', 'FRONT_OFFICE_MESSENGER_CHANNEL_ID', 'FRONT_OFFICE_MESSENGER_CHANNEL_KEY', 'FRONT_OFFICE_SEND_LIVE', 'FRONT_OFFICE_META_AUTOSEND', 'POSTMARK_SERVER_TOKEN', 'FRONT_OFFICE_EMAIL_FROM'] as const;
+  const saved = Object.fromEntries(KEYS.map(k => [k, process.env[k]]));
+  for (const k of KEYS) delete process.env[k];
+  const CRON = 'c'.repeat(40), KEY = 'k'.repeat(48);
+  Object.assign(process.env, { CRON_SECRET: CRON, FRONT_OFFICE_CHAT_CHANNEL_ID: '66666666-6666-4666-8666-666666666662', FRONT_OFFICE_CHAT_CHANNEL_KEY: KEY, FRONT_OFFICE_EMAIL_CHANNEL_ID: '66666666-6666-4666-8666-666666666663', FRONT_OFFICE_EMAIL_CHANNEL_KEY: KEY, FRONT_OFFICE_INSTAGRAM_CHANNEL_ID: '66666666-6666-4666-8666-666666666664', FRONT_OFFICE_INSTAGRAM_CHANNEL_KEY: KEY });
+  const restoreSb = setEnv(configuredEnv);
+  // 11:00 in Perth (the default Setter time zone): outside quiet hours.
+  const NOW = Date.parse('2026-11-10T03:00:00Z'), realNow = Date.now;
+  Date.now = () => NOW;
+  const inbound = new Date(NOW - 2 * HOUR).toISOString();
+  const fake = installFakeSupabase({ rpc: {
+    fo_claim_jobs: { body: [{ id: 'j-1', contact: CID, kind: 'follow-up', step: 2, appointment: null }] },
+    fo_contact_context: { body: { contact: { id: CID, name: 'Sam', phone: '+61411111111', email: 'sam@example.com', state: 'nurture', optedOut: false, consent: { sms: false, email: false } }, appointment: null, messages: [{ direction: 'inbound', body: 'Hi', at: inbound }], handoffs: [] } },
+    fo_social_window: { body: { recipient: '17841400000000001', optedOut: false, lastInbound: inbound } },
+    fo_channel_modes: { body: { setter: 'automatic', receptionist: 'enquiry_only' } },
+    fo_channel_settings: { body: null },
+    fo_log_outbound: { body: null },
+    fo_schedule_job: { body: null },
+    fo_queue_outbound: { body: null },
+    fo_finish_job: { body: null },
+  } });
+  try {
+    const r = await call(runRoute.GET, '/api/front-office/jobs/run', { cookie: null, headers: { authorization: 'Bearer ' + CRON } });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.channels, 3); assert.equal(r.body.failedChannels, 0);
+    const by = Object.fromEntries((r.body.results as { channel: string; outcome: string; note: string; sent: boolean }[]).map(x => [x.channel, x]));
+    // Email runner: the lead who also left a phone number is answered by email, the same channel, without a grant.
+    assert.equal(by.email.outcome, 'done', by.email.note);
+    assert.equal(by.email.note, 'Logged (live sending off)');
+    // Instagram runner: via = meta.kind, so an in-window Instagram reply is the same channel.
+    assert.equal(by.instagram.outcome, 'done', by.instagram.note);
+    // Website chat runner: via = 'web-chat' (known, not "not known"); a text is another channel and needs a grant.
+    assert.equal(by['web-chat'].outcome, 'cancelled');
+    assert.match(by['web-chat'].note, /No recorded consent for texts: the contact messaged on web-chat/);
+    for (const x of r.body.results) assert.equal(x.sent, false, 'nothing really sent');
+    assert.equal(fake.calls.filter(c => c.path === '/rest/v1/rpc/fo_log_outbound').length, 2);
+    assert.ok(fake.calls.every(c => c.path.startsWith('/rest/v1/') || c.path.startsWith('/auth/v1/')), 'only the fake database was called');
+  } finally {
+    Date.now = realNow; fake.restore(); restoreSb();
+    for (const k of KEYS) { if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]; }
+  }
 });
 
 test('without permissions the runner is unchanged (sent at night, no mode read)', async () => {

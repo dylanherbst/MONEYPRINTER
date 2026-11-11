@@ -114,8 +114,11 @@ export function approvalWindow(kind: Job['kind'], step: number): number {
 
 /** Why a job may not go out under the business rules, or null. Same rules as setter/actions.ts checkFollowUp.
  * via: the channel the conversation is on (the runner channel the job belongs to; null when not known). by: the channel
- * this job would go out on. A follow-up needs an inbound message on that same channel (A-47: an inbound on another
- * channel, such as website chat, does not count) or an open consent grant for it; an unknown via needs the grant. */
+ * this job would go out on. A person who took over stops every job. For a follow-up, in order: an opt-out always wins
+ * (the runner cancels opted-out contacts before this check); a reply on the same channel the contact messaged on
+ * (inbound and via === by) is allowed without a grant; any other channel needs an open consent grant for it (A-47: an
+ * inbound on website chat does not allow a text); a missing or unknown via, or a missing consent record, is no consent
+ * (fail closed). */
 function jobBlocked(job: Job, ctx: Ctx, via: Channel | null, by: 'sms' | 'email' | MetaKind): string | null {
   if (ctx.handoffs?.at(-1)?.owner === 'human') return 'A person is looking after this contact.';
   if (job.kind !== 'follow-up') return null;
@@ -172,7 +175,8 @@ function failSafe(s: PendingActionStore): PendingActionStore {
   return { ...s, mode: async product => { try { return await s.mode(product); } catch { return DEFAULT_OPERATING_MODE; } } };
 }
 
-/** Texts go by SMS when the contact has a mobile, otherwise by email when an email sender is given. */
+/** Texts go by SMS when the contact has a mobile, otherwise by email when an email sender is given; on the email runner
+ * (via 'email') by email whenever the contact has an address (A-48). */
 /** config: the business's Setter texts, or a loader that is only called when there are jobs to run. */
 /** permissions: the Setter's approval queue and mode (live runner: channelPermissions()); see the note at the top. */
 /** via: what this channel is ('sms', 'web-chat', 'email', 'voice'; runnerChannels() name), for the follow-up consent
@@ -229,9 +233,13 @@ export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: Sms
           text = null; next = null;
         }
       }
+      // Off Meta: by text when the contact has a mobile, otherwise by email. On the email runner (A-48) a contact with an
+      // email address is answered by email even when they also left a phone number: that is the channel they used, so
+      // the same-channel rule applies; a text to them would be another channel and need an SMS grant.
+      const direct: 'sms' | 'email' = ctx.contact.phone && !(i.via === 'email' && ctx.contact.email && i.email) ? 'sms' : 'email';
       if (text && store) {
         // Every job that sends goes through the same permission check and quiet hours (follow-ups, reminders, rescues).
-        const channel = route?.via === 'meta' ? i.meta!.kind : route?.via === 'email' ? 'email' : route?.via === 'sms' ? 'sms' : ctx.contact.phone ? 'sms' : 'email';
+        const channel = route?.via === 'meta' ? i.meta!.kind : route?.via === 'email' ? 'email' : route?.via === 'sms' ? 'sms' : direct;
         const held = await checkJob(store, job, ctx, text, prompt, channel, socialInbound);
         if (held) {
           text = null; outcome = 'cancelled'; note = held.note;
@@ -240,7 +248,7 @@ export async function runDueJobs(input: { rpc: Rpc; auth: ChannelAuth; send: Sms
       }
       if (text) {
         await i.rpc('fo_log_outbound', { ...a, contact: job.contact, message: text, agent_name: 'setter', prompt });
-        const byEmail = route ? route.via === 'email' : !ctx.contact.phone;
+        const byEmail = route ? route.via === 'email' : direct === 'email';
         // A Meta send is a plain RESPONSE inside the window (meta.ts); automation never adds a message tag.
         if (route?.via === 'meta') sent = (await i.meta!.send(i.meta!.kind, route.recipient, text)).sent;
         else sent = !byEmail ? (await i.send(ctx.contact.phone as string, text)).sent : (await i.email!(ctx.contact.email as string, `${i.config.businessName}: ${job.kind.startsWith('reminder') ? 'your booking' : 'following up'}`, text)).sent;
