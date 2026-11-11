@@ -152,6 +152,39 @@ test('cross-workspace isolation: another workspace cannot see, grant or withdraw
   } finally { await db.close(); }
 });
 
+test('opted-out contact: a grant is still recorded, but context keeps optedOut true (callers must refuse opted-out contacts)', async () => {
+  const { db, one, chA, cA } = await setup();
+  try {
+    const stop = await one<Record<string, string>>(ingest, [chA, KEY_A, LEAD, NUM_A, 'STOP', 'SM0000000102', true, false]);
+    assert.equal(stop.contact, cA, 'the STOP reply is from the same contact');
+    assert.equal((await one<Ctx>(ctxSql, [chA, KEY_A, cA])).contact.optedOut, true, 'contact is opted out before the grant');
+    const g = await one<Record<string, unknown>>(grant, [chA, KEY_A, cA, 'sms', 'Paper form signed in studio', null]);
+    assert.equal(g.created, true, 'grant on an opted-out contact succeeds'); assert.equal(g.granted, true);
+    const ctx = await one<Ctx>(ctxSql, [chA, KEY_A, cA]);
+    assert.deepEqual(ctx.contact.consent, { sms: true, email: false }, 'the consent record is reported');
+    assert.equal(ctx.contact.optedOut, true, 'a consent grant does not clear the opt-out');
+  } finally { await db.close(); }
+});
+
+test('function privileges: internal helper and guard are not executable by anon/authenticated; the RPCs are', async () => {
+  const { db, as, one, chA, cA } = await setup();
+  try {
+    await db.exec('reset role');
+    const can = async (role: string, fn: string) =>
+      one<boolean>("select has_function_privilege($1, $2, 'EXECUTE') as r", [role, fn]);
+    for (const role of ['anon', 'authenticated']) {
+      assert.equal(await can(role, 'public.fo_consent_input(text,text)'), false, `${role} cannot execute fo_consent_input`);
+      assert.equal(await can(role, 'public.fo_contact_consents_guard()'), false, `${role} cannot execute the guard trigger function`);
+      assert.equal(await can(role, 'public.fo_grant_consent(uuid,text,uuid,text,text,timestamptz)'), true, `${role} can execute fo_grant_consent`);
+      assert.equal(await can(role, 'public.fo_withdraw_consent(uuid,text,uuid,text,text,timestamptz)'), true, `${role} can execute fo_withdraw_consent`);
+      assert.equal(await can(role, 'public.fo_contact_context(uuid,text,uuid)'), true, `${role} can execute fo_contact_context`);
+    }
+    await as(null);
+    await assert.rejects(db.query("select public.fo_consent_input('sms','Form')"), /permission denied/, 'anon call to the helper is refused');
+    assert.deepEqual((await one<Ctx>(ctxSql, [chA, KEY_A, cA])).contact.consent, { sms: false, email: false }, 'the public RPC still works as anon');
+  } finally { await db.close(); }
+});
+
 test('the consent migration is re-apply safe and keeps fo_contact_context callable by anon', async () => {
   const { db, as, one, chA, cA } = await setup();
   try {
