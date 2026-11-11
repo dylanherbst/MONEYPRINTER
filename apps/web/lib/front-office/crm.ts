@@ -1,6 +1,7 @@
 // One customer record (task A-9): fo_contacts is the source of truth for every person the front office talks to.
 //
-// - normalisePhone / normaliseEmail: the one way a phone (E.164, Australian local formats accepted) or an email (trimmed,
+// - readPhone / normalisePhone / normaliseEmail: the one way a phone (E.164, Australian local formats accepted, AU numbers
+//   checked against real mobile and area-code shapes, 13/1300/1800 refused) or an email (trimmed,
 //   lower case) is turned into the key fo_contacts is unique on. Every writer should pass values through these first,
 //   so the same person on chat, SMS, email and calls lands on one row (the database enforces uniqueness per workspace).
 // - contactFromRow: maps a raw fo_contacts row to the shared Contact contract (contracts.ts); rows that do not validate
@@ -16,27 +17,57 @@ import type { Contact, ContactSource, ContactState } from './contracts';
 const E164 = /^\+[1-9][0-9]{6,14}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** A phone number as E.164, or null when it cannot be read safely. Australian local formats are accepted:
- * 0412 345 678, (02) 9876 5432, 61 412 345 678, 0061 412 345 678, +61 (0) 412 345 678, 412 345 678, 1300 123 456.
- * Numbers from other countries must start with + or 00. */
-export function normalisePhone(raw: unknown): string | null {
-  if (typeof raw !== 'string' || raw.length > 40) return null;
+/** The result of reading a phone number: E.164, or a plain-English reason it was refused. */
+export type PhoneReading = { ok: true; phone: string } | { ok: false; reason: string };
+
+const PHONE_UNREADABLE = 'Enter a mobile like 0412 345 678 or a number with its country code, like +44 20 7946 0958.';
+// Australian service numbers (13 xx xx, 1300, 1800) are REFUSED as a contact's phone (decision A-31):
+// - they are not reachable from outside Australia, so there is no true E.164 form to store (+61 1300... does not dial);
+// - they cannot receive SMS, so the Setter's texts and confirmations would never arrive;
+// - many people share one (every caller from a company switchboard), so keying contacts on it would put different
+//   people on one record, which the one-record-per-phone rule must never do.
+// A business's own inbound 1300/1800 line is a channel number (fo_channels), not a contact phone, and is not read here.
+const PHONE_SERVICE_NUMBER = 'That is a 13, 1300 or 1800 business number, which cannot get texts. Ask for a mobile or a direct number.';
+const PHONE_NOT_AU = 'That is not a valid Australian number. Mobiles start 04 and have 10 digits; landlines start 02, 03, 07 or 08.';
+
+/** Reads a phone number. Australian local formats are accepted: 0412 345 678, (02) 9876 5432, 61 412 345 678,
+ * 0061 412 345 678, +61 (0) 412 345 678, 412 345 678. Numbers from other countries must start with + or 00.
+ * An Australian number (+61) must be a mobile (+614 then 8 digits) or a landline with area code 2, 3, 7 or 8
+ * (then 8 digits); anything else under +61 (0000000000, 0112345678, 05..., 13/1300/1800) is refused with a reason. */
+export function readPhone(raw: unknown): PhoneReading {
+  const no = (reason: string): PhoneReading => ({ ok: false, reason });
+  if (typeof raw !== 'string' || raw.length > 40) return no(PHONE_UNREADABLE);
   const t = raw.trim();
-  if (!t || !/^[\d\s()+\-.]+$/.test(t)) return null;
+  if (!t || !/^[\d\s()+\-.]+$/.test(t)) return no(PHONE_UNREADABLE);
   const plus = t.startsWith('+');
-  if (t.slice(1).includes('+')) return null;
+  if (t.slice(1).includes('+')) return no(PHONE_UNREADABLE);
   const d = t.replace(/\(0\)/g, '').replace(/\D/g, '');
+  // Service numbers written locally: 13 12 34, 1300 123 456, 1800 123 456 (also after 61 / 0061 / +61).
+  const local = plus ? (d.startsWith('61') ? d.slice(2) : null) : d.startsWith('0061') ? d.slice(4) : d.startsWith('61') && d.length !== 11 ? d.slice(2) : d;
+  if (local !== null && /^0?1(3\d{4}|[38]00\d{6})$/.test(local)) return no(PHONE_SERVICE_NUMBER);
   let out: string;
   if (plus) out = '+' + d;
   else if (d.startsWith('00')) out = '+' + d.slice(2);
   else if (d.startsWith('61') && d.length === 11) out = '+' + d;
   else if (d.startsWith('0') && d.length === 10) out = '+61' + d.slice(1);
-  else if (/^[23478]\d{8}$/.test(d)) out = '+61' + d;
-  else if (/^1[38]00\d{6}$/.test(d)) out = '+61' + d;
-  else return null;
+  else if (/^\d{9}$/.test(d)) out = '+61' + d;
+  else return no(PHONE_UNREADABLE);
   // An Australian number written with its trunk 0 after the country code (+61 0412...) drops the 0.
   if (out.startsWith('+610') && out.length === 13) out = '+61' + out.slice(4);
-  return E164.test(out) ? out : null;
+  if (!E164.test(out)) return no(PHONE_UNREADABLE);
+  if (out.startsWith('+61')) {
+    const nsn = out.slice(3);
+    if (/^1(3\d{4}|[38]00\d{6})$/.test(nsn)) return no(PHONE_SERVICE_NUMBER);
+    // Mobile: 4 then exactly 8 digits. Landline: area code 2 (NSW/ACT), 3 (VIC/TAS), 7 (QLD), 8 (SA/WA/NT), then 8 digits.
+    if (!/^[2-478]\d{8}$/.test(nsn)) return no(PHONE_NOT_AU);
+  }
+  return { ok: true, phone: out };
+}
+
+/** A phone number as E.164, or null when it cannot be read safely (see readPhone for the rules and the reason). */
+export function normalisePhone(raw: unknown): string | null {
+  const r = readPhone(raw);
+  return r.ok ? r.phone : null;
 }
 
 /** An email trimmed and lower-cased, or null when it is not a usable address. */
@@ -174,6 +205,12 @@ export function parseContactsQuery(p: URLSearchParams): ContactsQuery {
 }
 /** PostgREST ilike pattern for a name search; the query was already limited to letters, digits, space and ' . - */
 export const nameSearchPattern = (value: string) => `*${value}*`;
+/** PostgREST ilike pattern for an exact, case-insensitive email search, so legacy rows stored before normalisation
+ * (Sam@Example.COM) are still found by sam@example.com. The value is normalised (lower case) and LIKE's own wildcards
+ * are escaped: \ % _ match themselves. PostgREST turns * into %, and has no escape for it, so a * in an address (legal,
+ * very rare) becomes _ (any one character): the search may also show an address differing only at that position.
+ * Use with .ilike('email', emailSearchPattern(value)) instead of .eq('email', value). */
+export const emailSearchPattern = (value: string) => value.replace(/[\\%_]/g, c => '\\' + c).replace(/\*/g, '_');
 /** PostgREST `or` filter for the keyset cursor. Values were validated by parseContactsQuery. */
 export const contactsCursorFilter = (b: NonNullable<ContactsQuery['before']>) => `created_at.lt."${b.createdAt}",and(created_at.eq."${b.createdAt}",id.lt.${b.id})`;
 /** The cursor for the next page, from the raw rows fetched (limit + 1 asked for; null when this was the last page).
@@ -203,8 +240,13 @@ export function planLocalImport(local: readonly LocalCrmContact[], existing: rea
   for (const c of existing) for (const k of contactKeys(c)) byKey.set(k, c.id);
   const seen = new Map<string, string>();
   return local.slice(0, 5000).map((l): LocalImportStep => {
-    const phone = normalisePhone(l.phone), email = normaliseEmail(l.email);
-    if (!phone && !email) return { action: 'skip', localId: l.id, reason: 'No usable phone or email.' };
+    const reading = readPhone(l.phone);
+    const phone = reading.ok ? reading.phone : null, email = normaliseEmail(l.email);
+    if (!phone && !email) {
+      // A 13/1300/1800 number says why it cannot be used, so the owner knows to ask for a mobile.
+      const reason = !reading.ok && reading.reason === PHONE_SERVICE_NUMBER ? reading.reason : 'No usable phone or email.';
+      return { action: 'skip', localId: l.id, reason };
+    }
     if (phone && byKey.has('phone:' + phone)) return { action: 'match', localId: l.id, contactId: byKey.get('phone:' + phone)!, matchedOn: 'phone' };
     if (email && byKey.has('email:' + email)) return { action: 'match', localId: l.id, contactId: byKey.get('email:' + email)!, matchedOn: 'email' };
     const prior = (phone && seen.get('phone:' + phone)) || (email && seen.get('email:' + email));

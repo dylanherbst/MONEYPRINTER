@@ -4,7 +4,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { USER, W, call, configuredEnv, installFakeSupabase, setEnv } from './helpers/route-harness.ts';
 // Dynamic imports: the harness's extension resolver must be registered before these modules link.
-const { collapseDuplicates, contactFromRow, contactKeys, normaliseEmail, normalisePhone, parseContactsQuery, planLocalImport } = await import('../lib/front-office/crm.ts');
+const { collapseDuplicates, contactFromRow, contactKeys, emailSearchPattern, normaliseEmail, normalisePhone, parseContactsQuery, planLocalImport, readPhone } = await import('../lib/front-office/crm.ts');
+const { store } = await import('./helpers/front-office-store.ts');
+const { runSetterTurn } = await import('../lib/front-office/setter/agent.ts');
+const { ventraSetterConfig } = await import('../lib/front-office/setter/config.ts');
 const { activityDigest, activityFromRow, describeActivity, parseActivityQuery } = await import('../lib/front-office/activity.ts');
 const { parseActivityEvent, parseContact } = await import('../lib/front-office/contracts.ts');
 
@@ -21,10 +24,71 @@ test('phones: Australian local formats and E.164 give one key; junk is refused',
   for (const p of ['+61412345678', '0412 345 678', '0412-345-678', '(04) 1234 5678', '61412345678', '0061 412 345 678', '+61 (0) 412 345 678', '+610412345678', '412345678', ' +61 412 345 678 '])
     assert.equal(normalisePhone(p), '+61412345678', p);
   assert.equal(normalisePhone('(02) 9876 5432'), '+61298765432');
-  assert.equal(normalisePhone('1300 123 456'), '+611300123456');
   assert.equal(normalisePhone('+1 415 555 0100'), '+14155550100');
   assert.equal(normalisePhone('0044 20 7946 0958'), '+442079460958');
   for (const bad of ['', '12', 'call me', '+61 412 345 678 ext 2', '04123', '+0412345678', '++61412345678', '1'.repeat(50), null, 412345678]) assert.equal(normalisePhone(bad), null, String(bad));
+});
+
+test('phones (A-31): real Australian shapes only; 13/1300/1800 refused with a reason', () => {
+  // Every area code and mobiles, local and international.
+  for (const [given, want] of [['(02) 9876 5432', '+61298765432'], ['03 9123 4567', '+61391234567'], ['(07) 3123 4567', '+61731234567'], ['(08) 9123 4567', '+61891234567'],
+    ['0412 345 678', '+61412345678'], ['+61 8 9123 4567', '+61891234567'], ['891234567', '+61891234567']] as const)
+    assert.equal(normalisePhone(given), want, given);
+  // Wrong area codes, all zeros, mobiles one digit short or long (after +61).
+  for (const bad of ['0000000000', '0112345678', '0512345678', '0612345678', '0912345678', '+61 41234567', '+61 4123456789', '+6141234567', '61 0412 345 67',
+    '012345678', '+61000000000', '+61 1 2345 6789'])
+    assert.equal(normalisePhone(bad), null, bad);
+  // A repeated-digit mobile is a well-formed number and is kept; the shape check alone refuses the junk.
+  assert.equal(normalisePhone('0444 444 444'), '+61444444444');
+  for (const junk of ['0000000000', '0112345678']) assert.equal(readPhone(junk).ok, false, junk);
+  const refused = readPhone('0112345678');
+  assert.equal(refused.ok, false); assert.match(refused.ok ? '' : refused.reason, /not a valid Australian number/);
+  // Decision: service numbers are refused (no SMS, no real E.164 form, shared by many callers), whatever the format.
+  for (const svc of ['13 12 34', '131234', '1300 123 456', '1800 123 456', '+61 1300 123 456', '+61 13 12 34', '61 1800 123 456', '0061 1300 123 456', '+611300123456']) {
+    const r = readPhone(svc);
+    assert.equal(r.ok, false, svc);
+    assert.match(r.ok ? '' : r.reason, /13, 1300 or 1800 business number/, svc);
+    assert.equal(normalisePhone(svc), null, svc);
+  }
+  assert.match((readPhone('call me') as { reason: string }).reason, /Enter a mobile/);
+  assert.deepEqual(readPhone(' 0412 345 678 '), { ok: true, phone: '+61412345678' });
+  // Other countries are unchanged: E.164 shape only.
+  assert.equal(normalisePhone('+44 20 7946 0958'), '+442079460958');
+  assert.equal(normalisePhone('+1 800 555 0100'), '+18005550100', 'a +1 800 number is not an Australian service number');
+});
+
+test('email search (A-31): case-insensitive exact pattern; LIKE wildcards escaped', () => {
+  assert.equal(emailSearchPattern('sam@example.com'), 'sam@example.com');
+  assert.equal(emailSearchPattern('sam_lee@x.com'), 'sam\\_lee@x.com', 'an underscore matches only itself');
+  assert.equal(emailSearchPattern('100%@x.com'), '100\\%@x.com');
+  assert.equal(emailSearchPattern('a\\b@x.com'), 'a\\\\b@x.com');
+  assert.equal(emailSearchPattern('a*b@x.com'), 'a_b@x.com', 'PostgREST turns * into %; it is narrowed to one character');
+});
+
+test('Setter (A-31): local Australian formats are saved in E.164; a refused number gets the reason back', async () => {
+  const { db, rpc } = store('qualifying', [{ direction: 'inbound', body: 'My number is (08) 9123 4567' }], null);
+  const auth = { channel: 'ch', key: 'k'.repeat(40) };
+  const steps = [[{ type: 'tool_use', id: 's1', name: 'save_answers', input: { answers: {}, phone: '13 12 34' } }],
+    [{ type: 'tool_use', id: 's2', name: 'save_answers', input: { answers: {}, phone: '(08) 9123 4567' } }], [{ type: 'text', text: 'Thanks, saved.' }]];
+  const seen: string[] = []; const phoneBefore: unknown[] = []; let i = 0;
+  const llm = async (req: { messages: { content: unknown }[] }) => {
+    seen.push(JSON.stringify(req.messages.at(-1)?.content));
+    phoneBefore.push(db.contact.phone);
+    const content = steps[Math.min(i++, steps.length - 1)];
+    return { content, stopReason: content.some(b => b.type === 'tool_use') ? 'tool_use' : 'end_turn' };
+  };
+  const calendar = { busy: async () => [], createEvent: async (e: { id: string }) => ({ id: e.id, htmlLink: null, existed: false }), hasEvent: async () => false };
+  await runSetterTurn('c1', { llm: llm as never, rpc, auth, calendar, send: async () => ({ sent: false, sid: null }), config: ventraSetterConfig, now: Date.parse('2026-11-09T00:30:00Z') });
+  assert.equal(db.contact.phone, '+61891234567', 'the landline is stored in the one E.164 form');
+  assert.match(seen[1], /13, 1300 or 1800 business number/, 'the model is told why the service number was refused');
+  assert.equal(phoneBefore[1], null, 'the refused service number was not saved before the valid call');
+  for (const [given, want] of [['0412 345 678', '+61412345678'], ['+61 (0) 412 345 678', '+61412345678']] as const) {
+    const s = store('qualifying', [{ direction: 'inbound', body: 'hi' }], null);
+    let n = 0;
+    const one = async () => (n++ === 0 ? { content: [{ type: 'tool_use', id: 'p', name: 'save_answers', input: { answers: {}, phone: given } }], stopReason: 'tool_use' } : { content: [{ type: 'text', text: 'ok' }], stopReason: 'end_turn' });
+    await runSetterTurn('c1', { llm: one as never, rpc: s.rpc, auth, calendar, send: async () => ({ sent: false, sid: null }), config: ventraSetterConfig, now: Date.parse('2026-11-09T00:30:00Z') });
+    assert.equal(s.db.contact.phone, want, given);
+  }
 });
 
 test('emails: trimmed and lower case; invalid is null', () => {
@@ -68,6 +132,7 @@ test('browser CRM import plan: matches by normalised phone then email, de-duplic
     { id: 'l3', name: ' Alex ', phone: '0499 000 111', email: 'alex@x.com', consentStatus: 'opted_out' },
     { id: 'l4', name: 'Alex again', phone: '', email: 'ALEX@x.com' },
     { id: 'l5', name: 'Nobody', phone: 'n/a', email: 'nope' },
+    { id: 'l6', name: 'Switchboard', phone: '1300 123 456', email: '' },
   ], existing);
   assert.deepEqual(plan, [
     { action: 'match', localId: 'l1', contactId: cid(1), matchedOn: 'phone' },
@@ -75,7 +140,9 @@ test('browser CRM import plan: matches by normalised phone then email, de-duplic
     { action: 'create', localId: 'l3', name: 'Alex', phone: '+61499000111', email: 'alex@x.com', optedOut: true },
     { action: 'same-as', localId: 'l4', sameAsLocalId: 'l3' },
     { action: 'skip', localId: 'l5', reason: 'No usable phone or email.' },
+    { action: 'skip', localId: 'l6', reason: (readPhone('1300 123 456') as { reason: string }).reason },
   ]);
+  assert.match((plan[5] as { reason: string }).reason, /13, 1300 or 1800 business number, which cannot get texts/);
 });
 
 test('contacts query: validated; phone and email searches are normalised; injection-shaped input refused', () => {

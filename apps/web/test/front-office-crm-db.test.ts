@@ -9,7 +9,7 @@ import './helpers/route-harness.ts';
 
 const { normalisePhone, normaliseEmail, contactFromRow, collapseDuplicates } = await import('../lib/front-office/crm.ts');
 const { activityFromRow, nextActivityCursor, ACTIVITY_COLUMNS } = await import('../lib/front-office/activity.ts');
-const { CONTACT_COLUMNS } = await import('../lib/front-office/crm.ts');
+const { CONTACT_COLUMNS, emailSearchPattern, nextContactsCursor, parseContactsQuery } = await import('../lib/front-office/crm.ts');
 
 const KEY = 'k'.repeat(40), OTHER_KEY = 'o'.repeat(40);
 const SMS = '+61800000010', VOICE = '+61800000011', OTHER_SMS = '+61800000020';
@@ -25,7 +25,7 @@ async function setup() {
     create function auth.uid() returns uuid language sql stable as $$ select (auth.jwt()->>'sub')::uuid $$;
     grant usage on schema public,auth to authenticated,anon;
     grant execute on function auth.uid(),auth.jwt() to authenticated,anon;`);
-  for (const f of migrations) await db.exec(await readFile(`../../supabase/migrations/${f}`, 'utf8'));
+  for (const f of migrations) await db.exec(await readFile(new URL(`../../../supabase/migrations/${f}`, import.meta.url), 'utf8'));
   const owner = '11111111-1111-4111-8111-111111111111', stranger = '33333333-3333-4333-8333-333333333333';
   const so = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', sx = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
   await db.query('insert into auth.users values ($1),($2)', [owner, stranger]);
@@ -100,6 +100,57 @@ test('one person across SMS, calls, email and chat stays one record per workspac
   assert.equal(await one<number>('select count(*)::int as r from public.fo_events where workspace_id = $1', [w]), 0);
   assert.equal(await one<number>('select count(*)::int as r from public.fo_contacts', []), 1);
 });
+
+test('contacts keyset paging (A-31): rows sharing created_at page by id with no gaps or repeats; email search ignores legacy case', async () => {
+  const { db, as, rows, w, w2, owner, so } = await setup();
+  // Legacy rows written directly (no normalisation), many sharing one created_at to the microsecond, plus one in another
+  // business at the same instant. Inserted as the database owner, then read back through RLS as the member.
+  await as(null); await db.exec('reset role');
+  const tie = '2026-11-12T01:00:00.123456+00:00', later = '2026-11-12T02:00:00+00:00';
+  const ids: string[] = [];
+  for (let n = 1; n <= 7; n++) ids.push(`dddddddd-dddd-4ddd-8ddd-${String(n).padStart(12, '0')}`);
+  for (const [i, id] of ids.entries())
+    await db.query('insert into public.fo_contacts(id,workspace_id,email,created_at,updated_at) values ($1,$2,$3,$4,$4)', [id, w, i === 3 ? 'Legacy.Sam@Example.COM' : `p${i}_x@example.com`, i === 6 ? later : tie]);
+  await db.query('insert into public.fo_contacts(workspace_id,email,created_at) values ($1,$2,$3)', [w2, 'legacy.sam@example.com', tie]);
+  await db.query('insert into public.fo_contacts(workspace_id,email,created_at) values ($1,$2,$3)', [w, 'p1Zx@example.com', tie]);
+  await as(owner, so);
+  const sql = `select to_jsonb(c) as r from (select ${CONTACT_COLUMNS} from public.fo_contacts where workspace_id = $1
+    and ($2::timestamptz is null or created_at < $2 or (created_at = $2 and id < $3::uuid)) order by created_at desc, id desc limit $4) c`;
+  const all = await rows<{ id: string; created_at: string }>(sql, [w, null, null, 200]);
+  assert.equal(all.length, 8);
+  assert.equal(all.filter(r => Date.parse(r.created_at) === Date.parse(tie)).length, 7, 'seven rows tie on created_at');
+  for (const limit of [1, 2, 3]) {
+    const seen: string[] = [];
+    let cursor: { before: string; beforeId: string } | null = null;
+    for (let n = 0; n < 20; n++) {
+      // The cursor goes through the same parser the route uses, so the stored timestamp's precision must survive it.
+      const before: { createdAt: string; id: string } | null = cursor ? parseContactsQuery(new URLSearchParams(cursor)).before : null;
+      const raw = await rows<{ id: string; created_at: string }>(sql, [w, before?.createdAt ?? null, before?.id ?? null, limit + 1]);
+      seen.push(...raw.slice(0, limit).map(r => r.id));
+      cursor = nextContactsCursor(raw, limit);
+      if (!cursor) break;
+    }
+    assert.deepEqual(seen, all.map(r => r.id), `limit ${limit}: pages join up exactly across the tie`);
+  }
+  assert.ok(ids.every(id => all.some(r => r.id === id)));
+  // The email search pattern finds the legacy mixed-case row by the normalised address, only in this business,
+  // and an underscore in the address matches only an underscore (p1_x, not p1Zx).
+  const search = (q: string) => {
+    const s = parseContactsQuery(new URLSearchParams({ q })).search!;
+    assert.equal(s.column, 'email');
+    return rows<{ id: string; email: string }>('select to_jsonb(c) as r from (select id, email from public.fo_contacts where workspace_id = $1 and email ilike $2) c', [w, emailSearchPattern(s.value)]);
+  };
+  const found = await search('LEGACY.sam@example.com');
+  assert.deepEqual(found.map(r => r.id), [ids[3]]);
+  assert.equal(found[0].email, 'Legacy.Sam@Example.COM', 'the stored legacy row really is mixed case');
+  assert.equal(contactFromRow({ ...found[0], workspace_id: w, state: 'new', source: 'inbound', created_at: tie, updated_at: tie } as never)?.email, 'legacy.sam@example.com');
+  assert.equal(await one(db, 'select count(*)::int as r from public.fo_contacts where workspace_id = $1 and email = $2', [w, 'legacy.sam@example.com']), 0, 'an exact match would miss it');
+  assert.deepEqual((await search('p1_x@example.com')).map(r => r.email), ['p1_x@example.com']);
+});
+
+async function one(db: import('@electric-sql/pglite').PGlite, sql: string, params: unknown[]) {
+  return (await db.query<{ r: unknown }>(sql, params)).rows[0]?.r;
+}
 
 test('activity feed: every channel in one history, newest first, keyset pages with no gaps or repeats', async () => {
   const { as, one, rows, w, ch, owner, so } = await setup();

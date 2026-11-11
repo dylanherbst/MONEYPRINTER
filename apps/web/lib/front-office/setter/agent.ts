@@ -15,6 +15,7 @@ import type { Offer } from '../booking';
 import type { CalendarProvider } from '../calendar/google';
 import { formatSlot } from '../calendar/slots';
 import type { OperatingMode, PendingActionKind, PendingActionPayload, PermissionDecision } from '../contracts';
+import { readPhone } from '../crm';
 import { checkedHandoff } from '../handoff';
 import type { Agent, Channel, Handoff } from '../handoff';
 import { FOLLOW_UP_PROMPT, scheduleReminders, startFollowUps } from '../jobs';
@@ -51,7 +52,7 @@ const TRANSFER_HELD_SAY = 'I have asked a person from the team to get back to yo
 const replyLimit: Record<Channel, number> = { sms: 320, 'web-chat': 600, email: 1500, voice: 400, form: 600, instagram: 450, messenger: 450 };
 
 export const setterTools: ToolSpec[] = [
-  { name: 'save_answers', description: 'Save qualification answers by question id, and the contact name, email or mobile if given.', input_schema: { type: 'object', properties: { answers: { type: 'object', additionalProperties: { type: 'string' } }, name: { type: 'string' }, email: { type: 'string' }, phone: { type: 'string', description: 'Mobile in E.164, e.g. +61412345678' } }, required: ['answers'] } },
+  { name: 'save_answers', description: 'Save qualification answers by question id, and the contact name, email or mobile if given.', input_schema: { type: 'object', properties: { answers: { type: 'object', additionalProperties: { type: 'string' } }, name: { type: 'string' }, email: { type: 'string' }, phone: { type: 'string', description: 'Mobile as the person gave it, e.g. 0412 345 678 or +61412345678' } }, required: ['answers'] } },
   { name: 'set_stage', description: 'Move the contact to qualifying, qualified, disqualified or nurture.', input_schema: { type: 'object', properties: { stage: { type: 'string', enum: ['qualifying', 'qualified', 'disqualified', 'nurture'] }, reason: { type: 'string' } }, required: ['stage', 'reason'] } },
   { name: 'offer_times', description: 'Get two or three open times from the live calendar. Only once the contact is qualified.', input_schema: { type: 'object', properties: {} } },
   { name: 'book_time', description: 'Book one of the times returned by offer_times, using its start value.', input_schema: { type: 'object', properties: { start: { type: 'string' } }, required: ['start'] } },
@@ -178,15 +179,20 @@ export async function runSetterTurn(contactId: string, d: SetterDeps): Promise<S
         const answers: Record<string, string> = {};
         const ids = new Set(d.config.questions.map(q => q.id));
         for (const [k, v] of Object.entries((input.answers ?? {}) as Record<string, unknown>)) if (ids.has(k) && typeof v === 'string' && v.trim()) answers[k] = v.trim().slice(0, 1000);
-        const email = str(input.email, 254), phone = str(input.phone, 20).replace(/[\s()-]/g, '');
-        const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), okPhone = /^\+[1-9][0-9]{6,14}$/.test(phone);
+        const email = str(input.email, 254);
+        // Local Australian formats ("0412 345 678", "(08) 9123 4567") are read by the shared CRM rule (task A-31), so
+        // the number is stored in the same E.164 form every other channel uses; a refused number gets the rule's reason.
+        const rawPhone = typeof input.phone === 'string' ? input.phone.trim() : '';
+        const reading = rawPhone ? readPhone(rawPhone) : null;
+        const okEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), okPhone = reading?.ok === true;
+        const phone = reading?.ok ? reading.phone : '';
         const r = await d.rpc('fo_save_details', { ...a, contact: contactId, new_answers: answers, contact_name: str(input.name, 160) || null, contact_email: okEmail ? email : null, contact_phone: okPhone ? phone : null }) as { answers: Record<string, string>; skipped: string[] } | null;
         ctx.contact.answers = r?.answers ?? { ...ctx.contact.answers, ...answers };
         const skipped = r?.skipped ?? [];
         if (str(input.name, 160)) ctx.contact.name = str(input.name, 160);
         if (okEmail && !skipped.includes('email')) ctx.contact.email = email.toLowerCase();
         if (okPhone && !skipped.includes('phone')) ctx.contact.phone = phone;
-        const note = (phone && !okPhone ? ' The mobile was not in +61 format; ask again.' : '') + (skipped.length ? ` Not saved (already on another record): ${skipped.join(', ')}. A person will check.` : '');
+        const note = (reading && !reading.ok ? ` The mobile was not saved: ${reading.reason} Ask again.` : '') + (skipped.length ? ` Not saved (already on another record): ${skipped.join(', ')}. A person will check.` : '');
         const missing = d.config.questions.filter(q => q.required && !ctx.contact.answers[q.id]).map(q => q.id);
         return (missing.length ? `Saved. Still needed: ${missing.join(', ')}.` : 'Saved. All required answers are in.') + note;
       }
