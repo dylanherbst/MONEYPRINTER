@@ -14,13 +14,15 @@ const RULES = [
 ];
 
 // Values that are clearly placeholders are not secrets.
-const PLACEHOLDER = /(your[-_ ]|example|placeholder|changeme|xxxx|\*{4}|<[^>]+>|dummy|fake|test[-_]?key|process\.env|\$\{)/i;
+const PLACEHOLDER = /(your[-_ ]|example|placeholder|changeme|xxxx|\*{4}|<[^>]+>|dummy|fake|test[-_]?key|process\.env|\$\{|status\.[A-Z_]+)/i;
 
 export function findSecrets(text, { max = 10 } = {}) {
   const hits = [];
   const lines = String(text).split('\n');
   for (let n = 0; n < lines.length && hits.length < max; n++) {
     const line = lines[n];
+    // A bare key header with no key body after it is a documentation example, not a key.
+    if (/^[+-]?\s*-----BEGIN [A-Z ]*PRIVATE KEY-----\s*$/.test(line) && !/^[A-Za-z0-9+/=]{40,}$/.test(String(lines[n + 1] ?? '').trim())) continue;
     for (const [name, re] of RULES) {
       const m = re.exec(line);
       if (m && !PLACEHOLDER.test(m[0])) {
