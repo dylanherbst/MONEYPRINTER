@@ -18,10 +18,17 @@ step() { # name, command...
   local tail; tail="$(tail -c 400 "$tmp.log" | tr '\n' ' ' | sed 's/"/\x27/g; s/\\/ /g')"
   # Exit code 3 means "pending owner action" (for example an unapplied migration): recorded as SKIPPED with the reason, never as passed.
   local st=PASSED; [ $code -ne 0 ] && st=FAILED; [ $code -eq 3 ] && st=SKIPPED
+  # Steps run with frozen_step: a feature paused by docs/agents/SCOPE_FREEZE.md answers 423 feature_paused
+  # ("... is paused while VENTRA focuses on the AI front office"). Recorded as FROZEN (its own visible status), never as passed.
+  # Detected from the real answer, so an un-frozen feature runs and is judged normally.
+  if [ "${frozen_check:-0}" = 1 ] && [ $code -ne 0 ] && grep -qE 'feature_paused|is paused while VENTRA focuses on the AI front office' "$tmp.log"; then
+    st=FROZEN; tail="feature frozen by docs/agents/SCOPE_FREEZE.md (route answered paused). Not a pass: the step is paused with the feature. $tail"
+  fi
   [ "$st" = FAILED ] && fail=1
   printf '%s\t%s\t%s\t%s\n' "$name" "$st" "$((end-start))" "$([ $code -eq 0 ] && echo '' || echo "$tail")" >> "$tmp"
   echo "$name: $st ($((end-start))s)"
 }
+frozen_step() { frozen_check=1 step "$@"; }
 skip() { printf '%s\tSKIPPED\t0\t%s\n' "$1" "$2" >> "$tmp"; echo "$1: SKIPPED ($2)"; }
 step lint npm run lint
 step typecheck npm run typecheck
@@ -29,8 +36,8 @@ step unit-tests npm test
 step build npm run build
 if curl -s -m 2 -o /dev/null http://127.0.0.1:55321/auth/v1/health; then
   step workspace-integration npm run test:local-integration
-  step course-integration node --experimental-strip-types scripts/course-api-integration.mjs
-  step launcher-integration node --experimental-strip-types scripts/launcher-api-integration.mjs
+  frozen_step course-integration node --experimental-strip-types scripts/course-api-integration.mjs
+  frozen_step launcher-integration node --experimental-strip-types scripts/launcher-api-integration.mjs
 else
   skip workspace-integration "local Supabase is not running (start Colima, then supabase start)"
   skip course-integration "local Supabase is not running (start Colima, then supabase start)"

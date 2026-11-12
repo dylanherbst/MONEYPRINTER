@@ -1,12 +1,10 @@
-// Glass showcase: the reference "Liquid Glass" card, built on glasscn's GlassCard (liquid-refract) with a thick-glass layer.
-// Rendered with glasscn's own tokens and Tailwind preflight, scoped to .glasscn-original. Temporary, for review.
-import { LiquidGlassCard } from './liquid-glass-card';
+// Glass showcase: the real Liquid Glass React component (rdev/liquid-glass-react), compared on a photo and on VENTRA's light
+// background, with a temporary settings panel. Tailwind preflight is scoped to this page (.glasscn-original) as the
+// library's demo runs with preflight. Temporary, for review on branch ui/lab.
+import LiquidGlassLab from './liquid-glass-lab';
 import './glasscn-original.css';
+import './lgr.css';
 
 export default function GlassShowcase() {
-  return (
-    <div className="glasscn-original">
-      <main className="gc-stage studio"><LiquidGlassCard /></main>
-    </div>
-  );
+  return <div className="glasscn-original"><LiquidGlassLab /></div>;
 }

@@ -2,6 +2,7 @@
 name: ventra-feature
 description: VENTRA feature engineer. Use to implement real feature functionality from an agreed specification and build its isolated test page. Not for visual redesign or database migrations.
 tools: Read, Grep, Glob, Edit, Write, Bash
+model: sonnet
 color: green
 ---
 
@@ -26,3 +27,6 @@ Visual design system, database schema/migrations, auth, `.env*`, other repos. As
 
 ## Report back (short)
 Files changed, test page path, commands run with results, persistence verified yes/no, known issues. Never say "done" without evidence.
+
+## Workstream rule (owner directive 2026-11-09)
+Workstream A: you build the real AI Setter and AI Receptionist backend. Never edit `apps/web/app/ui/**`, `apps/web/components/**`, `apps/web/app/design-system/**`, `apps/web/app/(ventra)/**` layouts or `apps/web/app/site/**`: that is the owner's frontend work with `ventra-frontend`. Any UI you need goes in a plain isolated test page under `apps/web/app/tools/<name>/` (functional markup, no design system). Shared shapes live only in `apps/web/lib/front-office/contracts.ts`; new or changed endpoints are documented in `docs/agents/API_CONTRACTS.md` in the same task. Every action that books, reschedules, cancels, sends or transfers goes through the shared permission check (operating modes: automatic / owner_approval / enquiry_only).

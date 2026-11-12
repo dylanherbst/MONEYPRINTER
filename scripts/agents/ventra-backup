@@ -19,6 +19,9 @@ case "$cmd" in
     git -C "$repo" ls-files -co --exclude-standard -z \
       | grep -zvE '(^|/)(\.env[^/]*|.*\.(pem|key|p12)|\.npmrc|\.mcp\.json|SOUL\.md|IDENTITY\.md|USER\.md|DREAMS\.md|memory/.*)$' \
       | (cd "$repo" && xargs -0 tar -czf "$base.files.tar.gz" 2>/dev/null)
+    # Coordinator and dashboard state (task runs, approvals, audit, config), without the approval signing key.
+    dash="${VENTRA_DASHBOARD_HOME:-$HOME/.ventra-dashboard}"
+    [ -d "$dash" ] && tar -czf "$base.dashboard.tar.gz" --exclude='approval.key' --exclude='coordinator/*.json' --exclude='coordinator/*.log' -C "$(dirname "$dash")" "$(basename "$dash")" 2>/dev/null || true
     chmod 600 "$base".*
     printf '%s\n' "$head" > "$base.head"
     echo "Created: $base.bundle ($(du -h "$base.bundle" | cut -f1)) and $base.files.tar.gz ($(du -h "$base.files.tar.gz" | cut -f1))"

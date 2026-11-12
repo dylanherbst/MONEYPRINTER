@@ -10,6 +10,7 @@
 @source "../../ui";
 @source "../../(ventra)";
 @source "../liquid-glass";
+@source "../../../node_modules/liquid-glass-react/dist"; /* its layers use Tailwind classes (bg-black, opacity-*, mix-blend-overlay…) */
 
 @custom-variant dark (&:is(.dark *));
 

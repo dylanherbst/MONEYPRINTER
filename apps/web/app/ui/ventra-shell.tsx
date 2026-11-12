@@ -46,7 +46,16 @@ const accountLinks: { title: string; href: string; icon: IconName; note: string 
   { title: 'Account and sign in', href: '/workspace', icon: 'lock', note: 'Workspaces, sign in, export' },
 ];
 
-export default function VentraShell({ children }: { children: ReactNode }) { return <Suspense fallback={<p role="status">Loading your workspace…</p>}><ShellContent>{children}</ShellContent></Suspense>; }
+export default function VentraShell({ children }: { children: ReactNode }) { return <Suspense fallback={<p role="status">Loading your workspace…</p>}><ShellRoute>{children}</ShellRoute></Suspense>; }
+
+// Screens already rebuilt in the new glass kit bring their own header and bottom nav (GlassPage), so they get only the
+// workspace context here, not the old top bar and tab bar. Add a path when its screen is rebuilt.
+const glassScreens = ['/', '/app'];
+// The Home test page (the home-glass page under the developer tools) also skips the old chrome; the shell may not link to developer pages by path.
+function ShellRoute({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  return glassScreens.includes(pathname) || pathname.endsWith('/home-glass') ? <WorkspaceProvider>{children}</WorkspaceProvider> : <ShellContent>{children}</ShellContent>;
+}
 
 function WorkspaceChip() {
   const { profile } = useWorkspace(); const name = profile?.name?.trim();

@@ -44,3 +44,15 @@ export const services=[
  {title:'Receptionist availability',description:'View current messaging and call availability.',href:'/inbox',icon:'phone',category:'Clients',status:'Unavailable · no test calls'},
 ] as const;
 export function filterServices(category:ServiceCategory,query=''){const terms=query.trim().toLowerCase().split(/\s+/).filter(Boolean);return services.filter(s=>(category==='All Services'||s.category===category)&&terms.every(t=>(s.title+' '+s.description).toLowerCase().includes(t)));}
+/** Account menu entries (presentation only; same destinations the old shell menu used). */
+export const accountLinks = [
+ {title:'Business profile',href:'/settings?section=profile',note:'Name, services, hours and policies'},
+ {title:'AI team settings',href:'/customers/ai-team',note:'Setter and Receptionist rules'},
+ {title:'Connections',href:'/settings?section=integrations',note:'Calendar, phone, Instagram, payments'},
+ {title:'Insights',href:'/insights',note:'Reports from your saved data'},
+ {title:'Team',href:'/settings?section=team',note:'Who can see this workspace'},
+ {title:'Billing',href:'/settings?section=billing',note:'Your VENTRA plan'},
+ {title:'Help',href:'/settings?section=help',note:'Guides and support'},
+ {title:'Account and sign in',href:'/workspace',note:'Workspaces, sign in, export'},
+ {title:'Everything else',href:'/more',note:'All tools and settings'},
+] as const;
