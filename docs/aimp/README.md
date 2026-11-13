@@ -1,7 +1,7 @@
 # AiMoneyPrinter — engineering workspace
 
-Branch `aimp/foundation` (worktree `~/Developer/AIMONEYPRINTER`), fast-forwarded to `agent/develop` @ 04e0080.
-Not committed or pushed. Source of truth for scope: *AiMoneyPrinter Master Business Plan (Nov 2026)*.
+Standalone git repository `~/Developer/AIMONEYPRINTER`, branch `aimp/foundation` (split from VENTRA `agent/develop` @ 04e0080 with full history on 13 Nov 2026). No remote yet (GitHub token pending).
+VENTRA is archived; this is the only active product. The old worktree link is kept as `.git-ventra-worktree-link.bak` (ignored). Source of truth for scope: *AiMoneyPrinter Master Business Plan (Nov 2026)*.
 
 ## Done (12 Nov 2026)
 - Phase 0 audit of all VENTRA branches (baseline = `agent/develop`; 1106 tests, 1101 pass, 5 todo, typecheck clean).
@@ -27,7 +27,7 @@ Not committed or pushed. Source of truth for scope: *AiMoneyPrinter Master Busin
 ## 13 Nov 2026
 - O2-3 fixed (plan step 2): `app/api/workspace/route.ts` session cookies now `Path=/api` so `/api/front-office/*` and other `requireWorkspace` routes receive them; legacy `Path=/api/workspace` cookies are expired on every set/clear so a stale token can't shadow the new one. Test `test/workspace-cookie-path.test.ts` (fails before, passes after).
 - Agents: `skills:` preloads + an AiMoneyPrinter section added to every `.claude/agents/ventra-*.md` (phase ownership per the roadmap). `web-design-guidelines` symlinked into `.claude/skills` so frontend/web-design/QA/review can preload it.
-- Evidence (Mac VM): 1136 tests, 1131 pass, 0 fail, 5 todo; tsc clean; eslint clean on changed files. Not run: full lint, `next build`. Git not usable from the session VM (worktree gitdir lives in VENTRA-CLEAN), so nothing committed.
+- Evidence (Mac VM): 1136 tests, 1131 pass, 0 fail, 5 todo; tsc clean; eslint clean on changed files. Not run: full lint, `next build`. Committed as 8ce30e5 when the repo was split.
 
 ## Next, in order (one writer at a time)
 1. Merge remaining branch work: backend/ventra-api-20261030 courses diff; cherry-pick 7393505; decide design system, then liquid-glass commits.
