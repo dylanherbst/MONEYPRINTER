@@ -6,7 +6,19 @@ import { sameOrigin } from '../../../lib/request-security';
 import { readBoundedRequestBody, RequestBodyTooLarge } from '../../../lib/request-body';
 import type { Session } from '@supabase/supabase-js';
 export const dynamic = 'force-dynamic';
-const cookieOptions = { httpOnly: true, sameSite: 'strict' as const, secure: process.env.NODE_ENV === 'production', path: '/api/workspace' };
+// O2-3: session cookies are scoped to /api so every authenticated API (workspace, front-office, ...) receives them.
+// Cookies set by older builds used /api/workspace; they are expired explicitly so a stale token can't shadow the new one.
+const SESSION_COOKIE_PATH = '/api';
+const LEGACY_SESSION_COOKIE_PATH = '/api/workspace';
+const cookieOptions = { httpOnly: true, sameSite: 'strict' as const, secure: process.env.NODE_ENV === 'production', path: SESSION_COOKIE_PATH };
+function expireLegacyCookies(out: NextResponse) {
+  // Appended after cookies.set/delete: ResponseCookies is keyed by name, so a second same-name entry would replace the first.
+  const secure = cookieOptions.secure ? '; Secure' : '';
+  for (const name of ['lp-access', 'lp-refresh']) {
+    out.headers.append('Set-Cookie', `${name}=; Path=${LEGACY_SESSION_COOKIE_PATH}; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; HttpOnly; SameSite=Strict${secure}`);
+  }
+  return out;
+}
 function response(body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store, private', 'Vary': 'Cookie', 'X-Content-Type-Options': 'nosniff' } });
 }
@@ -15,12 +27,12 @@ function sessionCookies(out: NextResponse, session: Session | null) {
     // Clear with path-matched delete so attributes align with how the cookies were set.
     out.cookies.delete({ name: 'lp-access', ...cookieOptions });
     out.cookies.delete({ name: 'lp-refresh', ...cookieOptions });
-    return out;
+    return expireLegacyCookies(out);
   }
   const accessMaxAge = Number.isFinite(session.expires_in) && session.expires_in > 0 ? session.expires_in : 3600;
   out.cookies.set('lp-access', session.access_token, { ...cookieOptions, maxAge: accessMaxAge });
   out.cookies.set('lp-refresh', session.refresh_token, { ...cookieOptions, maxAge: 60 * 60 * 24 * 7 });
-  return out;
+  return expireLegacyCookies(out);
 }
 /**
  * Only business workspaces are listed: lab sandboxes (workspaces.kind = 'lab', migration 202611110001) never appear in a

@@ -28,3 +28,7 @@ Files created (repo and deliverables folder), which renders exist and their size
 
 ## Website landing pages (Workstream D, when assigned W- tasks)
 For website tasks you work in `~/Developer/VENTRA-WEBSITE` on `apps/web/app/site/**` pages the task names (niche landing pages for beauty, fitness and trades; funnel copy; SEO structure: titles, descriptions, headings, structured data; analytics/campaign tracking with UTM conventions and a consent-respecting setup). Same truth rules; no paid tools; nothing published or deployed by you.
+
+## AiMoneyPrinter
+Work in `~/Developer/AIMONEYPRINTER` (branch `aimp/foundation`) when the task is tagged AiMoneyPrinter/AIMP. Read `docs/aimp/README.md` first: it holds the build order and the latest test baseline. One writer at a time; owner approves merges, deploys, migrations and anything involving money.
+AiMoneyPrinter marketing uses the working name "Seedline" until legal/Stripe review; no income claims.

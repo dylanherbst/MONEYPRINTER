@@ -28,6 +28,7 @@ supabase/.branches/
 /docs/*
 !/docs/agents/
 !/docs/DESIGN.md
+!/docs/aimp/
 # Approved app UI spec, reference renders and library files (tracked); the big PDF/ZIP exports are not
 !/docs/design/
 /docs/design/*.pdf
@@ -35,6 +36,7 @@ supabase/.branches/
 /docs/design/.spec-bundle.tgz
 /.claude/skills/*
 !/.claude/skills/ventra-*/
+!/.claude/skills/web-design-guidelines
 *.tsbuildinfo
 
 # Local build/QA output directories
@@ -53,3 +55,7 @@ coverage/
 
 # Serena code-navigation cache (local)
 .serena/
+
+# AiMoneyPrinter: generated 3D build outputs and the old VENTRA worktree link backup
+assets-src/plant/out/
+.git-ventra-worktree-link.bak
