@@ -74,7 +74,9 @@
     ".next-certificate-qa-recheck-20261018/types/**/*.ts",
     ".next-certificate-qa-recheck-20261018/dev/types/**/*.ts",
     ".next-certificate-corrected-20261018/types/**/*.ts",
-    ".next-certificate-corrected-20261018/dev/types/**/*.ts"
+    ".next-certificate-corrected-20261018/dev/types/**/*.ts",
+    ".next-prod/types/**/*.ts",
+    ".next-prod/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

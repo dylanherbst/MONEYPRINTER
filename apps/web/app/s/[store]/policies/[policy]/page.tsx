@@ -1,17 +1,20 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { isPolicyPage, loadStore, policyPages } from '../../../../../lib/aimp/storefront/load';
+import { storeMetadata } from '../../../../../lib/aimp/hosts/seo';
+import { isPolicyPage, loadPublishedStore, policyPages } from '../../../../../lib/aimp/storefront/load';
 
 type Params = { params: Promise<{ store: string; policy: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const { policy } = await params;
-  return { title: isPolicyPage(policy) ? policyPages[policy] : 'Not found' };
+  const { store: s, policy } = await params;
+  const store = await loadPublishedStore(s);
+  if (!store || !isPolicyPage(policy)) return { title: 'Not found', robots: { index: false, follow: false } };
+  return storeMetadata(store, process.env, { path: `/policies/${policy}`, title: policyPages[policy] });
 }
 
 export default async function PolicyPage({ params }: Params) {
   const { store: s, policy } = await params;
-  const store = loadStore(s);
+  const store = await loadPublishedStore(s);
   if (!store || !isPolicyPage(policy)) notFound();
   return (
     <article className="st-wrap st-narrow st-section st-prose">

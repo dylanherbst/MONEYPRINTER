@@ -1,40 +1,34 @@
 import type { Metadata } from 'next';
 import type { CSSProperties, ReactNode } from 'react';
 import { notFound } from 'next/navigation';
-import { loadStore, policyPages } from '../../../lib/aimp/storefront/load';
-import { storeThemes, type StoreFont } from '../../../lib/aimp/storefront/schema';
+import { canonicalBase } from '../../../lib/aimp/hosts/seo';
+import { loadPublishedStore, policyPages } from '../../../lib/aimp/storefront/load';
+import { renderConfig } from '../../../lib/aimp/storefront/render-config';
 import { storeBase } from './_ui/base';
 import './store.css';
 
 export const dynamic = 'force-dynamic';
 
-const fontStacks: Record<StoreFont, string> = {
-  serif: "'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif",
-  sans: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif",
-  rounded: "ui-rounded, 'SF Pro Rounded', 'Nunito', -apple-system, sans-serif",
-};
-
 type Props = { children: ReactNode; params: Promise<{ store: string }> };
 
 export async function generateMetadata({ params }: { params: Promise<{ store: string }> }): Promise<Metadata> {
-  const store = loadStore((await params).store);
-  if (!store) return { title: 'Store not found', robots: { index: false } };
+  // Published snapshot only (AMP-032): an unpublished or paused store gets no metadata of its own and is not indexed.
+  const store = await loadPublishedStore((await params).store);
+  if (!store) return { title: 'Store not found', robots: { index: false, follow: false } };
+  const origin = canonicalBase(store.slug, process.env).origin;
   return {
+    ...(origin ? { metadataBase: new URL(origin) } : {}),
     title: { default: store.seo.title, template: `%s · ${store.brand.name}` },
     description: store.seo.description,
-    robots: store.demo ? { index: false, follow: false } : undefined,
+    robots: renderConfig(store).robots,
   };
 }
 
 export default async function StoreLayout({ children, params }: Props) {
-  const store = loadStore((await params).store);
+  const store = await loadPublishedStore((await params).store);
   if (!store) notFound();
   const base = await storeBase(store.slug);
-  const t = storeThemes[store.brand.theme];
-  const vars = {
-    '--st-bg': t.bg, '--st-surface': t.surface, '--st-ink': t.ink, '--st-muted': t.muted, '--st-line': t.line,
-    '--st-accent': t.accent, '--st-accent-ink': t.accentInk, '--st-soft': t.soft, '--st-font': fontStacks[store.brand.font],
-  } as CSSProperties;
+  const vars = renderConfig(store).cssVars as CSSProperties;
   const year = new Date().getUTCFullYear();
   return (
     <div className="st" style={vars}>

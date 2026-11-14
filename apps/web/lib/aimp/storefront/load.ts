@@ -1,16 +1,34 @@
 // Store lookup. Today only the DEMO fixture exists; the database-backed loader (published site_versions) replaces this.
 import { demoStore } from './demo-store.ts';
+import { demoStoreB } from './demo-store-b.ts';
+import { getDefaultRegistry, type StoreRegistry } from '../hosts/registry.ts';
 import { validateStoreConfig, type StoreBundle, type StoreConfig, type StoreProduct } from './schema.ts';
 
+const fixtures: ReadonlyMap<string, StoreConfig> = new Map([demoStore, demoStoreB].map((s) => [s.slug, s]));
+
 export function loadStore(slug: string): StoreConfig | null {
-  const candidate = slug === demoStore.slug ? demoStore : null;
+  const candidate = fixtures.get(slug) ?? null;
   if (!candidate) return null;
   const checked = validateStoreConfig(candidate);
   // Fail closed: a config that does not validate is never rendered.
   return checked.ok && checked.config.status === 'published' ? checked.config : null;
 }
 
-export const findProduct = (store: StoreConfig, slug: string): StoreProduct | undefined => store.products.find((p) => p.slug === slug);
+/**
+ * What every public store route uses (AMP-032). Returns the PUBLISHED snapshot only: a store that was never published,
+ * is paused, or no longer validates comes back null, so a draft can never render. `loadStore` above is the fixture
+ * lookup kept for tests and the demo page; routes must not use it.
+ */
+export async function loadPublishedStore(slug: string, registry?: StoreRegistry): Promise<StoreConfig | null> {
+  if (typeof slug !== 'string') return null;
+  const r = await (registry ?? (await getDefaultRegistry())).resolve(slug);
+  if (r.status !== 'live') return null;
+  // Same fail-closed rules as loadStore: a snapshot must validate and be marked published, and must belong to this address.
+  const checked = validateStoreConfig(r.config);
+  return checked.ok && checked.config.status === 'published' && checked.config.slug === slug ? checked.config : null;
+}
+
+export const findProduct =(store: StoreConfig, slug: string): StoreProduct | undefined => store.products.find((p) => p.slug === slug);
 export const bundleItems = (store: StoreConfig, bundle: StoreBundle): StoreProduct[] =>
   bundle.productSlugs.map((s) => findProduct(store, s)).filter((p): p is StoreProduct => Boolean(p));
 

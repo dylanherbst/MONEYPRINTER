@@ -1,11 +1,18 @@
 import { notFound } from 'next/navigation';
-import { loadStore, purchaseState } from '../../../lib/aimp/storefront/load';
+import type { Metadata } from 'next';
+import { storeMetadata } from '../../../lib/aimp/hosts/seo';
+import { loadPublishedStore, purchaseState } from '../../../lib/aimp/storefront/load';
 import type { StoreSection } from '../../../lib/aimp/storefront/schema';
 import { storeBase } from './_ui/base';
 import { BundleCard, Cover, ProductCard } from './_ui/parts';
 
+export async function generateMetadata({ params }: { params: Promise<{ store: string }> }): Promise<Metadata> {
+  const store = await loadPublishedStore((await params).store);
+  return store ? storeMetadata(store, process.env, { path: '' }) : { title: 'Store not found', robots: { index: false, follow: false } };
+}
+
 export default async function StoreHome({ params }: { params: Promise<{ store: string }> }) {
-  const store = loadStore((await params).store);
+  const store = await loadPublishedStore((await params).store);
   if (!store) notFound();
   const base = await storeBase(store.slug);
   const state = purchaseState(store);

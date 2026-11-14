@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { findProduct, formatPrice, loadStore, purchaseState } from '../../../../../lib/aimp/storefront/load';
+import { storeMetadata } from '../../../../../lib/aimp/hosts/seo';
+import { findProduct, formatPrice, loadPublishedStore, purchaseState } from '../../../../../lib/aimp/storefront/load';
 import { storeBase } from '../../_ui/base';
 import { BuyButton, Cover, Price, ProductCard } from '../../_ui/parts';
 
@@ -8,15 +9,16 @@ type Params = { params: Promise<{ store: string; product: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { store: s, product: p } = await params;
-  const store = loadStore(s);
+  const store = await loadPublishedStore(s);
   const product = store ? findProduct(store, p) : undefined;
-  if (!store || !product) return { title: 'Not found' };
-  return { title: product.title, description: product.summary, robots: store.demo ? { index: false, follow: false } : undefined };
+  if (!store || !product) return { title: 'Not found', robots: { index: false, follow: false } };
+  // No product images exist yet; when catalogue assets are wired, pass only preview/cover/mockup rows as `assets`.
+  return storeMetadata(store, process.env, { path: `/products/${product.slug}`, title: product.title, description: product.summary });
 }
 
 export default async function ProductPage({ params }: Params) {
   const { store: s, product: p } = await params;
-  const store = loadStore(s);
+  const store = await loadPublishedStore(s);
   const product = store ? findProduct(store, p) : undefined;
   if (!store || !product) notFound();
   const base = await storeBase(store.slug);

@@ -28,6 +28,13 @@ test('story beats: floating seed, planted seed, sprout, three-leaf tree', () => 
   assert.ok(!s7.seed.visible && Math.abs(s7.growth.trunk - SPROUT) < 1e-9 && s7.leaves.a.scale > 0.4 && s7.leaves.c.scale === 0);
   assert.ok(s1.growth.trunk === 1 && s1.growth.left === 1 && s1.growth.right === 1 && s1.leaves.c.scale > 0.6);
 });
+test('seed settles onto the ground, then goes into it as the sprout takes over', () => {
+  const s0 = poseAt(0).seed, s1 = poseAt(0.1).seed, s4 = poseAt(0.4).seed, s7 = poseAt(0.7).seed;
+  assert.ok(s0.settle === 0 && s0.sink === 0 && s0.drift === 0);
+  assert.ok(s1.settle === 0 && s1.drift > 0);
+  assert.ok(s4.settle === 1 && s4.sink === 0 && s4.drift === 0);
+  assert.equal(s7.sink, 1);
+});
 test('terrain is flat for the floating seed and rises under the planting point', () => {
   assert.equal(terrainHeight(0.06, 0, 0, 0), 0);
   assert.ok(terrainHeight(0.06, 0, 0, 1) > 0.25);

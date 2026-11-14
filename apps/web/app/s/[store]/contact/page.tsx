@@ -1,11 +1,15 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { loadStore } from '../../../../lib/aimp/storefront/load';
+import { storeMetadata } from '../../../../lib/aimp/hosts/seo';
+import { loadPublishedStore } from '../../../../lib/aimp/storefront/load';
 
-export const metadata: Metadata = { title: 'Contact' };
+export async function generateMetadata({ params }: { params: Promise<{ store: string }> }): Promise<Metadata> {
+  const store = await loadPublishedStore((await params).store);
+  return store ? storeMetadata(store, process.env, { path: '/contact', title: 'Contact' }) : { title: 'Not found', robots: { index: false, follow: false } };
+}
 
 export default async function ContactPage({ params }: { params: Promise<{ store: string }> }) {
-  const store = loadStore((await params).store);
+  const store = await loadPublishedStore((await params).store);
   if (!store) notFound();
   return (
     <article className="st-wrap st-narrow st-section st-prose">

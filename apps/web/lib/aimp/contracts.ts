@@ -19,6 +19,21 @@ export const engineFor: Record<BusinessModel, ProductionEngine[]> = {
   'marketing-assets': ['document', 'visual'],
 };
 
+/** Persisted value lists. These MUST equal the CHECK constraints in supabase/migrations/202611140001_aimp_commerce_core.sql
+ *  (test/aimp-data-*.test.ts proves it against a real database). */
+export const businessStatuses = ['draft', 'live', 'paused', 'retired'] as const;
+export type BusinessStatus = (typeof businessStatuses)[number];
+export const productStatuses = ['draft', 'review', 'active', 'retired', 'quarantined'] as const;
+export type ProductStatus = (typeof productStatuses)[number];
+export const assetRoles = ['master', 'preview', 'cover', 'mockup'] as const;
+export type AssetRole = (typeof assetRoles)[number];
+/** Roles that may ever be shown publicly. 'master' is the paid deliverable and is never public. */
+export const publicAssetRoles = ['preview', 'cover', 'mockup'] as const satisfies readonly AssetRole[];
+export const siteVersionStatuses = ['draft', 'published', 'archived'] as const;
+export type SiteVersionStatus = (typeof siteVersionStatuses)[number];
+export const domainStatuses = ['pending', 'verified', 'failed'] as const;
+export type DomainStatus = (typeof domainStatuses)[number];
+
 /** Every side-effecting operation carries these. The idempotency key makes retries safe. */
 export interface OperationContext {
   workspaceId: string;

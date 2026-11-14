@@ -22,7 +22,15 @@ const mix = (a: number, b: number, t: number) => a + (b - a) * t;
 export interface LeafPose { scale: number; unfurl: number }
 export interface Pose {
   stage: StageId;
-  seed: { x: number; y: number; z: number; rotZ: number; rotY: number; open: number; shellOpacity: number; coreOpacity: number; coreGlow: number; coreScale: number; visible: boolean };
+  seed: {
+    x: number; y: number; z: number; rotZ: number; rotY: number; open: number; shellOpacity: number; coreOpacity: number; coreGlow: number; coreScale: number; visible: boolean;
+    /** 0 while the seed floats, 1 once it rests on the ground (blends the floating pose into the planted pose). */
+    settle: number;
+    /** 0 while planted, 1 once the seed has gone into the ground as the sprout takes over. */
+    sink: number;
+    /** Small scroll-linked downward drift while floating; fades out as the seed settles. */
+    drift: number;
+  };
   terrain: { wave: number; mound: number };
   growth: { trunk: number; left: number; right: number };
   /** 0 while the plant is a sprout, 1 when it has resolved into the tree. Blends leaf directions. */
@@ -64,6 +72,7 @@ export function poseAt(progress: number): Pose {
       coreGlow: smooth(0.3, 0.46, p) * (1 - smooth(0.6, 0.69, p)),
       coreScale: 1 - 0.45 * smooth(0.5, 0.68, p),
       visible: p < 0.695,
+      settle: descend, sink, drift: hover * (1 - descend),
     },
     terrain: {
       wave: smooth(0.16, 0.36, p) * (1 - 0.75 * smooth(0.5, 0.85, p)),

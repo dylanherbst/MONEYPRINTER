@@ -57,6 +57,10 @@ export interface StoreConfig {
 export type ValidationResult = { ok: true; config: StoreConfig } | { ok: false; errors: string[] };
 
 const SLUG = /^[a-z0-9](?:[a-z0-9]|-(?!-)){1,61}[a-z0-9]$/;
+// Store address (sites.slug) follows the database rule: 3-42 chars, ^[a-z0-9][a-z0-9-]{1,40}[a-z0-9]$ (we also refuse double hyphens).
+export const STORE_SLUG_MAX = 42;
+export const STORE_SLUG = /^[a-z0-9](?:[a-z0-9]|-(?!-)){1,40}[a-z0-9]$/;
+export const STORE_SLUG_MESSAGE = `3-${STORE_SLUG_MAX} lowercase letters, digits or single hyphens`;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ABN = /^\d{2} ?\d{3} ?\d{3} ?\d{3}$/;
 const MAX_PRICE_MINOR = 100_000_00;
@@ -87,7 +91,7 @@ export function validateStoreConfig(input: unknown): ValidationResult {
   if (!isObj(input)) return { ok: false, errors: ['config: must be an object'] };
   const c = input;
   if (c.version !== 1) errors.push('version: must be 1');
-  if (typeof c.slug !== 'string' || !SLUG.test(c.slug)) errors.push('slug: 3-63 lowercase letters, digits or single hyphens');
+  if (typeof c.slug !== 'string' || !STORE_SLUG.test(c.slug)) errors.push(`slug: ${STORE_SLUG_MESSAGE}`);
   oneOf(c.status, 'status', ['draft', 'published'] as const);
   if (typeof c.demo !== 'boolean') errors.push('demo: boolean');
 
