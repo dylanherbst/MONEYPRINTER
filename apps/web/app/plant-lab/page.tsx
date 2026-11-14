@@ -32,9 +32,9 @@ function Check() {
 }
 
 const after = [
-  { title: 'Your store goes live', body: 'A branded storefront on its own web address, with product pages, policies and a contact page.', status: 'Live now' },
+  { title: 'Your store goes live', body: 'A branded storefront on its own web address, with product pages, policies and a contact page.', status: 'In pilot' },
   { title: 'Payments go to you', body: 'Customers pay through Stripe straight into your own account. You complete Stripe’s identity check yourself.', status: 'In pilot' },
-  { title: 'Orders deliver themselves', body: 'Once a payment is confirmed, the buyer gets a secure download link by email. Exactly once, every time.', status: 'In pilot' },
+  { title: 'Orders deliver themselves', body: 'Once a payment is confirmed, the buyer gets a secure download link by email.', status: 'In pilot' },
   { title: 'Marketing runs on schedule', body: 'Pinterest posts you have approved go out on a schedule you set. Pause any time.', status: 'Coming soon' },
 ];
 
@@ -81,20 +81,13 @@ export default function PlantLabHome() {
             <div className="amp-wrap amp-chapter-inner">
               <div className="amp-copy">
                 <p className="amp-eyebrow">The next wave of online business</p>
-                <h1 className="amp-display">Your 6-figure business is just a few clicks away.</h1>
-                <p className="amp-lead">No coding. No complicated setup. Just choose an idea and our AI will build your online business from start to launch, with our niche and product finder guided by our Profitability Calculator.</p>
-                <p className="amp-journey">Your journey from 9–5 to financial freedom starts here…</p>
+                <h1 className="amp-display">The AI boom is here. Build a business from it.</h1>
+                <p className="amp-lead">Turn an idea into an online business, with AI building your offer, website and marketing, and helping automate the work that follows.</p>
                 <div className="amp-actions">
                   <TrackedLink className="amp-btn amp-btn-primary" href={BUILD} event={{ cta: 'hero_primary' }}>Build My AI Business</TrackedLink>
                   <TrackedLink className="amp-btn amp-btn-secondary" href="#watch" event={{ cta: 'hero_secondary' }}>Watch AI Build a Business</TrackedLink>
                 </div>
                 <p className="amp-reassure">Simple setup. Guided launch. You stay in control.</p>
-                <ul className="amp-facts" aria-label="Side hustles and online stores">
-                  <li><strong>40%</strong> of side hustlers want to turn theirs into a full-time business</li>
-                  <li><strong>Top 25%</strong> of established online stores bring in <strong>US$59,000+</strong> a month in revenue</li>
-                  <li>On average, established online stores bring in <strong>US$258,000</strong> a year in revenue</li>
-                </ul>
-                <p className="amp-source">Full-time goal: QuickBooks 2026 Entrepreneurship Study, 3,000 US adults, December 2025. Store revenue: profitable e-commerce businesses 3+ years old listed for sale on Flippa, 2022–2024 (revenue, not profit). These are market figures, not {site.name} customer results or a promise of earnings.</p>
               </div>
             </div>
           </div>
@@ -126,9 +119,9 @@ export default function PlantLabHome() {
             <div className="amp-wrap amp-chapter-inner">
               <div className="amp-copy">
                 <h2 className="amp-h2">Build once. Automate what comes next.</h2>
-                <p className="amp-lead">Paid orders deliver themselves. Approved posts go out on schedule. A daily check tells you what needs your attention, and you can pause anything.</p>
+                <p className="amp-lead">Paid orders are delivered for you. Posts you approve go out on a schedule. A daily check tells you what needs your attention, and you can pause anything.</p>
                 <TrackedLink className="amp-btn amp-btn-primary" href={BUILD} event={{ cta: 'stage_growth' }}>Activate My Business</TrackedLink>
-                <p className="amp-note">Checkout and automatic delivery are in pilot testing with a small group first.</p>
+                <p className="amp-note">Checkout and automatic delivery are in pilot testing with a small group first. Scheduled posting and daily checks are coming soon.</p>
               </div>
             </div>
           </div>
@@ -213,7 +206,7 @@ export default function PlantLabHome() {
             <ul className="amp-plans">
               {site.plans.map((plan) => (
                 <li key={plan.id} className={plan.id === 'launch' ? 'is-recommended' : undefined}>
-                  <h3>{plan.name}{plan.id === 'launch' ? <span className="amp-tag">Most people start here</span> : null}</h3>
+                  <h3>{plan.name}{plan.id === 'launch' ? <span className="amp-tag">Recommended</span> : null}</h3>
                   <p className="amp-price">{plan.priceAud === 0 ? 'Free' : <>A${plan.priceAud}<span>/month</span></>}</p>
                   <p className="amp-plan-blurb">{plan.blurb}</p>
                   <ul>{plan.includes.map((i) => <li key={i}><Check />{i}</li>)}</ul>

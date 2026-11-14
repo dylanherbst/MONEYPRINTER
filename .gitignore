@@ -59,3 +59,6 @@ coverage/
 # AiMoneyPrinter: generated 3D build outputs and the old VENTRA worktree link backup
 assets-src/plant/out/
 .git-ventra-worktree-link.bak
+
+# The public site's preview flow lives in a folder called "build"; it is source code, not build output.
+!apps/web/app/plant-lab/build/

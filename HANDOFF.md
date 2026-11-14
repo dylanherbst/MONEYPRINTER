@@ -6,6 +6,14 @@ Shared state between Claude Code and Codex. The assistant that stops updates thi
 - **Last editor:** claude (Cowork, overnight, owner asleep)
 - **Repo:** /Users/dylan/Developer/VENTRA-FEATURES
 
+## Public website session (cloud, branch `website/public-site`) — 15 Nov 2026
+
+- Scope: AiMoneyPrinter's own public site only (`apps/web/app/plant-lab/**`). Nothing deployed.
+- Done: hero now uses the strategy headline and supporting line; "6-figure", "financial freedom" and the three income statistics removed (audit C1-C4); "Live now" -> "In pilot", "Exactly once, every time" removed, growth chapter softened, plan tag "Most people start here" -> "Recommended" (C5-C8); header button and demo tabs are 44px; anchor targets clear the fixed header (A1, A2, A5).
+- Checks (cloud container, Node 22): typecheck 0, lint 0, `next build` 0, tests 1921 / 1909 pass / 1 fail. The failure is `test/aimp-app-overview.test.ts:327` (catalogue link expects `/start/catalogue`, gets `/app/biz-x/products`); it is not in the website paths and fails without these changes.
+- **Blocker:** `apps/web/app/plant-lab/build/**` (the two-click preview flow) was never committed because `.gitignore` ignores every folder named `build/`. Every main button on the site points at `/plant-lab/build`, which is 404 in the repo. This branch adds a `.gitignore` exception; the files still have to be committed from the Mac (`git add apps/web/app/plant-lab/build`).
+- Next: AMP-069 hand-off to `/start` (needs the build flow files), AMP-070 pages (pricing, FAQ, how it works, contact, privacy, terms), mobile menu (A4).
+
 ## FOR THE COORDINATOR: send this to Dylan on Telegram (requested by Dylan, 2026-11-09)
 
 Dylan asked for the mobile app preview link to be sent to him on Telegram. Send this one message with the `reply` tool, then delete this section and commit:
