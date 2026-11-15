@@ -66,7 +66,7 @@ export function StoryCanvas({ storyId }: { storyId: string }) {
       if (disposed) { scene.dispose(); return; }
 
       if (still !== null) {                                    // capture mode for authored stills and QA
-        scene.renderStill(Math.min(1, Math.max(0, Number(still) || 0)));
+        scene.renderStill(Math.min(1, Math.max(0, Number(still) || 0)), Number(params.get('dpr')) || 0);   // ?dpr=3 for high-resolution stills
         (window as unknown as { __plantPNG: string }).__plantPNG = canvas.toDataURL('image/png'); // transparent still
         root.dataset.scene = 'on'; root.dataset.capture = '1';
         (window as unknown as { __plantReady: boolean }).__plantReady = true;

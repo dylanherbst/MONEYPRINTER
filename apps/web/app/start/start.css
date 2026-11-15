@@ -1,5 +1,7 @@
 /* Screen-specific layout for the /start flow. Appearance comes from the Peach & Lavender Glass library
    (design-system/aimp-glass); only spacing and arrangement live here. */
+/* the logo sits centred above the welcome heading */
+.start-welcome-mark { display: block; margin-inline: auto; filter: drop-shadow(0 12px 18px rgb(120 80 210 / .28)); }
 .start-welcome-title { font-size: calc(var(--plg-size-heading) + 4px); }
 .start-legal { text-align: center; text-wrap: balance; padding-inline: var(--plg-space-2); }
 .start-form { margin-block-start: var(--plg-space-1); }

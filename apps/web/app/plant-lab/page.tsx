@@ -13,8 +13,13 @@ import './plant.css';
 import { fontVars } from './fonts';
 
 export const metadata: Metadata = {
-  title: `${site.name} · Start a side hustle without spending weeks building it`,
-  description: 'Pick an idea. AI builds your first digital product, shop, checkout and launch content. You approve everything before it goes live.',
+  title: `${site.name}: ${site.descriptor} · ${site.tagline}`,
+  description: `${site.tagline}. Pick an idea and AI drafts your first digital product, shop and launch content. You approve everything before it goes live. No promise of earnings.`,
+  openGraph: {
+    type: 'website', url: `https://${site.domain}/`, siteName: `${site.name}: ${site.descriptor}`,
+    title: 'Start a side business without spending weeks building it',
+    description: 'Pick an idea. AI drafts your first product, shop and launch content. You approve everything. Free to start.',
+  },
   alternates: { canonical: `https://${site.domain}/` },   // the owner approved this page as the public home page (15 Nov 2026)
 };
 export const viewport: Viewport = { themeColor: '#e3dbf6', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
@@ -33,12 +38,17 @@ const links = [
   { href: '#faq', label: 'Questions' },
 ];
 
-/** Authored stills of the live scene (captured from the same three.js render) for first paint, no-JS and reduced motion. */
+/**
+ * Authored stills of the live scene (captured from the same three.js render with ?still=p&dpr=n) for first paint,
+ * no-JS, reduced motion and the closing section. Each comes in three sizes so a 3x phone and a 4K screen get a crisp
+ * one and nobody downloads more than their screen can show.
+ */
 function Still({ stage, alt }: { stage: string; alt: string }) {
+  const file = (size: string) => `/plant/stage-${stage}-${size}.webp`;
   return (
     <picture className="amp-still">
-      <source media="(max-width: 899px)" srcSet={`/plant/stage-${stage}-mobile.webp`} />
-      <img src={`/plant/stage-${stage}-desktop.webp`} alt={alt} loading={stage === 'seed' ? 'eager' : 'lazy'} decoding="async" />
+      <source media="(max-width: 899px)" sizes="100vw" srcSet={`${file('mobile')} 585w, ${file('mobile-1170')} 1170w, ${file('mobile-1755')} 1755w`} />
+      <img src={file('desktop')} sizes="100vw" srcSet={`${file('desktop')} 1440w, ${file('desktop-2880')} 2880w, ${file('desktop-3840')} 3840w`} alt={alt} loading={stage === 'seed' ? 'eager' : 'lazy'} decoding="async" />
     </picture>
   );
 }
@@ -104,7 +114,7 @@ export default function PlantLabHome() {
             <Still stage="seed" alt="A floating white seed with a glowing lavender glass core" />
             <div className="amp-wrap amp-chapter-inner">
               <div className="amp-copy">
-                <h1 className="amp-display">Start a side hustle <span className="amp-soft">without spending weeks building it.</span></h1>
+                <h1 className="amp-display">Start a side business <span className="amp-soft">without spending weeks building it.</span></h1>
                 <p className="amp-lead">Pick an idea. AI builds your first product, shop and launch content.</p>
                 <p className="amp-reassure">Free to start. No card needed.</p>
                 <div className="amp-dock">
@@ -196,7 +206,7 @@ export default function PlantLabHome() {
           <Still stage="tree" alt="" />
           <div className="amp-wrap amp-final-inner">
             <div className="amp-glass amp-final-card">
-              <h2 id="final-h" className="amp-h2">Your side hustle starts with one idea.</h2>
+              <h2 id="final-h" className="amp-h2">Your side business starts with one idea.</h2>
               <p className="amp-lead">See ideas that fit your budget and your time before you pay for anything.</p>
               <TrackedLink className="amp-btn amp-btn-primary amp-btn-wide" href={START} event={{ cta: 'final' }}>{CTA}<span className="amp-go"><Icon name="arrowUp" size={20} /></span></TrackedLink>
             </div>
@@ -208,7 +218,7 @@ export default function PlantLabHome() {
 
       <footer className="amp-footer">
         <div className="amp-wrap amp-footer-inner">
-          <p className="amp-logo"><span className="amp-mark" aria-hidden="true"><Icon name="leaf" size={18} /></span>{site.name}</p>
+          <p className="amp-logo"><img className="amp-mark" src="/brand/aimp-logo.webp" alt="" width={32} height={32} decoding="async" /><span className="amp-brandline">{site.name}: {site.descriptor}</span></p>
           <p><a href={SIGN_IN}>Sign in</a> · Questions? <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a></p>
           <p className="amp-small">Pilot pricing and features are being tested and may change. Nothing on this site is financial advice or a promise of earnings.</p>
         </div>

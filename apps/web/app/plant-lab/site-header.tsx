@@ -28,9 +28,8 @@ export function SiteHeader({ name, cta, signIn, links }: SiteHeaderProps) {
   return (
     <header className="amp-header" ref={root} data-open={open ? 'true' : undefined}>
       <div className="amp-wrap amp-header-inner">
-        <a className="amp-logo" href="#top" aria-label={`${name} home`} onClick={close}>
-          <span className="amp-mark" aria-hidden="true"><Icon name="leaf" size={18} /></span>
-          {name}
+        <a className="amp-logo" href="#top" aria-label={`${name} home`} title={name} onClick={close}>
+          <img className="amp-mark" src="/brand/aimp-logo.webp" alt="" width={32} height={32} decoding="async" />
         </a>
         <nav className="amp-nav" aria-label="Main">
           {links.map((l) => <a key={l.href} href={l.href}>{l.label}</a>)}

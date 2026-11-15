@@ -5,13 +5,13 @@ import { appTabs, primaryEntry, setupSteps } from '../lib/aimp/entry.ts';
 
 const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 
-test('the primary entry is Find my side hustle and goes to the real /start flow', () => {
-  assert.equal(primaryEntry.label, 'Find my side hustle');
+test('the primary entry is Find my side business and goes to the real /start flow', () => {
+  assert.equal(primaryEntry.label, 'Find my side business');
   assert.equal(primaryEntry.href, '/start');
 });
 
 test('setup steps and bottom tabs match the brief', () => {
-  assert.deepEqual(setupSteps.map((s) => s.label), ['Find my side hustle', 'Build it for me', 'Review my launch']);
+  assert.deepEqual(setupSteps.map((s) => s.label), ['Find my side business', 'Build it for me', 'Review my launch']);
   assert.deepEqual(appTabs.map((t) => t.label), ['Home', 'My Shop', 'Growth', 'Inbox']);
 });
 

@@ -1,11 +1,11 @@
 // The one primary entry action for the mobile-first launch journey (rework brief 01). Pure data so the website, the /start
 // welcome and the tests all read the same wording and route. Existing routes stay in place; only the default navigation changes.
 
-export const primaryEntry = { label: 'Find my side hustle', href: '/start' } as const;
+export const primaryEntry = { label: 'Find my side business', href: '/start' } as const;
 
 /** The three setup steps the customer sees before launch: Find an idea, build the product and shop, review and publish. */
 export const setupSteps = [
-  { id: 'find', label: 'Find my side hustle' },
+  { id: 'find', label: 'Find my side business' },
   { id: 'build', label: 'Build it for me' },
   { id: 'review', label: 'Review my launch' },
 ] as const;
