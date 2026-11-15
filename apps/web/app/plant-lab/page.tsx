@@ -1,21 +1,32 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { site } from '../../lib/aimp/site-config';
-import { blueprints } from '../../lib/aimp/preview/blueprints';
+import { startRoutes } from '../start/flow';
 import { StoryCanvas } from './_scene/story-canvas';
-import { WatchDemo } from './watch-demo';
+import { Example } from './example';
+import { Icon, type IconName } from './icons';
+import { SiteHeader } from './site-header';
 import { TrackedLink } from './tracked-link';
 import './tokens.css';
 import './plant.css';
 import { fontVars } from './fonts';
 
-
 export const metadata: Metadata = {
-  title: `${site.name} · Build a business from the AI boom`,
-  description: 'Turn an idea into an online business with AI building your offer, website and marketing, and helping automate the work that follows.',
+  title: `${site.name} · Start a side hustle without spending weeks building it`,
+  description: 'Pick an idea. AI builds your first digital product, shop, checkout and launch content. You approve everything before it goes live.',
   robots: { index: false, follow: false }, // lab route until approved for the homepage
 };
+export const viewport: Viewport = { themeColor: '#f7f5fb', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
-const BUILD = '/plant-lab/build';
+/** Every main action opens the real onboarding: welcome, account, goals, then the researched ideas. */
+const START = startRoutes.welcome;
+const SIGN_IN = `${startRoutes.account}?mode=login`;
+const CTA = 'Find my side hustle';
+const links = [
+  { href: '#how', label: 'How it works' },
+  { href: '#example', label: 'What AI builds' },
+  { href: '#pricing', label: 'Pricing' },
+  { href: '#faq', label: 'Questions' },
+];
 
 /** Authored stills of the live scene (captured from the same three.js render) for first paint, no-JS and reduced motion. */
 function Still({ stage, alt }: { stage: string; alt: string }) {
@@ -27,50 +38,51 @@ function Still({ stage, alt }: { stage: string; alt: string }) {
   );
 }
 
-function Check() {
-  return <svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true" className="amp-icon"><path d="M4.5 10.5l3.5 3.5 7.5-8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+/** Soft folds of lavender and peach light behind the plant. Static and decorative. */
+function Waves() {
+  return (
+    <svg className="amp-waves" viewBox="0 0 390 844" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="amp-wave-a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#f6dccb" /><stop offset=".5" stopColor="#ffffff" /><stop offset="1" stopColor="#e2d6fb" /></linearGradient>
+        <linearGradient id="amp-wave-b" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#ddd0fa" /><stop offset=".55" stopColor="#ffffff" /><stop offset="1" stopColor="#f8dfd2" /></linearGradient>
+        <filter id="amp-wave-blur" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="26" /></filter>
+      </defs>
+      <g filter="url(#amp-wave-blur)">
+        <ellipse cx="320" cy="150" rx="190" ry="130" fill="#d9ccfb" opacity=".5" />
+        <ellipse cx="40" cy="470" rx="170" ry="120" fill="#fbdccb" opacity=".5" />
+        <path d="M-70 300C10 226 110 112 250 92 330 82 410 100 460 120V182C400 152 330 134 256 146 140 168 40 276-70 362Z" fill="url(#amp-wave-a)" opacity=".8" />
+        <path d="M460 396C400 406 330 478 250 530 160 588 60 582-70 644V712C60 650 170 654 262 600 340 552 400 484 460 470Z" fill="url(#amp-wave-b)" opacity=".8" />
+        <ellipse cx="330" cy="760" rx="170" ry="70" fill="#e4d9fc" opacity=".55" />
+      </g>
+    </svg>
+  );
 }
 
-const after = [
-  { title: 'Your store goes live', body: 'A branded storefront on its own web address, with product pages, policies and a contact page.', status: 'In pilot' },
-  { title: 'Payments go to you', body: 'Customers pay through Stripe straight into your own account. You complete Stripe’s identity check yourself.', status: 'In pilot' },
-  { title: 'Orders deliver themselves', body: 'Once a payment is confirmed, the buyer gets a secure download link by email.', status: 'In pilot' },
-  { title: 'Marketing runs on schedule', body: 'Pinterest posts you have approved go out on a schedule you set. Pause any time.', status: 'Coming soon' },
+const steps: { id: string; stage: string; alt: string; icon: IconName; title: string; body: string; note?: string }[] = [
+  { id: 'foundation', stage: 'planted', alt: 'The seed planted in a soft white landscape', icon: 'idea', title: 'Pick an idea', body: 'Tell us your budget, your spare hours and what you enjoy. You get researched ideas with the costs shown, and you choose one.' },
+  { id: 'creation', stage: 'sprout', alt: 'A small sprout with two glass leaves', icon: 'build', title: 'AI builds it', body: 'Your first digital product, a branded shop and a checkout, made for the idea you picked. You review all of it.' },
+  { id: 'growth', stage: 'tree', alt: 'A luminous three-leaf glass tree', icon: 'launch', title: 'Launch when you’re ready', body: 'Publish the shop and approve the launch posts written for you. Nothing goes live, gets posted or is charged without your OK.', note: 'Checkout and automatic delivery are in pilot testing. Scheduled posting is coming soon.' },
 ];
 
 const faqs = [
-  { q: 'Do I need technical or design skills?', a: 'No. You make the decisions: which business, which name, which products, when to publish. The platform does the setup work: product files, store pages, checkout and scheduling.' },
-  { q: 'Will this make me money?', a: 'We can’t promise that, and nobody honest can. We help you start and run a low-cost business with far less work. Sales depend on your niche, your products and your marketing. We show you real numbers as they come in, never estimates dressed up as results.' },
-  { q: 'What does it cost to start?', a: 'The preview is free. Paid plans start at A$79 a month during the pilot, and you can cancel any time. Stripe charges card fees per sale (about 1.65% + 30c for Australian cards). Custom domains and any advertising are optional extras.' },
-  { q: 'Who owns the store and products?', a: 'You do. The products are made for your business, payments go to your Stripe account, and you can export your files.' },
-  { q: 'What happens before anything goes public?', a: 'Nothing is published, posted or charged without your approval. You review the brand, the first products, the store and every marketing campaign first.' },
+  { q: 'Do I need technical or design skills?', a: 'No. You make the decisions: which idea, which name, which products, when to publish. The platform does the setup work: product files, shop pages, checkout and launch content.' },
+  { q: 'Will this make me money?', a: 'We can’t promise that, and nobody honest can. We help you start and run a low-cost side business with far less work. Sales depend on your niche, your products and your marketing. We show you real numbers as they come in, never estimates dressed up as results.' },
+  { q: 'What does it cost to start?', a: 'Finding ideas and seeing a sample is free, with no card needed. Paid plans start at A$79 a month during the pilot. Stripe charges its own card fee on each sale. Custom domains and any advertising are optional extras.' },
+  { q: 'Who owns the shop and products?', a: 'You do. The products are made for your business, payments go to your own Stripe account, and you can export your files.' },
+  { q: 'What happens before anything goes public?', a: 'Nothing is published, posted or charged without your approval. You review the brand, the first products, the shop and every launch post first.' },
 ];
 
 export default function PlantLabHome() {
-  const featured = blueprints;
   return (
-    <div className={`amp amp-home ${fontVars}`}>
-      <a className="amp-skip" href="#how">Skip animation</a>
+    <div className={`amp amp-home ${fontVars}`} id="top">
       <a className="amp-skip" href="#main">Skip to content</a>
-      <header className="amp-header">
-        <div className="amp-wrap amp-header-inner">
-          <a className="amp-logo" href="/plant-lab" aria-label={`${site.name} home`}>
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 21c0-5 0-8 4.5-12.5C18.5 6.5 20 6 21 6c0 1-.5 2.5-2.5 4.5C14 15 12 16 12 21Zm0 0c0-3.5-1-6-4-8.5C6.5 11.3 5 11 4 11c0 1 .4 2.3 2 3.8C8.6 17.4 12 18 12 21Z" fill="currentColor" /></svg>
-            {site.name}
-          </a>
-          <nav className="amp-nav" aria-label="Main">
-            <a href="#how">How it works</a>
-            <a href="#build">What you can build</a>
-            <a href="#pricing">Pricing</a>
-            <a href="#faq">FAQ</a>
-          </nav>
-          <TrackedLink className="amp-btn amp-btn-primary amp-btn-sm" href={BUILD} event={{ cta: 'header' }}>Build My AI Business</TrackedLink>
-        </div>
-      </header>
+      <a className="amp-skip" href="#example">Skip animation</a>
+      <SiteHeader name={site.name} cta={{ href: START, label: CTA }} signIn={SIGN_IN} links={links} />
 
       <main id="main">
-        <section id="story" className="amp-story" aria-label="From seed to business">
+        <section id="story" className="amp-story" aria-label="How it works, from a seed to a growing plant">
           <div className="amp-stage" aria-hidden="true">
+            <Waves />
             <Still stage="seed" alt="" />
             <StoryCanvas storyId="story" />
             <div className="amp-cue"><span>Scroll to grow</span><i /></div>
@@ -80,152 +92,68 @@ export default function PlantLabHome() {
             <Still stage="seed" alt="A floating white seed with a glowing lavender glass core" />
             <div className="amp-wrap amp-chapter-inner">
               <div className="amp-copy">
-                <p className="amp-eyebrow">The next wave of online business</p>
-                <h1 className="amp-display">The AI boom is here. Build a business from it.</h1>
-                <p className="amp-lead">Turn an idea into an online business, with AI building your offer, website and marketing, and helping automate the work that follows.</p>
+                <h1 className="amp-display">Start a side hustle without spending weeks building it.</h1>
+                <p className="amp-lead">Pick an idea. AI builds your first product, shop and launch content.</p>
                 <div className="amp-actions">
-                  <TrackedLink className="amp-btn amp-btn-primary" href={BUILD} event={{ cta: 'hero_primary' }}>Build My AI Business</TrackedLink>
-                  <TrackedLink className="amp-btn amp-btn-secondary" href="#watch" event={{ cta: 'hero_secondary' }}>Watch AI Build a Business</TrackedLink>
+                  <TrackedLink className="amp-btn amp-btn-primary amp-btn-lg" href={START} event={{ cta: 'hero_primary' }}><Icon name="spark" size={20} />{CTA}</TrackedLink>
+                  <TrackedLink className="amp-btn amp-btn-secondary" href="#example" event={{ cta: 'hero_secondary' }}>See what AI builds</TrackedLink>
                 </div>
-                <p className="amp-reassure">Simple setup. Guided launch. You stay in control.</p>
+                <p className="amp-reassure">Free to start, no card needed. Nothing goes live without your OK.</p>
               </div>
             </div>
           </div>
 
-          <div className="amp-chapter" data-chapter="foundation">
-            <Still stage="planted" alt="The seed planted in a soft white landscape" />
-            <div className="amp-wrap amp-chapter-inner">
-              <div className="amp-copy">
-                <h2 className="amp-h2">Your idea. A complete business in the making.</h2>
-                <p className="amp-lead">Tell us your budget, your spare hours and what you enjoy. You get researched business ideas with their costs and assumptions shown, then you pick the one that fits.</p>
-                <TrackedLink className="amp-btn amp-btn-secondary" href="#how" event={{ cta: 'stage_foundation' }}>See How It Works</TrackedLink>
+          <div id="how" className="amp-how-anchor" aria-hidden="true" />
+          {steps.map((s, i) => (
+            <div className="amp-chapter amp-chapter-step" data-chapter={s.id} key={s.id}>
+              <Still stage={s.stage} alt={s.alt} />
+              <div className="amp-wrap amp-chapter-inner">
+                <div className="amp-glass amp-step-card">
+                  <p className="amp-step-kicker"><span className="amp-step-icon"><Icon name={s.icon} size={20} /></span>Step {i + 1} of {steps.length}</p>
+                  <h2 className="amp-h2">{s.title}</h2>
+                  <p className="amp-lead">{s.body}</p>
+                  {s.note ? <p className="amp-note">{s.note}</p> : null}
+                  {i === steps.length - 1 ? <TrackedLink className="amp-btn amp-btn-primary" href={START} event={{ cta: 'stage_growth' }}>{CTA}</TrackedLink> : null}
+                </div>
               </div>
             </div>
-          </div>
-
-          <div className="amp-chapter" data-chapter="creation">
-            <Still stage="sprout" alt="A lavender glass sprout with two leaves" />
-            <div className="amp-wrap amp-chapter-inner">
-              <div className="amp-copy">
-                <h2 className="amp-h2">Built to launch. Designed to sell.</h2>
-                <p className="amp-lead">Real, downloadable products. A branded store on its own web address. Checkout into your own Stripe account. You approve all of it before it goes live.</p>
-                <TrackedLink className="amp-btn amp-btn-primary" href={BUILD} event={{ cta: 'stage_creation' }}>Create My Business</TrackedLink>
-              </div>
-            </div>
-          </div>
-
-          <div className="amp-chapter" data-chapter="growth">
-            <Still stage="tree" alt="A luminous three-leaf glass tree" />
-            <div className="amp-wrap amp-chapter-inner">
-              <div className="amp-copy">
-                <h2 className="amp-h2">Build once. Automate what comes next.</h2>
-                <p className="amp-lead">Paid orders are delivered for you. Posts you approve go out on a schedule. A daily check tells you what needs your attention, and you can pause anything.</p>
-                <TrackedLink className="amp-btn amp-btn-primary" href={BUILD} event={{ cta: 'stage_growth' }}>Activate My Business</TrackedLink>
-                <p className="amp-note">Checkout and automatic delivery are in pilot testing with a small group first. Scheduled posting and daily checks are coming soon.</p>
-              </div>
-            </div>
-          </div>
+          ))}
         </section>
 
-        <section id="watch" className="amp-section amp-watch" aria-labelledby="watch-h">
+        <section id="example" className="amp-section" aria-labelledby="example-h">
           <div className="amp-wrap">
             <div className="amp-section-head">
-              <h2 id="watch-h" className="amp-h2">Watch AI build a business</h2>
-              <p className="amp-lead">This is the real preview builder running one request, not a video. Step through it, or try your own.</p>
+              <h2 id="example-h" className="amp-h2">Here’s what AI builds.</h2>
+              <p className="amp-lead">One sample business, start to finish: the product, the shop it sells in and the post that launches it.</p>
             </div>
-            <WatchDemo />
+            <Example />
+            <TrackedLink className="amp-btn amp-btn-primary amp-section-cta" href={START} event={{ cta: 'example' }}>{CTA}</TrackedLink>
           </div>
         </section>
 
-        <section id="how" className="amp-section" aria-labelledby="how-h">
-          <div className="amp-wrap amp-how">
-            <div className="amp-section-head">
-              <h2 id="how-h" className="amp-h2">Two clicks to see your business</h2>
-              <p className="amp-lead">No long forms first. See what you would get, then decide.</p>
-            </div>
-            <ol className="amp-steps">
-              <li>
-                <span className="amp-step-n" aria-hidden="true">1</span>
-                <h3>Choose a business</h3>
-                <p>Pick a business model, or answer three quick questions and let AI recommend one.</p>
-              </li>
-              <li>
-                <span className="amp-step-n" aria-hidden="true">2</span>
-                <h3>See a working preview</h3>
-                <p>A sample business with its name, products, store design, pricing and first marketing posts.</p>
-              </li>
-              <li>
-                <span className="amp-step-n" aria-hidden="true">3</span>
-                <h3>Save and launch</h3>
-                <p>See the real price, what you will connect and what needs your approval. Then sign up.</p>
-              </li>
-            </ol>
-            <div className="amp-after">
-              <h3 className="amp-h3">After you launch</h3>
-              <ul>
-                {after.map((a) => (
-                  <li key={a.title}>
-                    <div><strong>{a.title}</strong><p>{a.body}</p></div>
-                    <span className={`amp-status amp-status-${a.status === 'Live now' ? 'live' : a.status === 'In pilot' ? 'pilot' : 'soon'}`}>{a.status}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        <section id="build" className="amp-section amp-models-section" aria-labelledby="build-h">
+        <section id="pricing" className="amp-section amp-pricing" aria-labelledby="pricing-h">
           <div className="amp-wrap">
             <div className="amp-section-head">
-              <h2 id="build-h" className="amp-h2">Businesses you can start</h2>
-              <p className="amp-lead">Digital products only, so there is no stock, no shipping and delivery can be automatic.</p>
-            </div>
-            <ul className="amp-models">
-              {featured.map((b) => (
-                <li key={b.id}>
-                  <h3>{b.title}</h3>
-                  <p>{b.description}</p>
-                  <p className="amp-models-eg">{b.exampleProducts.slice(0, 3).join(' · ')}</p>
-                  <dl>
-                    <div><dt>To start</dt><dd>{b.startupCost}</dd></div>
-                    <div><dt>Your time</dt><dd>{b.weeklyHours}</dd></div>
-                  </dl>
-                  <TrackedLink className="amp-link" href={`${BUILD}?model=${b.id}`} event={{ cta: 'model_card', model: b.id }}>Preview this business</TrackedLink>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        <section id="pricing" className="amp-section" aria-labelledby="pricing-h">
-          <div className="amp-wrap">
-            <div className="amp-section-head">
-              <h2 id="pricing-h" className="amp-h2">Clear pricing. Cancel any time.</h2>
-              <p className="amp-lead">Pilot pricing, being tested with our first users. Prices in AUD including GST. Card fees per sale are charged by Stripe.</p>
+              <h2 id="pricing-h" className="amp-h2">Free to start. Simple after that.</h2>
+              <p className="amp-lead">Draft pilot pricing in AUD including GST, and it may change. Stripe charges its own card fee on each sale.</p>
             </div>
             <ul className="amp-plans">
               {site.plans.map((plan) => (
-                <li key={plan.id} className={plan.id === 'launch' ? 'is-recommended' : undefined}>
+                <li key={plan.id} className={`amp-glass${plan.id === 'launch' ? ' is-recommended' : ''}`}>
                   <h3>{plan.name}{plan.id === 'launch' ? <span className="amp-tag">Recommended</span> : null}</h3>
                   <p className="amp-price">{plan.priceAud === 0 ? 'Free' : <>A${plan.priceAud}<span>/month</span></>}</p>
                   <p className="amp-plan-blurb">{plan.blurb}</p>
-                  <ul>{plan.includes.map((i) => <li key={i}><Check />{i}</li>)}</ul>
-                  <TrackedLink className={`amp-btn ${plan.id === 'launch' ? 'amp-btn-primary' : 'amp-btn-secondary'}`} href={`${BUILD}?plan=${plan.id}`} event={{ cta: 'pricing', plan: plan.id }}>
-                    {plan.priceAud === 0 ? 'Start free preview' : `Choose ${plan.name}`}
+                  <ul>{plan.includes.map((i) => <li key={i}><Icon name="check" size={18} />{i}</li>)}</ul>
+                  <TrackedLink className={`amp-btn ${plan.id === 'launch' ? 'amp-btn-primary' : 'amp-btn-secondary'}`} href={`${START}?plan=${plan.id}`} event={{ cta: 'pricing', plan: plan.id }}>
+                    {plan.priceAud === 0 ? 'Start free' : `Start with ${plan.name}`}
                   </TrackedLink>
                 </li>
               ))}
             </ul>
-          </div>
-        </section>
-
-        <section className="amp-section amp-promise" aria-labelledby="promise-h">
-          <div className="amp-wrap amp-promise-inner">
-            <h2 id="promise-h" className="amp-h2">What we will never promise</h2>
-            <ul>
-              <li><strong>Guaranteed income.</strong> Automation saves you work. It does not guarantee sales.</li>
-              <li><strong>Fake urgency.</strong> No countdown timers, no invented testimonials, no made-up earnings.</li>
-              <li><strong>Hidden actions.</strong> Nothing is published, posted, charged or spent without your approval.</li>
+            <ul className="amp-promise" aria-label="What we will never promise">
+              <li><strong>No guaranteed income.</strong> Automation saves you work. It does not guarantee sales.</li>
+              <li><strong>No fake urgency.</strong> No countdown timers, invented reviews or made-up earnings.</li>
+              <li><strong>No hidden actions.</strong> Nothing is published, posted, charged or spent without your approval.</li>
             </ul>
           </div>
         </section>
@@ -236,7 +164,7 @@ export default function PlantLabHome() {
             <div>
               {faqs.map((f) => (
                 <details key={f.q}>
-                  <summary>{f.q}<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M5 8l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></summary>
+                  <summary>{f.q}<Icon name="chevron" size={20} /></summary>
                   <p>{f.a}</p>
                 </details>
               ))}
@@ -247,18 +175,20 @@ export default function PlantLabHome() {
         <section className="amp-final" aria-labelledby="final-h">
           <Still stage="tree" alt="" />
           <div className="amp-wrap amp-final-inner">
-            <h2 id="final-h" className="amp-display">Your next business starts here.</h2>
-            <p className="amp-lead">See your business before you pay for anything.</p>
-            <TrackedLink className="amp-btn amp-btn-primary" href={BUILD} event={{ cta: 'final' }}>Get Started</TrackedLink>
+            <div className="amp-glass amp-final-card">
+              <h2 id="final-h" className="amp-h2">Your side hustle starts with one idea.</h2>
+              <p className="amp-lead">See ideas that fit your budget and your time before you pay for anything.</p>
+              <TrackedLink className="amp-btn amp-btn-primary amp-btn-lg" href={START} event={{ cta: 'final' }}><Icon name="spark" size={20} />{CTA}</TrackedLink>
+            </div>
           </div>
         </section>
       </main>
 
       <footer className="amp-footer">
         <div className="amp-wrap amp-footer-inner">
-          <p className="amp-logo">{site.name}</p>
-          <p>Questions? <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a></p>
-          <p className="amp-small">Pilot pricing and features are being tested and may change. Nothing on this site is financial advice.</p>
+          <p className="amp-logo"><span className="amp-mark" aria-hidden="true"><Icon name="leaf" size={18} /></span>{site.name}</p>
+          <p><a href={SIGN_IN}>Sign in</a> · Questions? <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a></p>
+          <p className="amp-small">Pilot pricing and features are being tested and may change. Nothing on this site is financial advice or a promise of earnings.</p>
         </div>
       </footer>
     </div>

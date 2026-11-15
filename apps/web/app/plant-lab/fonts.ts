@@ -1,6 +1,5 @@
-import { Inter, Inter_Tight } from 'next/font/google';
+import { Inter } from 'next/font/google';
 
-// Self-hosted at build time by next/font (no runtime request to Google).
-export const displayFont = Inter_Tight({ subsets: ['latin'], display: 'swap', variable: '--amp-display' });
+// One family for the whole site, self-hosted at build time by next/font (no runtime request to Google).
 export const bodyFont = Inter({ subsets: ['latin'], display: 'swap', variable: '--amp-body' });
-export const fontVars = `${displayFont.variable} ${bodyFont.variable}`;
+export const fontVars = bodyFont.variable;
