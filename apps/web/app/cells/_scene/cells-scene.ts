@@ -1,0 +1,161 @@
+// WebGL scene for the cells page: one cloud of cells that morphs between formations as the page scrolls.
+// Each cell keeps its index across formations, so a morph is every cell travelling to its new place,
+// staggered a little per cell so the change ripples instead of snapping.
+import * as THREE from 'three';
+import { formations, seeded } from './shapes';
+import type { CellSettings } from './settings';
+
+const vertex = /* glsl */ `
+  attribute vec3 aTarget;
+  attribute vec3 aRand;
+  uniform float uMix, uTime, uSpinA, uSpinB, uTiltA, uTiltB, uLiftA, uLiftB, uSize, uDpr, uScale;
+  varying float vTone;
+  varying float vAlpha;
+
+  vec3 place(vec3 p, float spin, float tilt, float lift) {
+    float c = cos(spin), s = sin(spin);
+    p = vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z);
+    float ct = cos(tilt), st = sin(tilt);
+    p = vec3(p.x, ct * p.y - st * p.z, st * p.y + ct * p.z);
+    p.y += lift;
+    return p;
+  }
+
+  void main() {
+    float t = clamp((uMix - aRand.z * 0.35) / 0.65, 0.0, 1.0);
+    t = t * t * (3.0 - 2.0 * t);
+    vec3 a = place(position, uTime * uSpinA, uTiltA, uLiftA);
+    vec3 b = place(aTarget, uTime * uSpinB, uTiltB, uLiftB);
+    vec3 p = mix(a, b, t);
+    // Cells loosen while travelling, then settle.
+    p += (aRand - 0.5) * 0.9 * sin(t * 3.14159);
+    // A slow individual drift so a still formation still breathes.
+    float ph = aRand.z * 40.0;
+    p += 0.022 * vec3(sin(uTime * 0.7 + ph), cos(uTime * 0.9 + ph * 1.3), sin(uTime * 0.6 + ph * 0.7));
+    p *= uScale;
+    vec4 mv = modelViewMatrix * vec4(p, 1.0);
+    gl_Position = projectionMatrix * mv;
+    gl_PointSize = uSize * uDpr * (0.55 + aRand.x * 1.0) * 26.0 / -mv.z;
+    vTone = aRand.y;
+    vAlpha = clamp(1.25 - (-mv.z - 5.0) * 0.14, 0.3, 1.0);
+  }
+`;
+
+const fragment = /* glsl */ `
+  uniform vec3 uC1, uC2;
+  uniform float uOpacity;
+  varying float vTone;
+  varying float vAlpha;
+  void main() {
+    float d = length(gl_PointCoord - 0.5);
+    if (d > 0.5) discard;
+    float a = smoothstep(0.5, 0.18, d) * vAlpha * uOpacity;
+    gl_FragColor = vec4(mix(uC1, uC2, vTone), a);
+  }
+`;
+
+export class CellsScene {
+  private renderer: THREE.WebGLRenderer;
+  private scene = new THREE.Scene();
+  private camera = new THREE.PerspectiveCamera(35, 1, 0.1, 50);
+  private points: THREE.Points | null = null;
+  private material: THREE.ShaderMaterial;
+  private shapes: Float32Array[] = [];
+  private segment = -1;
+  private count = 0;
+
+  constructor(private canvas: HTMLCanvasElement) {
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: true, powerPreference: 'high-performance' });
+    this.renderer.setClearColor(0x000000, 0);
+    this.camera.position.set(0, 0, 7);
+    this.material = new THREE.ShaderMaterial({
+      vertexShader: vertex,
+      fragmentShader: fragment,
+      transparent: true,
+      depthWrite: false,
+      uniforms: {
+        uMix: { value: 0 }, uTime: { value: 0 },
+        uSpinA: { value: 0 }, uSpinB: { value: 0 }, uTiltA: { value: 0 }, uTiltB: { value: 0 },
+        uLiftA: { value: 0 }, uLiftB: { value: 0 },
+        uSize: { value: 1 }, uDpr: { value: 1 }, uScale: { value: 1 }, uOpacity: { value: 0.9 },
+        uC1: { value: new THREE.Color() }, uC2: { value: new THREE.Color() },
+      },
+    });
+  }
+
+  get formationCount(): number { return formations.length; }
+
+  /** Rebuilds the cloud when the number of cells changes; colours and sizes are just uniforms. */
+  apply(s: CellSettings, darkBackground: boolean): void {
+    const u = this.material.uniforms;
+    u.uC1.value.set(`#${s.c1}`);
+    u.uC2.value.set(`#${s.c2}`);
+    u.uSize.value = s.size;
+    // On a light page cells are drawn as solid dots; on a dark page they add up to a glow.
+    const blending = darkBackground ? THREE.AdditiveBlending : THREE.NormalBlending;
+    if (this.material.blending !== blending) { this.material.blending = blending; this.material.needsUpdate = true; }
+    u.uOpacity.value = darkBackground ? 0.75 : 0.85;
+    const n = Math.round(s.count * 1000);
+    if (n !== this.count) this.build(n);
+  }
+
+  private build(n: number): void {
+    this.count = n;
+    this.shapes = formations.map((f, i) => f.make(n, seeded(101 + i * 7919)));
+    const rand = seeded(7);
+    const r = new Float32Array(n * 3);
+    for (let i = 0; i < r.length; i++) r[i] = rand();
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+    g.setAttribute('aTarget', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+    g.setAttribute('aRand', new THREE.BufferAttribute(r, 3));
+    g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 10);
+    if (this.points) { this.points.geometry.dispose(); this.scene.remove(this.points); }
+    this.points = new THREE.Points(g, this.material);
+    this.points.frustumCulled = false;
+    this.scene.add(this.points);
+    this.segment = -1;
+  }
+
+  resize(width: number, height: number): void {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.renderer.setPixelRatio(dpr);
+    this.renderer.setSize(width, height, false);
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+    this.material.uniforms.uDpr.value = dpr;
+    // Formations are authored to about 2.1 units wide; fit that to the screen width on phones, cap it on wide screens.
+    const halfH = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * this.camera.position.z;
+    const halfW = halfH * this.camera.aspect;
+    this.material.uniforms.uScale.value = Math.min(1.15, Math.max(0.7, halfW / 1.05));
+  }
+
+  /** progress runs from 0 (first formation) to formations.length - 1 (last). */
+  /** time is the cells' own clock, already scaled by the speed setting. */
+  render(progress: number, time: number): void {
+    if (!this.points) return;
+    const last = formations.length - 1;
+    const p = Math.min(last, Math.max(0, progress));
+    const seg = Math.min(last - 1, Math.floor(p));
+    if (seg !== this.segment) {
+      this.segment = seg;
+      const g = this.points.geometry;
+      (g.getAttribute('position') as THREE.BufferAttribute).copyArray(this.shapes[seg]).needsUpdate = true;
+      (g.getAttribute('aTarget') as THREE.BufferAttribute).copyArray(this.shapes[seg + 1]).needsUpdate = true;
+    }
+    const u = this.material.uniforms;
+    const a = formations[seg]; const b = formations[seg + 1];
+    u.uMix.value = p - seg;
+    u.uTime.value = time;
+    u.uSpinA.value = a.spin; u.uSpinB.value = b.spin;
+    u.uTiltA.value = a.tilt; u.uTiltB.value = b.tilt;
+    u.uLiftA.value = a.lift; u.uLiftB.value = b.lift;
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  dispose(): void {
+    this.points?.geometry.dispose();
+    this.material.dispose();
+    this.renderer.dispose();
+  }
+}
