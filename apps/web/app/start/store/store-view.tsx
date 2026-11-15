@@ -5,10 +5,11 @@ import {
   AppIntro, GlassBadge, GlassButton, GlassCard, GlassField, GlassGrid, GlassIcon, GlassKeyValue, GlassNotice, GlassSelect, GlassState, GlassTextArea,
 } from '../../design-system/aimp-glass';
 import { formatPrice } from '../../../lib/aimp/storefront/load';
-import { storeAction } from '../actions';
+import { paymentsState, storeAction } from '../actions';
+import { reviewLaunch } from '../../../lib/aimp/launch/review';
 import { formatWhen, journeyRoute } from '../journey';
 import { JourneyShell, LoadingState, NeedBusiness, useJourney } from '../journey-client';
-import type { StoreOp, StoreState } from '../journey-types';
+import type { PaymentsState, StoreOp, StoreState } from '../journey-types';
 
 type Site = NonNullable<StoreState['site']>;
 interface Form { heading: string; subheading: string; tagline: string }
@@ -27,6 +28,7 @@ export function StoreView() {
   const { ready, journey } = useJourney();
   const [state, setState] = useState<StoreState | null>(null);
   const [failed, setFailed] = useState(false);
+  const [payments, setPayments] = useState<PaymentsState | null>(null);
   const [form, setForm] = useState<Form | null>(null);
   const [note, setNote] = useState('');
   const [rollbackTo, setRollbackTo] = useState('');
@@ -48,6 +50,12 @@ export function StoreView() {
     storeAction(journey.businessId, { kind: 'load' }).then((r) => { if (!live) return; take(r.state); if (!r.ok) setNotice({ ok: false, text: r.message, errors: r.errors }); }).catch(() => { if (live) setFailed(true); });
     return () => { live = false; };
   }, [journey]);
+
+  useEffect(() => {
+    let live = true;
+    paymentsState().then((p) => { if (live) setPayments(p); }).catch(() => { /* the review then says payments could not be read */ });
+    return () => { live = false; };
+  }, []);
 
   async function run(op: StoreOp) {
     if (busyRef.current) return;
@@ -73,6 +81,15 @@ export function StoreView() {
   const pub = site?.publicView;
   const live = pub?.status === 'live' ? pub : null;
   const next = site ? nextAction(site) : null;
+  const seller = payments?.readiness;
+  const review = reviewLaunch({
+    brandApproved: state.brandApproved, approvedListings: state.approvedListings, hasStoreDraft: Boolean(site), formDirty: dirty,
+    hasUnpublishedChanges: site?.draft.hasUnpublishedChanges ?? true, hasLiveVersion: site?.history.liveVersion != null, paused: Boolean(site?.draft.paused),
+    buyEnabled: Boolean(site?.purchase.canBuy),
+    paymentsNextAction: seller?.nextAction.label ?? 'Check your payments',
+    paymentsWhy: seller?.nextAction.why ?? (site && !site.purchase.canBuy ? site.purchase.reason : 'We could not read your payment status yet.'),
+    paymentsOutstanding: seller?.outstanding ?? [],
+  });
   const older = site ? site.history.versions.filter((v) => v.version !== site.history.liveVersion) : [];
   const preview = site?.preview ?? null;
   const set = (k: keyof Form) => (e: { target: { value: string } }) => setForm((f) => (f ? { ...f, [k]: e.target.value } : f));
@@ -126,6 +143,23 @@ export function StoreView() {
             <p className="plg-note">“Live” here means the published version in this demo. The public store address only serves the two sample stores for now, so no one else can open your store yet.</p>
           </GlassCard>
 
+          <GlassCard heading="h2" highlighted eyebrow="Review my launch" title={review.headline} data-testid="launch-review"
+            footer={<GlassButton variant="primary" data-testid="approve-publish" icon={<GlassIcon name="spark" size={22} tone="deep" />}
+              onClick={() => run({ kind: 'publish', note, expectedRevision: site.draft.revision })} loading={busy === 'publish'} loadingLabel="Publishing…"
+              disabled={!review.canApprove || dirty || (isBusy && busy !== 'publish')}>Approve and publish</GlassButton>}>
+            <ul className="plg-list" data-testid="launch-items">
+              {review.items.map((it) => (
+                <li key={it.id} data-status={it.status}>
+                  <GlassBadge tone={it.status === 'done' ? 'success' : it.status === 'waiting' ? 'warn' : 'neutral'}>{it.status === 'done' ? 'Done' : it.status === 'waiting' ? 'Waiting' : 'To do'}</GlassBadge>{' '}
+                  <strong>{it.label}.</strong> {it.detail} {it.status !== 'done' && it.step !== 'store' ? <a className="plg-link" href={journeyRoute(it.step)}>Open</a> : null}
+                </li>
+              ))}
+            </ul>
+            {review.blockers.length > 0 ? <GlassNotice tone="warn" title="What is stopping you publishing"><ul className="plg-list">{review.blockers.map((b) => <li key={b}>{b}</li>)}</ul></GlassNotice> : null}
+            {review.canApprove && review.paymentsHolding.length > 0 ? <GlassNotice tone="info" title="What is holding up payments" data-testid="payments-holding"><ul className="plg-list">{review.paymentsHolding.map((b) => <li key={b}>{b}</li>)}</ul></GlassNotice> : null}
+            <p className="plg-note">{review.actionNote}</p>
+          </GlassCard>
+
           <GlassGrid min={380}>
             <GlassCard heading="h2" eyebrow="Private draft" title="Edit your store"
               footer={<>
@@ -146,7 +180,6 @@ export function StoreView() {
 
             <GlassCard heading="h2" eyebrow="Go live, pause or go back" title="Publish"
               footer={<>
-                <GlassButton variant="primary" data-testid="publish" onClick={() => run({ kind: 'publish', note, expectedRevision: site.draft.revision })} loading={busy === 'publish'} loadingLabel="Publishing…" disabled={dirty || (isBusy && busy !== 'publish')}>Publish draft</GlassButton>
                 {site.draft.paused
                   ? <GlassButton variant="secondary" onClick={() => run({ kind: 'unpause' })} loading={busy === 'unpause'} disabled={isBusy && busy !== 'unpause'}>Resume store</GlassButton>
                   : <GlassButton variant="secondary" onClick={() => run({ kind: 'pause' })} loading={busy === 'pause'} disabled={site.history.liveVersion === null || (isBusy && busy !== 'pause')}>Pause store</GlassButton>}
