@@ -36,11 +36,13 @@ test('page source: no testimonials, no invented metrics, every demo labelled as 
   for (const note of ['Simulated preview. The AI Receptionist is coming soon', 'Simulated preview. Instagram connection is coming soon', 'Simulated preview. Phone conversations are coming soon']) assert.ok(demosSrc.includes(note), note);
   assert.ok(page.includes('Illustration with sample data.'));
 });
-test('domain routing: aiventra.com.au serves the site at its root; other hosts are untouched', async () => {
+test('domain routing: aiventra.com.au serves /site and aimoneyprinter.com serves the home page at the root; other hosts are untouched', async () => {
   // @ts-expect-error plain JS config without types
   const cfg = (await import('../next.config.mjs')).default;
   const { beforeFiles } = await cfg.rewrites();
   const root = beforeFiles.filter((r: { source: string }) => r.source === '/');
-  assert.deepEqual(root.map((r: { has: { value: string }[] }) => r.has[0].value).sort(), ['aiventra.com.au', 'www.aiventra.com.au']);
-  assert.ok(beforeFiles.every((r: { has?: unknown[]; destination: string }) => r.has && r.destination.startsWith('/site')));
+  const hostsTo = (destination: string) => root.filter((r: { destination: string }) => r.destination === destination).map((r: { has: { value: string }[] }) => r.has[0].value).sort();
+  assert.deepEqual(hostsTo('/site'), ['aiventra.com.au', 'www.aiventra.com.au']);
+  assert.deepEqual(hostsTo('/plant-lab'), ['aimoneyprinter.com', 'www.aimoneyprinter.com']);
+  assert.ok(beforeFiles.every((r: { has?: unknown[]; destination: string }) => r.has && (r.destination.startsWith('/site') || r.destination === '/plant-lab')));
 });

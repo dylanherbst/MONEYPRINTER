@@ -13,6 +13,10 @@ export type StageId = (typeof stages)[number]['id'];
 /** Trunk fraction reached at the sprout stage; the left branch starts exactly here (see build_plant.py). */
 export const SPROUT = 0.42;
 
+/** Scroll progress by which the planted seed has fully gone into the ground, and at which the sprout starts to rise. */
+export const SEED_GONE = 0.5;
+export const SPROUT_START = 0.51;
+
 export const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const seg = (p: number, a: number, b: number) => clamp01((p - a) / (b - a));
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -54,14 +58,15 @@ const SUNK = { x: 0.04, y: -0.5, z: 0, rotZ: -0.9 };
 export function poseAt(progress: number): Pose {
   const p = clamp01(progress);
   const descend = ease(seg(p, 0.2, 0.4));
-  const sink = ease(seg(p, 0.44, 0.7));
+  // The seed goes into the ground and is gone (SEED_GONE) before anything grows: the sprout starts only after that.
+  const sink = ease(seg(p, 0.42, 0.56));
   const hover = 0.06 * seg(p, 0, 0.2);           // a slight scroll-linked drift while floating (no idle motion)
   const x = sink > 0 ? mix(PLANTED.x, SUNK.x, sink) : mix(FLOAT.x, PLANTED.x, descend);
   const y = sink > 0 ? mix(PLANTED.y, SUNK.y, sink) : mix(FLOAT.y - hover, PLANTED.y, descend);
   const rotZ = sink > 0 ? mix(PLANTED.rotZ, SUNK.rotZ, sink) : mix(FLOAT.rotZ, PLANTED.rotZ, descend);
   const rotY = 0.95 + 0.3 * seg(p, 0, 0.2) + 0.2 * descend;
 
-  const trunk = SPROUT * ease(seg(p, 0.42, 0.66)) + (1 - SPROUT) * ease(seg(p, 0.7, 0.92));
+  const trunk = SPROUT * ease(seg(p, SPROUT_START, 0.67)) + (1 - SPROUT) * ease(seg(p, 0.7, 0.92));
   return {
     stage: stageAt(p),
     seed: {
@@ -81,8 +86,8 @@ export function poseAt(progress: number): Pose {
     growth: { trunk, left: ease(seg(p, 0.7, 0.94)), right: ease(seg(p, 0.78, 0.97)) },
     tree: ease(seg(p, 0.7, 0.97)),
     leaves: {
-      a: { scale: 0.42 * ease(seg(p, 0.52, 0.68)) + 0.33 * ease(seg(p, 0.72, 0.95)), unfurl: ease(seg(p, 0.54, 0.7)) },
-      b: { scale: 0.5 * ease(seg(p, 0.48, 0.67)) + 0.5 * ease(seg(p, 0.72, 0.97)), unfurl: ease(seg(p, 0.52, 0.7)) },
+      a: { scale: 0.42 * ease(seg(p, 0.57, 0.68)) + 0.33 * ease(seg(p, 0.72, 0.95)), unfurl: ease(seg(p, 0.58, 0.7)) },
+      b: { scale: 0.5 * ease(seg(p, 0.55, 0.67)) + 0.5 * ease(seg(p, 0.72, 0.97)), unfurl: ease(seg(p, 0.56, 0.7)) },
       c: { scale: 0.62 * ease(seg(p, 0.8, 1)), unfurl: ease(seg(p, 0.82, 1)) },
     },
     glow: 0.25 + 0.35 * smooth(0.45, 0.65, p) + 0.4 * smooth(0.82, 1, p),

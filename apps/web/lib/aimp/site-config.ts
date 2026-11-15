@@ -1,9 +1,9 @@
-// Single place for the public website's brand. "Seedline" is a WORKING NAME (owner chose a placeholder until legal and
-// Stripe review); rename here and every page follows.
+// Single place for the public website's brand: rename here and every page follows. The owner set the name to
+// AiMoneyPrinter on 15 Nov 2026 (it was the placeholder "Seedline"); a legal and Stripe name check is still open.
 export const site = {
-  name: 'Seedline',
-  workingName: true,
-  domain: 'aiventra.com.au',
+  name: 'AiMoneyPrinter',
+  workingName: false,
+  domain: 'aimoneyprinter.com',
   supportEmail: 'hello@aiventra.com.au',
   // Draft pricing hypotheses from the business plan §13.1, to be validated with pilot users. Never shown as final.
   plans: [
