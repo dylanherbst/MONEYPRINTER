@@ -9,7 +9,7 @@ MeshoptDecoder. If the Blender file changes, re-export the four GLBs from it fir
 
 The four stages share topology, so they are packed as one file:
   * Seed_*   floating-seed pose, morph target 0 = planted-seed pose
-  * Trunk, Filaments, Leaf_A_* (left), Leaf_B_* (sprout's right leaf, the tree's crown): sprout pose, morph target 0 = tree pose
+  * Trunk, Filaments, Leaf_A_* (left; _Limb is the branch, _Body the blade, _Lines the lips and veins), Leaf_B_* (sprout's right leaf, the tree's crown): sprout pose, morph target 0 = tree pose
   * Roots (identical in both), Leaf_C_* (the tree's third leaf, tree pose only)
 Parts with the same look are merged to keep draw calls low. Everything is moved so the trunk base sits at the origin.
 Each leaf node carries extras.pivot (and pivotTree) = where its branch leaves the trunk, used to grow it in the scene.
@@ -74,8 +74,8 @@ def ring_centre(mesh, first=True, ring=12):
 WHITE = (0.94, 0.91, 1.0)                         # tint used for parts that carry no colour of their own
 RING = 18                                         # vertices in each trunk ring
 BRANCH_RING = 12                                  # vertices in each branch ring
-TRUNK_EXTRA = {'sprout': 0.016, 'tree': 0.026}    # added trunk radius above the root flare
-TIP_RADIUS = 0.02                                 # branch radius where it meets the leaf
+TRUNK_EXTRA = {'sprout': (0.014, 0.012), 'tree': (0.03, 0.03)}   # added trunk radius above the root flare: (throughout, more toward the top)
+TIP_RADIUS = 0.024                                # branch radius where it meets the leaf
 
 
 def _sstep(a, b, x):
@@ -99,7 +99,8 @@ def _thicken_trunk(src, pose):
     trunk = src['Trunk | sculpted stem']
     rings, centres, radius = _trunk_rings(trunk)
     t = np.linspace(0, 1, len(centres))
-    new_radius = radius + TRUNK_EXTRA[pose] * _sstep(0.15, 0.75, t)
+    base, rise = TRUNK_EXTRA[pose]
+    new_radius = radius + _sstep(0.02, 0.22, t) * (base + rise * t)
     factor = new_radius / radius
     trunk['p'] = (centres[:, None, :] + (rings - centres[:, None, :]) * factor[:, None, None]).reshape(-1, 3).astype(np.float32)
     ys = centres[:, 1]
@@ -127,7 +128,8 @@ def _rebuild_branch(branch, start, start_dir, start_radius, start_colour):
     centres = h00 * start + h10 * m0 + h01 * end + h11 * m1
     tangents = np.gradient(centres, axis=0)
     tangents /= np.linalg.norm(tangents, axis=1)[:, None]
-    radius = TIP_RADIUS + (start_radius - TIP_RADIUS) * (1 - s[:, 0]) ** 1.5
+    # An even taper for a full, organic limb, then a quick narrowing so it flows into the leaf's midrib.
+    radius = (start_radius + (TIP_RADIUS - start_radius) * s[:, 0]) * (1 - 0.5 * _sstep(0.8, 1.0, s[:, 0]))
     # Parallel-transport frame, seeded the same way in every pose so the sprout-to-tree morph does not twist.
     normal = _unit(np.cross(tangents[0], np.array([0.0, 0.0, 1.0])))
     theta = np.linspace(0, 2 * np.pi, BRANCH_RING, endpoint=False)
@@ -156,18 +158,20 @@ def reconnect(src, pose, forks):
     return centres
 
 
-THIRD_LEAF_RING = 58                              # trunk ring the tree's third leaf forks from
+LEFT_LEAF_RING = 70                               # trunk ring the left leaf forks from, just under the top
+THIRD_LEAF_RING = 60                              # trunk ring the tree's third leaf forks from
 
 
 def main(src_dir, out_path):
     f = lambda n: load(os.path.join(src_dir, n))
     s1, s2, s3, s4 = f('01_Floating_Seed.glb'), f('02_Planted_Seed.glb'), f('03_Two-leaf_Sprout.glb'), f('04_Three-leaf_Tree.glb')
-    # The left branch forks at trunk ring 50 in both poses; the sprout's right leaf and the tree's crown carry on from the top.
-    sprout_trunk = reconnect(s3, 'sprout', {'Left': (50, 0.92), 'Right': (80, 1.02)})
-    reconnect(s4, 'tree', {'Left': (50, 0.92), 'Crown': (80, 1.02), 'Right': (THIRD_LEAF_RING, 0.92)})
+    # The left branch forks at the same trunk ring in both poses; the sprout's right leaf and the tree's crown carry on from the top.
+    sprout_trunk = reconnect(s3, 'sprout', {'Left': (LEFT_LEAF_RING, 0.7), 'Right': (80, 1.03)})
+    reconnect(s4, 'tree', {'Left': (LEFT_LEAF_RING, 0.7), 'Crown': (80, 1.03), 'Right': (THIRD_LEAF_RING, 0.82)})
     seams = [f'Seed | luminous seam {i}' for i in range(1, 6)]
     lines = lambda side: [f'{side} | warm lip', f'{side} | pearl lip', f'{side} | central vein', f'{side} | lower vein']
-    body = lambda side: [f'{side} | branch', f'{side} | leaf blade']
+    body = lambda side: [f'{side} | leaf blade']
+    limb = lambda side: [f'{side} | branch']      # kept apart from the blade: limbs are solid pearl like the trunk, blades are glass
     fil = [f'Trunk | spiral filament {i}' for i in range(1, 5)]
     roots = [f'Root | flare {i}' for i in range(1, 7)]
 
@@ -183,10 +187,13 @@ def main(src_dir, out_path):
     ex_a = {'pivot': piv(s3, 'Left'), 'pivotTree': piv(s4, 'Left'), 'tip': tip(s3, 'Left'), 'tipTree': tip(s4, 'Left')}
     ex_b = {'pivot': piv(s3, 'Right'), 'pivotTree': piv(s4, 'Crown'), 'tip': tip(s3, 'Right'), 'tipTree': tip(s4, 'Crown')}
     ex_c = {'pivot': [round(float(x), 4) for x in sprout_trunk[THIRD_LEAF_RING]], 'pivotTree': piv(s4, 'Right'), 'tip': tip(s4, 'Right'), 'tipTree': tip(s4, 'Right')}
+    nodes.append(('Leaf_A_Limb', merge(s3, limb('Left'), s4), ex_a))
     nodes.append(('Leaf_A_Body', merge(s3, body('Left'), s4), ex_a))
     nodes.append(('Leaf_A_Lines', merge(s3, lines('Left'), s4), ex_a))
+    nodes.append(('Leaf_B_Limb', merge(s3, limb('Right'), s4, limb('Crown')), ex_b))
     nodes.append(('Leaf_B_Body', merge(s3, body('Right'), s4, body('Crown')), ex_b))
     nodes.append(('Leaf_B_Lines', merge(s3, lines('Right'), s4, lines('Crown')), ex_b))
+    nodes.append(('Leaf_C_Limb', merge(s4, limb('Right')), ex_c))
     nodes.append(('Leaf_C_Body', merge(s4, body('Right')), ex_c))
     nodes.append(('Leaf_C_Lines', merge(s4, lines('Right')), ex_c))
 

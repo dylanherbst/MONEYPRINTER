@@ -95,7 +95,7 @@ export class PlantScene {
   private roots?: THREE.Group;
   private leaves: Leaf[] = [];            // a = left, b = the sprout's right leaf that becomes the crown, c = the tree's third leaf
   private seedU = partUniforms(0.22, 0.12);
-  private stemU = partUniforms(0.3, 0.3);
+  private stemU = partUniforms(0.3, 0.12);
   private leafU = partUniforms(0.3, 0.3);
   private seedLineU = partUniforms(1, 0); private stemLineU = partUniforms(1, 0); private leafLineU = partUniforms(1, 0);
   private terrainUniforms = { uWave: { value: 0 }, uShow: { value: 0 } };
@@ -185,7 +185,8 @@ export class PlantScene {
 
     // plant: glass trunk, roots and leaves, with warm filaments, lips and veins
     const trunk = byName('Trunk'), filaments = byName('Filaments'), roots = byName('Roots');
-    const stemGlass = glass(this.stemU);
+    // The trunk and limbs are solid pearl, as in the reference: no see-through, so the forks read as one piece.
+    const stemGlass = glass(this.stemU, { transmission: 0, thickness: 0, roughness: 0.24, color: new THREE.Color('#f3e6ff'), iridescence: 1, sheen: 1, sheenRoughness: 0.4, sheenColor: new THREE.Color('#ffcdb5') });
     trunk.material = stemGlass; roots.material = stemGlass; filaments.material = lines(this.stemLineU);
     this.stem = [trunk, filaments];
     hold(this.plant, trunk, filaments);
@@ -193,11 +194,11 @@ export class PlantScene {
     const leafGlass = glass(this.leafU), leafLines = lines(this.leafLineU);
     const vec = (a: unknown) => new THREE.Vector3(...(a as [number, number, number]));
     for (const [id, fold] of [['A', -1], ['B', 1], ['C', 1]] as const) {
-      const blade = byName(`Leaf_${id}_Body`), detail = byName(`Leaf_${id}_Lines`);
-      blade.material = leafGlass; detail.material = leafLines;
-      const group = hold(this.plant, blade, detail);
+      const blade = byName(`Leaf_${id}_Body`), detail = byName(`Leaf_${id}_Lines`), limb = byName(`Leaf_${id}_Limb`);
+      blade.material = leafGlass; detail.material = leafLines; limb.material = stemGlass;
+      const group = hold(this.plant, blade, detail, limb);
       group.visible = false;
-      this.leaves.push({ group, meshes: [blade, detail], pivot: vec(blade.userData.pivot), pivotTree: vec(blade.userData.pivotTree), fold });
+      this.leaves.push({ group, meshes: [blade, detail, limb], pivot: vec(blade.userData.pivot), pivotTree: vec(blade.userData.pivotTree), fold });
     }
     await this.warmUp();
     this.dirty = true; this.kick();
@@ -328,7 +329,7 @@ export class PlantScene {
       u.uFront.value = rise > 0 ? 1 - smooth(0.88, 1, rise) : 0;                         // light rides the growing tip
     }
     for (const u of [this.stemU, this.leafU, this.stemLineU, this.leafLineU]) { u.uPulseY.value = pulseY; u.uPulse.value = pulseOn; }
-    this.stemU.uGlow.value = glow; this.leafU.uGlow.value = glow;
+    this.stemU.uGlow.value = 0.3 + 0.34 * pose.glow; this.leafU.uGlow.value = glow;   // solid pearl needs more inner light than glass to stay luminous
     this.stemLineU.uGlow.value = this.leafLineU.uGlow.value = 0.8 + 0.2 * pose.glow;
     if (this.roots) { this.roots.visible = rise > 0; this.roots.scale.setScalar(Math.max(0.001, smooth(0, 0.45, rise))); }
 
