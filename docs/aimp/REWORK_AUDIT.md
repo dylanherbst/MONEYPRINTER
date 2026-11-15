@@ -71,3 +71,7 @@ Order of work, one writer, each step with a test and a `/tools/*` check:
 9. Phone-viewport end-to-end run with a fresh account; report preview URL, steps, results, changed files, blocked steps.
 
 Second milestone: Inbox and first Setter release, weekly brief, Find customers, Claude plugin prototype.
+
+## Status after milestone 1 work (15 Nov 2026)
+Plan steps 2 to 8 are built and tested at node level (see `docs/aimp/README.md`, section "15 Nov 2026"). Open: step 1 build check on the Mac, step 9 phone-viewport run with a fresh account, Stripe test mode, real AI wording, hiding legacy VENTRA routes, and everything in the second milestone.
+

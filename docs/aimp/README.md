@@ -36,6 +36,19 @@ VENTRA is archived; this is the only active product. The old worktree link is ke
 - **Frontend + backend build brief** (owner, 14 Nov evening): `docs/aimp/reference/AiMoneyPrinter_Frontend_Backend_Build_Brief.pdf` (text in `reference/text/`). Customer journey, navigation, full feature inventory A01-I12 with release tiers, frontend/backend ownership per feature, shared contracts, canonical states, build order and tools. Frontend, web-design and backend agents read it before any AMP task. Per-feature status: `docs/aimp/FEATURE_CHECKLIST.md`.
 - Evidence: 1568 tests, 1563 pass, 0 fail, 5 todo; tsc clean. Everything since 2085c70 (coordinator tasks AMP-003…045 plus these two) is uncommitted.
 
+## 15 Nov 2026: mobile launch rework, milestone 1 (branch `aimp/mobile-launch-m1`)
+Brief: `AiMoneyPrinter_Claude_Rework_Instructions.pdf`. Audit and plan: `docs/aimp/REWORK_AUDIT.md`.
+- Entry: "Find my side hustle" is the primary action on `/plant-lab` and the `/start` welcome (`lib/aimp/entry.ts`: entry, three setup steps, four app tabs).
+- Intake: `/start/about` (country, preferred language, optional who-you-know; `lib/aimp/onboarding/context.ts`). Live checkout is Australia only; generation is English only; both stated plainly. Each of the five ranked ideas now shows first-buyer channel and owner work.
+- Product: free sample PDF (`renderSamplePdf`, `/start/products/file?...&sample=1`).
+- Publish: "Review my launch" with one **Approve and publish** (`lib/aimp/launch/review.ts`, `/start/store`); publishing is allowed while payments are pending and says the buy button stays off.
+- Payments: `/start/payments` (was a missing page) with a test purchase on fixtures, a replayed-payment check and a working test download (`runTestPurchase`, `/start/payments/download/[token]`).
+- Launch kit: `checkLaunchKit` (`lib/aimp/launch/kit.ts`) confirms every post names the right product, price and live shop link; payments page leads to the marketing plan.
+- Phone shell: four bottom tabs (Home, My Shop, Growth, Inbox) under 720px, Settings behind the profile icon, Inbox and Settings pages. Desktop bar unchanged.
+- Acceptance: `test/aimp-milestone1-acceptance.test.ts` runs the whole chain on real services with fixtures.
+- Evidence: tsc clean; eslint clean on changed files; 2179 tests, 2169 pass, 0 fail, 10 todo.
+- NOT done: `next build` (the Mac VM's CSS tool is the wrong binary; run it on the Mac), phone-viewport browser run with a fresh account, Stripe test mode (needs test keys), real AI wording (needs an OpenAI key), AI Setter / Inbox content, Claude plugin prototype, hiding legacy VENTRA routes from navigation.
+
 ## Next, in order (one writer at a time)
 1. Merge remaining branch work: backend/ventra-api-20261030 courses diff; cherry-pick 7393505; decide design system, then liquid-glass commits.
 2. ~~Fix auth cookie path (O2-3)~~ — done 13 Nov.
