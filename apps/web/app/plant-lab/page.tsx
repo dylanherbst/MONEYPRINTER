@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: 'Pick an idea. AI builds your first digital product, shop, checkout and launch content. You approve everything before it goes live.',
   robots: { index: false, follow: false }, // lab route until approved for the homepage
 };
-export const viewport: Viewport = { themeColor: '#f7f5fb', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
+export const viewport: Viewport = { themeColor: '#ddd0ff', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
 /** Every main action opens the real onboarding: welcome, account, goals, then the researched ideas. */
 const START = startRoutes.welcome;
@@ -58,10 +58,10 @@ function Waves() {
   );
 }
 
-const steps: { id: string; stage: string; alt: string; icon: IconName; title: string; body: string; note?: string }[] = [
-  { id: 'foundation', stage: 'planted', alt: 'The seed planted in a soft white landscape', icon: 'idea', title: 'Pick an idea', body: 'Tell us your budget, your spare hours and what you enjoy. You get researched ideas with the costs shown, and you choose one.' },
-  { id: 'creation', stage: 'sprout', alt: 'A small sprout with two glass leaves', icon: 'build', title: 'AI builds it', body: 'Your first digital product, a branded shop and a checkout, made for the idea you picked. You review all of it.' },
-  { id: 'growth', stage: 'tree', alt: 'A luminous three-leaf glass tree', icon: 'launch', title: 'Launch when you’re ready', body: 'Publish the shop and approve the launch posts written for you. Nothing goes live, gets posted or is charged without your OK.', note: 'Checkout and automatic delivery are in pilot testing. Scheduled posting is coming soon.' },
+const steps: { id: string; stage: string; alt: string; icon: IconName; tab: string; title: string; body: string; chips: string[]; note?: string }[] = [
+  { id: 'foundation', stage: 'planted', alt: 'The seed planted in a soft white landscape', icon: 'idea', tab: 'Pick', title: 'Pick an idea', body: 'Tell us a little about you. You get researched ideas with the costs shown, and you choose one.', chips: ['Your budget', 'Your spare hours', 'What you enjoy'] },
+  { id: 'creation', stage: 'sprout', alt: 'A small sprout with two glass leaves', icon: 'build', tab: 'Build', title: 'AI builds it', body: 'Everything is made for the idea you picked, and you review all of it.', chips: ['First product', 'Branded shop', 'Checkout'] },
+  { id: 'growth', stage: 'tree', alt: 'A luminous three-leaf glass tree', icon: 'launch', tab: 'Launch', title: 'Launch when you’re ready', body: 'Publish the shop and approve the launch posts written for you. Nothing goes live without your OK.', chips: ['You approve everything', 'Posts drafted for you'], note: 'Checkout and automatic delivery are in pilot testing. Scheduled posting is coming soon.' },
 ];
 
 const faqs = [
@@ -92,13 +92,13 @@ export default function PlantLabHome() {
             <Still stage="seed" alt="A floating white seed with a glowing lavender glass core" />
             <div className="amp-wrap amp-chapter-inner">
               <div className="amp-copy">
-                <h1 className="amp-display">Start a side hustle without spending weeks building it.</h1>
+                <h1 className="amp-display"><span className="amp-thin">Start a side hustle</span> without spending weeks building it.</h1>
                 <p className="amp-lead">Pick an idea. AI builds your first product, shop and launch content.</p>
-                <div className="amp-actions">
-                  <TrackedLink className="amp-btn amp-btn-primary amp-btn-lg" href={START} event={{ cta: 'hero_primary' }}><Icon name="spark" size={20} />{CTA}</TrackedLink>
-                  <TrackedLink className="amp-btn amp-btn-secondary" href="#example" event={{ cta: 'hero_secondary' }}>See what AI builds</TrackedLink>
+                <p className="amp-reassure">Free to start, no card needed.</p>
+                <div className="amp-dock">
+                  <TrackedLink className="amp-round" href="#example" event={{ cta: 'hero_secondary' }} label="See what AI builds"><Icon name="play" size={22} /></TrackedLink>
+                  <TrackedLink className="amp-btn amp-btn-primary amp-btn-wide" href={START} event={{ cta: 'hero_primary' }}>{CTA}<Icon name="arrowUp" size={22} /></TrackedLink>
                 </div>
-                <p className="amp-reassure">Free to start, no card needed. Nothing goes live without your OK.</p>
               </div>
             </div>
           </div>
@@ -109,11 +109,20 @@ export default function PlantLabHome() {
               <Still stage={s.stage} alt={s.alt} />
               <div className="amp-wrap amp-chapter-inner">
                 <div className="amp-glass amp-step-card">
-                  <p className="amp-step-kicker"><span className="amp-step-icon"><Icon name={s.icon} size={20} /></span>Step {i + 1} of {steps.length}</p>
+                  <p className="amp-sr">Step {i + 1} of {steps.length}</p>
+                  <ol className="amp-tabs" aria-hidden="true">
+                    {steps.map((t, n) => <li key={t.id} className={n === i ? 'is-on' : undefined}>{n === i ? <Icon name={t.icon} size={18} /> : null}{t.tab}</li>)}
+                  </ol>
                   <h2 className="amp-h2">{s.title}</h2>
                   <p className="amp-lead">{s.body}</p>
+                  <ul className="amp-chips">{s.chips.map((c) => <li key={c}>{c}</li>)}</ul>
                   {s.note ? <p className="amp-note">{s.note}</p> : null}
-                  {i === steps.length - 1 ? <TrackedLink className="amp-btn amp-btn-primary" href={START} event={{ cta: 'stage_growth' }}>{CTA}</TrackedLink> : null}
+                  {i === steps.length - 1 ? (
+                    <div className="amp-bar">
+                      <TrackedLink className="amp-btn amp-btn-secondary" href="#example" event={{ cta: 'stage_growth_example' }}>See example</TrackedLink>
+                      <TrackedLink className="amp-btn amp-btn-primary" href={START} event={{ cta: 'stage_growth' }}>{CTA}</TrackedLink>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -178,7 +187,7 @@ export default function PlantLabHome() {
             <div className="amp-glass amp-final-card">
               <h2 id="final-h" className="amp-h2">Your side hustle starts with one idea.</h2>
               <p className="amp-lead">See ideas that fit your budget and your time before you pay for anything.</p>
-              <TrackedLink className="amp-btn amp-btn-primary amp-btn-lg" href={START} event={{ cta: 'final' }}><Icon name="spark" size={20} />{CTA}</TrackedLink>
+              <TrackedLink className="amp-btn amp-btn-primary amp-btn-wide" href={START} event={{ cta: 'final' }}>{CTA}<Icon name="arrowUp" size={22} /></TrackedLink>
             </div>
           </div>
         </section>

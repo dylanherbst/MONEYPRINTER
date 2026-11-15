@@ -1,5 +1,6 @@
-import { Inter } from 'next/font/google';
+// One family for the whole site: Outfit, the same geometric sans the sign-up screens use for headings. It is
+// self-hosted from the @fontsource package (no request to a font service).
+import '@fontsource-variable/outfit';
 
-// One family for the whole site, self-hosted at build time by next/font (no runtime request to Google).
-export const bodyFont = Inter({ subsets: ['latin'], display: 'swap', variable: '--amp-body' });
-export const fontVars = bodyFont.variable;
+/** Class that points the site's font variable at Outfit (see plant.css). */
+export const fontVars = 'amp-outfit';

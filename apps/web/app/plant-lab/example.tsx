@@ -22,10 +22,11 @@ export function Example() {
         <div className="amp-ex-product-body">
           <Cover style={first.cover.style} label={first.cover.label} />
           <div>
+            <ul className="amp-chips"><li>{first.format}</li>{first.pages ? <li>{first.pages} pages</li> : null}<li>Instant download</li></ul>
             <h3 id="ex-product">{first.title}</h3>
             <p>{first.summary}</p>
             <ul className="amp-ex-list">{first.includes.map((i) => <li key={i}><Icon name="check" size={16} />{i}</li>)}</ul>
-            <p className="amp-ex-price">{money(first.priceMinor)}<span>{first.format} download</span></p>
+            <p className="amp-ex-price"><span>Price</span>{money(first.priceMinor)}</p>
           </div>
         </div>
       </article>
