@@ -211,7 +211,7 @@ export default function PlantLabHome() {
 
       <footer className="amp-footer">
         <div className="amp-wrap amp-footer-inner">
-          <p className="amp-logo"><span className="amp-mark" aria-hidden="true"><Icon name="leaf" size={18} /></span>{site.name}</p>
+          <p className="amp-logo"><img className="amp-mark" src="/brand/aimp-logo.webp" alt="" width={32} height={32} decoding="async" />{site.name}</p>
           <p><a href={SIGN_IN}>Sign in</a> · Questions? <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a></p>
           <p className="amp-small">Pilot pricing and features are being tested and may change. Nothing on this site is financial advice or a promise of earnings.</p>
         </div>
