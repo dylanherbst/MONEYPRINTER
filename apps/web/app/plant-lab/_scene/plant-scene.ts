@@ -82,6 +82,9 @@ function patch<M extends THREE.Material>(mat: M, u: PartUniforms, kind: 'lit' | 
 
 interface Leaf { group: THREE.Group; meshes: THREE.Mesh[]; pivot: THREE.Vector3; pivotTree: THREE.Vector3; fold: number }
 
+/** The most pixels per CSS pixel the resting plant is drawn at (current phones are 3). */
+const REST_DPR = 3;
+
 export class PlantScene {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
@@ -108,6 +111,10 @@ export class PlantScene {
   private width = 1; private height = 1;
   // Adaptive resolution: if frames run slow while scrolling, step the pixel ratio down (never up mid-session).
   private resScale = 1; private slowFrames = 0; private lastRender = 0;
+  // Sharp at rest: while the plant moves it is drawn at a modest pixel ratio so scrolling stays smooth; a moment after it
+  // comes to rest it is redrawn once at the screen's full pixel ratio (up to REST_DPR), so the still plant is crisp on
+  // phones. The next movement drops back to the fast ratio.
+  private sharp = false; private sharpTimer = 0; private stillDpr = 0;
   // scratch objects for the per-frame transforms
   private m1 = new THREE.Matrix4(); private m2 = new THREE.Matrix4(); private v1 = new THREE.Vector3(); private v2 = new THREE.Vector3();
   readonly quality: Quality;
@@ -263,13 +270,11 @@ export class PlantScene {
   /** Tap or click on the plant: a light pulse travels up the stem and the leaves lift slightly. */
   tap() { this.pulse.value = 0; this.pulse.velocity = 2.2; this.pulse.target = 0; this.kick(); }
 
-  setVisible(v: boolean) { this.visible = v; if (v) { this.dirty = true; this.kick(); } }
+  setVisible(v: boolean) { this.visible = v; if (v) { this.dirty = true; this.kick(); } else window.clearTimeout(this.sharpTimer); }
 
   resize(width: number, height: number, mode: LayoutMode) {
     this.width = Math.max(1, width); this.height = Math.max(1, height); this.mode = mode;
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.25) * this.resScale;
-    this.renderer.setPixelRatio(dpr);
-    this.renderer.setSize(this.width, this.height, false);
+    this.applyRatio();
     const aspect = this.width / this.height;
     this.camera.aspect = aspect;
     // Keep the whole tree (about 2.7 units wide) in frame on narrow screens by widening the vertical field of view.
@@ -378,6 +383,26 @@ export class PlantScene {
     this.rig.rotation.set(this.tiltY.value * 0.05, this.tiltX.value * 0.22, 0);
   }
 
+  /** Sets the drawing-buffer size for the current state: full pixel ratio at rest, a lighter one while moving. */
+  private applyRatio() {
+    const device = window.devicePixelRatio || 1;
+    const dpr = this.stillDpr || (this.sharp ? Math.min(device, this.quality === 'high' ? REST_DPR : 2) : Math.min(device, 1.25) * this.resScale);
+    this.renderer.setPixelRatio(dpr);
+    this.renderer.setSize(this.width, this.height, false);
+  }
+
+  /** A short pause after the last movement, redraw once at full sharpness. */
+  private sharpenSoon() {
+    window.clearTimeout(this.sharpTimer);
+    if (this.sharp) return;
+    this.sharpTimer = window.setTimeout(() => {
+      if (this.disposed || !this.visible || this.raf) return;
+      this.sharp = true; this.applyRatio();
+      this.applyPose(poseAt(this.progress));
+      this.renderer.render(this.scene, this.camera);
+    }, 220);
+  }
+
   private kick() {
     if (this.raf || this.disposed) return;
     this.last = performance.now();
@@ -397,6 +422,7 @@ export class PlantScene {
       this.dirty = true; moving = moving || this.progress !== this.target;
     }
     if ((this.dirty || moving) && this.visible) {
+      if (moving && this.sharp) { this.sharp = false; this.applyRatio(); }   // back to the fast ratio while it moves
       this.applyPose(poseAt(this.progress));
       this.renderer.render(this.scene, this.camera);
       this.dirty = false;
@@ -409,15 +435,20 @@ export class PlantScene {
         }
       }
     }
-    if (moving) this.kick();
+    if (moving) { window.clearTimeout(this.sharpTimer); this.kick(); } else if (this.visible) this.sharpenSoon();
   };
 
   /** Render one frame synchronously at progress p (used for static stills and tests). */
-  renderStill(p: number) { this.progress = p; this.target = p; this.applyPose(poseAt(p)); this.renderer.render(this.scene, this.camera); }
+  renderStill(p: number, dpr = 0) {
+    this.progress = p; this.target = p;
+    if (dpr > 0) { this.stillDpr = dpr; this.renderer.transmissionResolutionScale = 1; this.applyRatio(); }
+    this.applyPose(poseAt(p)); this.renderer.render(this.scene, this.camera);
+  }
 
   dispose() {
     this.disposed = true;
     cancelAnimationFrame(this.raf);
+    window.clearTimeout(this.sharpTimer);
     this.scene.traverse((o) => {
       const m = o as THREE.Mesh;
       if (m.geometry) m.geometry.dispose();

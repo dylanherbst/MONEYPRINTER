@@ -398,3 +398,13 @@
 /* room under the last step's card for its shadow, so the next section does not cut it off */
 .amp-story > .amp-chapter-step:last-of-type .amp-chapter-inner { padding-bottom: calc(var(--amp-safe-bottom) + 3.25rem); }
 @media (min-width: 900px) { .amp-story > .amp-chapter-step:last-of-type .amp-chapter-inner { padding-bottom: 0; } }
+
+/* Closing section on phones: the tree fills the width of the screen (the picture is cropped below the ground, not
+   shrunk to fit), and its lower edge fades out, so no edge of the picture shows. */
+@media (max-width: 899px) {
+  .amp-final > .amp-still img { object-fit: cover; object-position: 50% 0; -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent); mask-image: linear-gradient(to bottom, #000 78%, transparent); }
+}
+/* Wide screens: the picture's right edge fades out the same way. */
+@media (min-width: 900px) {
+  .amp-final > .amp-still img { -webkit-mask-image: linear-gradient(to right, #000 82%, transparent 95%); mask-image: linear-gradient(to right, #000 82%, transparent 95%); }
+}

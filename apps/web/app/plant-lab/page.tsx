@@ -31,12 +31,17 @@ const links = [
   { href: '#faq', label: 'Questions' },
 ];
 
-/** Authored stills of the live scene (captured from the same three.js render) for first paint, no-JS and reduced motion. */
+/**
+ * Authored stills of the live scene (captured from the same three.js render with ?still=p&dpr=n) for first paint,
+ * no-JS, reduced motion and the closing section. Each comes in three sizes so a 3x phone and a 4K screen get a crisp
+ * one and nobody downloads more than their screen can show.
+ */
 function Still({ stage, alt }: { stage: string; alt: string }) {
+  const file = (size: string) => `/plant/stage-${stage}-${size}.webp`;
   return (
     <picture className="amp-still">
-      <source media="(max-width: 899px)" srcSet={`/plant/stage-${stage}-mobile.webp`} />
-      <img src={`/plant/stage-${stage}-desktop.webp`} alt={alt} loading={stage === 'seed' ? 'eager' : 'lazy'} decoding="async" />
+      <source media="(max-width: 899px)" sizes="100vw" srcSet={`${file('mobile')} 585w, ${file('mobile-1170')} 1170w, ${file('mobile-1755')} 1755w`} />
+      <img src={file('desktop')} sizes="100vw" srcSet={`${file('desktop')} 1440w, ${file('desktop-2880')} 2880w, ${file('desktop-3840')} 3840w`} alt={alt} loading={stage === 'seed' ? 'eager' : 'lazy'} decoding="async" />
     </picture>
   );
 }
