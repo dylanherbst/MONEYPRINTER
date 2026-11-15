@@ -111,10 +111,10 @@ export class PlantScene {
   private width = 1; private height = 1;
   // Adaptive resolution: if frames run slow while scrolling, step the pixel ratio down (never up mid-session).
   private resScale = 1; private slowFrames = 0; private lastRender = 0;
-  // Sharp at rest: while the plant moves it is drawn at a modest pixel ratio so scrolling stays smooth; a moment after it
-  // comes to rest it is redrawn once at the screen's full pixel ratio (up to REST_DPR), so the still plant is crisp on
-  // phones. The next movement drops back to the fast ratio.
-  private sharp = false; private sharpTimer = 0; private stillDpr = 0;
+  // Sharpness: the plant is drawn at the screen's full pixel ratio (up to REST_DPR) both moving and at rest. If frames
+  // run slow while scrolling, the moving ratio steps down (resScale); a moment after it comes to rest it is redrawn
+  // once at the full ratio again, so the still plant is always crisp.
+  private sharp = false; private sharpTimer = 0; private stillDpr = 0; private ratioKey = '';
   // scratch objects for the per-frame transforms
   private m1 = new THREE.Matrix4(); private m2 = new THREE.Matrix4(); private v1 = new THREE.Vector3(); private v2 = new THREE.Vector3();
   readonly quality: Quality;
@@ -386,7 +386,13 @@ export class PlantScene {
   /** Sets the drawing-buffer size for the current state: full pixel ratio at rest, a lighter one while moving. */
   private applyRatio() {
     const device = window.devicePixelRatio || 1;
-    const dpr = this.stillDpr || (this.sharp ? Math.min(device, this.quality === 'high' ? REST_DPR : 2) : Math.min(device, 1.25) * this.resScale);
+    const full = Math.min(device, this.quality === 'high' ? REST_DPR : 2);
+    // Moving and resting use the same full ratio, so the plant does not visibly soften when a scroll starts. Only a
+    // device that proved too slow (resScale below 1) moves at a lower ratio, never under the old 1.25 floor.
+    const dpr = this.stillDpr || (this.sharp ? full : Math.max(Math.min(device, 1.25), full * this.resScale));
+    const key = `${dpr}:${this.width}:${this.height}`;
+    if (key === this.ratioKey) return;                  // nothing changed: do not reallocate the drawing buffer
+    this.ratioKey = key;
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(this.width, this.height, false);
   }
@@ -422,15 +428,15 @@ export class PlantScene {
       this.dirty = true; moving = moving || this.progress !== this.target;
     }
     if ((this.dirty || moving) && this.visible) {
-      if (moving && this.sharp) { this.sharp = false; this.applyRatio(); }   // back to the fast ratio while it moves
+      if (moving && this.sharp) { this.sharp = false; this.applyRatio(); }   // a no-op unless this device had to step down
       this.applyPose(poseAt(this.progress));
       this.renderer.render(this.scene, this.camera);
       this.dirty = false;
       const gap = now - this.lastRender; this.lastRender = now;
       if (gap > 0 && gap < 120) {                       // only judge consecutive frames, not the first after a pause
         this.slowFrames = gap > 20 ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 1);
-        if (this.slowFrames > 12 && this.resScale > 0.55) {
-          this.resScale = Math.max(0.55, this.resScale - 0.15); this.slowFrames = 0;
+        if (this.slowFrames > 8 && this.resScale > 0.4) {
+          this.resScale = Math.max(0.4, this.resScale - 0.15); this.slowFrames = 0;
           this.resize(this.width, this.height, this.mode);
         }
       }
