@@ -5,6 +5,7 @@ import { site } from '../../lib/aimp/site-config';
 import { DemoFastForwardHeader } from './demo-fast-forward';
 import { startRoutes } from './flow';
 import { primaryEntry } from '../../lib/aimp/entry';
+import { toolsEnabled } from '../../lib/aimp/files/demo';
 
 export const metadata: Metadata = { title: `Welcome · ${site.name}` };
 
@@ -14,7 +15,7 @@ export default function StartWelcome() {
     <OnboardingLayout
       align="end"
       text="center"
-      header={<DemoFastForwardHeader />}
+      header={toolsEnabled() ? <DemoFastForwardHeader /> : undefined}   // the demo shortcut shows only where demo tools are switched on, never on the public site
       footer={
         <>
           <GlassButton variant="primary" href={startRoutes.account} icon={<GlassIcon name="spark" size={22} tone="deep" />}>{primaryEntry.label}</GlassButton>

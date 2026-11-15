@@ -8,7 +8,18 @@ import { requestHeadersFor, routeForHost } from './lib/aimp/hosts/resolve';
 //    plain 404 (no store data, not cached, not indexed); any other host passes through to the main app.
 //  - The proxy tells pages which store host they are on with the `x-aimp-store-host` request header. A client-sent copy
 //    is always stripped first, so the header can not be spoofed.
+// Internal test and lab pages are for development and previews. On the production site they answer 404 unless the
+// demo tools are switched on (AIMP_TOOLS_ENABLED=1), so visitors and search engines never land on them.
+const INTERNAL_PAGES = /^\/(?:tools|lab|glass-showcase)(?:\/|$)/;
+const notFoundResponse = () => new NextResponse('Not found', {
+  status: 404,
+  headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'x-robots-tag': 'noindex' },
+});
+
 export function proxy(request: NextRequest) {
+  if (process.env.VERCEL_ENV === 'production' && process.env.AIMP_TOOLS_ENABLED !== '1' && INTERNAL_PAGES.test(request.nextUrl.pathname)) {
+    return notFoundResponse();
+  }
   const route = routeForHost(request.headers.get('host'), request.nextUrl.pathname, {
     AIMP_STORE_ROOT_DOMAIN: process.env.AIMP_STORE_ROOT_DOMAIN,
     AIMP_STORE_TEST_DOMAIN: process.env.AIMP_STORE_TEST_DOMAIN,
