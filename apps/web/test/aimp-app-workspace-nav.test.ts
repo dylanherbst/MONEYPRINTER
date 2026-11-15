@@ -1,8 +1,10 @@
 // Owner workspace navigation bar (15 Nov request). The bar is a client component; its list and link rules are plain data in
 // workspace-nav-items.ts, which the component renders, so these tests check what it draws.
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import test from 'node:test';
-import { currentSegment, workspaceNavHref, workspaceNavItems } from '../app/app/[business]/workspace-nav-items.ts';
+import { currentSegment, settingsLinks, tabForSegment, tabHref, tabRoutes, workspaceNavHref, workspaceNavItems } from '../app/app/[business]/workspace-nav-items.ts';
+import { appTabs } from '../lib/aimp/entry.ts';
 
 const item = (label: string) => {
   const i = workspaceNavItems.find((x) => x.label === label);
@@ -47,4 +49,30 @@ test('the highlighted item follows the first path segment, so the product editor
   assert.equal(currentSegment('/app/biz-a/brand', 'biz-a'), 'brand');
   assert.equal(currentSegment('/elsewhere', 'biz-a'), '');
   assert.equal(workspaceNavItems.find((i) => i.segment === currentSegment('/app/biz-a/products/prod-1', 'biz-a'))?.label, 'Products');
+});
+
+test('phone layout: four bottom tabs in the brief\'s order, Settings behind the profile icon, each with the right address', () => {
+  assert.deepEqual(appTabs.map((t) => t.label), ['Home', 'My Shop', 'Growth', 'Inbox']);
+  assert.equal(tabHref('biz-a', 'home'), '/app/biz-a');
+  assert.equal(tabHref('biz-a', 'shop'), '/app/biz-a/products');
+  assert.equal(tabHref('biz-a', 'growth'), '/app/biz-a/marketing');
+  assert.equal(tabHref('biz-a', 'inbox'), '/app/biz-a/inbox');
+  assert.equal(tabHref('biz-a', 'settings'), '/app/biz-a/settings');
+  assert.ok(!appTabs.some((t) => (t.id as string) === 'settings'), 'Settings is not one of the four tabs');
+});
+
+test('every screen in the desktop bar belongs to a tab or to Settings, so none is unreachable on a phone', () => {
+  for (const item of workspaceNavItems) {
+    assert.ok(tabForSegment(item.segment) !== null, `${item.label} has a home on the phone`);
+  }
+  for (const l of settingsLinks) assert.ok(existsSync(new URL(`../app/app/[business]/${l.segment}/page.tsx`, import.meta.url)), `${l.label} is a real screen`);
+});
+
+test('a page keeps its own tab lit, and no page belongs to two tabs', () => {
+  assert.equal(tabForSegment(currentSegment('/app/biz-a/orders/o-1', 'biz-a')), 'shop');
+  assert.equal(tabForSegment(currentSegment('/app/biz-a/marketing/calendar', 'biz-a')), 'growth');
+  assert.equal(tabForSegment(currentSegment('/app/biz-a', 'biz-a')), 'home');
+  assert.equal(tabForSegment('no-such-page'), null);
+  const all = Object.values(tabRoutes).flatMap((r) => r.segments);
+  assert.equal(new Set(all).size, all.length);
 });

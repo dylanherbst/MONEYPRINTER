@@ -26,3 +26,40 @@ export function currentSegment(pathname: string, business: string): string {
   const rest = pathname.startsWith(base) ? pathname.slice(base.length).replace(/^\//, '') : '';
   return rest.split('/')[0] ?? '';
 }
+
+// Phone layout (rework brief 04): four bottom tabs, with Settings behind the profile icon. Labels come from lib/aimp/entry.ts so
+// the website, setup and app say the same words. The desktop bar above is unchanged.
+import { appTabs } from '../../../lib/aimp/entry.ts';
+
+export type TabId = (typeof appTabs)[number]['id'] | 'settings';
+
+/** Where each tab goes, and which first path segments keep it lit. */
+export const tabRoutes: Record<TabId, { segment: string; segments: readonly string[] }> = {
+  home: { segment: '', segments: ['', 'dashboard'] },
+  shop: { segment: 'products', segments: ['products', 'orders', 'website', 'brand', 'domains', 'payments'] },
+  growth: { segment: 'marketing', segments: ['marketing'] },
+  inbox: { segment: 'inbox', segments: ['inbox'] },
+  settings: { segment: 'settings', segments: ['settings', 'integrations', 'approvals', 'operator'] },
+};
+
+export const tabHref = (business: string, id: TabId): string => {
+  const { segment } = tabRoutes[id];
+  return segment ? `/app/${business}/${segment}` : `/app/${business}`;
+};
+
+/** The tab a page belongs to, from its first path segment; null for an unknown page. */
+export function tabForSegment(segment: string): TabId | null {
+  for (const id of Object.keys(tabRoutes) as TabId[]) if (tabRoutes[id].segments.includes(segment)) return id;
+  return null;
+}
+
+/** Everything in the bar that is not one of the four tabs, shown on the Settings page so no screen becomes unreachable on a phone. */
+export const settingsLinks: readonly { label: string; segment: string; detail: string }[] = [
+  { label: 'Brand', segment: 'brand', detail: 'Your name, look and wording.' },
+  { label: 'Domains', segment: 'domains', detail: 'Your shop address.' },
+  { label: 'Payments', segment: 'payments', detail: 'Get paid by card.' },
+  { label: 'Integrations', segment: 'integrations', detail: 'Connected accounts and tools.' },
+  { label: 'Approvals', segment: 'approvals', detail: 'Things waiting for your yes.' },
+  { label: 'Operator', segment: 'operator', detail: 'What your AI helpers did and may do.' },
+  { label: 'Dashboard', segment: 'dashboard', detail: 'Sales and activity at a glance.' },
+];
