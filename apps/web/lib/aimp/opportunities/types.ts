@@ -68,6 +68,10 @@ export interface OpportunityIdea {
   missingEvidence: ScoringFactor[];
   estimatedStartupCostMinor: number;
   weeklyHours: number;
+  /** Where the first buyers are most likely to come from (the blueprint's lead marketing channel). */
+  firstBuyerChannel: string;
+  /** What the owner still has to do before launch, from the blueprint's build steps. */
+  ownerWork: { action: string; hours: number }[];
   /** Always present: the score is not an earnings forecast. */
   notice: string;
 }

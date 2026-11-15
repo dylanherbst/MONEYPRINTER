@@ -195,7 +195,7 @@ export function GoalsFlow() {
       footer={
         <>
           {profile.ok ? (
-            <GlassButton variant="primary" href={startRoutes.ideas} icon={<GlassIcon name="spark" size={22} tone="deep" />}>See my business ideas</GlassButton>
+            <GlassButton variant="primary" href={startRoutes.about} icon={<GlassIcon name="spark" size={22} tone="deep" />}>Next: a few more details</GlassButton>
           ) : (
             <GlassButton variant="primary" onClick={() => go(profile.missing[0], answers)}>Finish the missing answers</GlassButton>
           )}

@@ -50,12 +50,19 @@ function IdeaCard({ idea, top, chosen }: { idea: OpportunityIdea; top: boolean; 
       <div className="plg-stack" data-gap="2">
         <p className="plg-text"><strong>What to sell:</strong> {idea.whatToSell}</p>
         <p className="plg-text"><strong>Who to sell to:</strong> {idea.whoToSellTo}</p>
+        <p className="plg-text"><strong>First buyers:</strong> {idea.firstBuyerChannel}</p>
         {demand.evidence[0] ? <p className="plg-text"><strong>Demand:</strong> {demand.evidence[0].note}</p> : null}
       </div>
       <div className="plg-stack" data-gap="2">
         <p className="plg-eyebrow">Why it fits you</p>
         <ul className="plg-list">{idea.whyItFits.map((w) => <li key={w}>{w}</li>)}</ul>
       </div>
+      {idea.ownerWork.length > 0 ? (
+        <div className="plg-stack" data-gap="2">
+          <p className="plg-eyebrow">Your work before launch</p>
+          <ul className="plg-list">{idea.ownerWork.map((w) => <li key={w.action}>{w.action} (about {w.hours} h)</li>)}</ul>
+        </div>
+      ) : null}
       {idea.missingEvidence.length > 0 ? (
         <p className="plg-note" data-testid="missing-evidence">No evidence yet for: {idea.missingEvidence.map((f) => factorNames[f].toLowerCase()).join(', ')}. Those scores are neutral placeholders, not findings.</p>
       ) : null}

@@ -8,6 +8,7 @@ export const startRoutes = {
   account: '/start/account',
   tour: '/start/tour',
   goals: '/start/goals',
+  about: '/start/about',
   finder: '/tools/opportunity-finder',
   ideas: '/start/ideas',
 } as const;

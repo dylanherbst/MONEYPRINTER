@@ -37,7 +37,7 @@ function evidenceFrom(mode: FinderMode, at: string, source: string, url: string 
   return { source, url: url ?? source, note, retrievedAt: at, confidence, label: 'live' };
 }
 
-interface Built { candidate: Candidate; opportunity: Opportunity; breakdown: Record<ScoringFactor, FactorBreakdown>; costMinor: number; version: string; hoursKnown: boolean }
+interface Built { candidate: Candidate; opportunity: Opportunity; breakdown: Record<ScoringFactor, FactorBreakdown>; costMinor: number; version: string; hoursKnown: boolean; firstBuyerChannel: string; ownerWork: { action: string; hours: number }[] }
 
 export function findOpportunities(profileInput: unknown, deps: FinderDeps): FinderResult {
   const profile = validateProfile(profileInput);
@@ -83,6 +83,8 @@ export function findOpportunities(profileInput: unknown, deps: FinderDeps): Find
       missingEvidence: missing,
       estimatedStartupCostMinor: b.costMinor,
       weeklyHours: b.candidate.ongoingHoursPerWeek,
+      firstBuyerChannel: b.firstBuyerChannel,
+      ownerWork: b.ownerWork,
       notice: FIT_NOTICE,
     };
   });
@@ -150,7 +152,8 @@ function build(c: Candidate, profile: FinderProfile, mode: FinderMode, at: strin
     estimatedStartupCostMinor: costMinor, estimatedMonthlyCostMinor: 0, weeklyHours: c.ongoingHoursPerWeek,
     channels: [...bp.marketing.channels], uncertainty: scoringFactors.filter((f) => breakdown[f].missingEvidence).map((f) => `No evidence for ${f}`),
   };
-  return { candidate: c, opportunity, breakdown, costMinor, version: bp.version, hoursKnown };
+  const ownerWork = bp.steps.filter((st) => st.ownerAction.trim()).map((st) => ({ action: st.ownerAction, hours: st.hours }));
+  return { candidate: c, opportunity, breakdown, costMinor, version: bp.version, hoursKnown, firstBuyerChannel: bp.marketing.channels[0] ?? 'Email', ownerWork };
 }
 
 function whyItFits(b: Built, profile: FinderProfile): string[] {
