@@ -25,7 +25,15 @@ export type LiveResolution =
   | { status: 'none' };
 
 export interface CheckoutProbeInput { workspaceId: string; businessId: string; storeSlug: string; productSlug: string }
-export interface CheckoutProbe { canStart(input: CheckoutProbeInput): Promise<CheckoutProbeResult> }
+export interface CheckoutProbe {
+  canStart(input: CheckoutProbeInput): Promise<CheckoutProbeResult>;
+  /**
+   * Does this store address belong to this workspace and business (checkout's own store directory)? Run on every publish,
+   * also when checkout is not built or the store is a demo, so the business is always checked (AMP-098). Optional: a probe
+   * without it makes the check report "business" as skipped, never as passed.
+   */
+  checkStore?(input: { workspaceId: string; businessId: string; storeSlug: string }): Promise<CheckoutProbeResult>;
+}
 
 export interface PublishCheckDeps {
   /** The public resolver (site-versions `resolvePublished`). Takes no actor, so it can only see what the public sees. */
@@ -87,6 +95,11 @@ export async function runPublishCheck(deps: PublishCheckDeps, input: PublishChec
   const state = purchaseState(config, deps.checkoutAvailable ?? checkoutBuilt);
   if (!state.canBuy) {
     skipped.push({ check: 'checkout', detail: `Checkout was not tested: ${state.reason}` });
+  } else if (config.products.length === 0) {
+    skipped.push({ check: 'checkout', detail: 'Checkout was not tested: the store has no products for sale.' });
+  } else if (!deps.checkout || typeof deps.checkout.canStart !== 'function') {
+    // Checkout is meant to be tested but nothing can test it: that is a failure, never a pass.
+    fail('checkout', 'Checkout could not be tested because no checkout test is connected.');
   } else {
     for (const p of config.products) {
       let res: CheckoutProbeResult;
@@ -94,6 +107,16 @@ export async function runPublishCheck(deps: PublishCheckDeps, input: PublishChec
       if (res.ok) pass(`checkout:${p.slug}`, `Checkout can start for "${p.title}".`);
       else fail(`checkout:${p.slug}`, `Checkout cannot start for "${p.title}": ${res.reason}`);
     }
+  }
+
+  // The business is checked on every publish, whether or not checkout was tested (AMP-098).
+  if (typeof deps.checkout?.checkStore === 'function') {
+    let res: CheckoutProbeResult;
+    try { res = await deps.checkout.checkStore({ workspaceId, businessId, storeSlug }); } catch { res = { ok: false, reason: 'the check could not run' }; }
+    if (res.ok) pass('business', 'This store address belongs to your business.');
+    else fail('business', `The store address could not be matched to your business: ${res.reason}`);
+  } else {
+    skipped.push({ check: 'business', detail: 'The business was not checked: no store directory is connected to the check.' });
   }
   return done();
 }
@@ -135,11 +158,17 @@ export interface CheckoutProbeDeps {
  * calls the provider, so it is safe against a live provider too. (startCheckout itself writes a pending order.)
  */
 export function createCheckoutProbe(deps: CheckoutProbeDeps): CheckoutProbe {
+  const checkStore: NonNullable<CheckoutProbe['checkStore']> = async ({ workspaceId, businessId, storeSlug }) => {
+    const store = await deps.stores.resolve(storeSlug);
+    if (!store) return { ok: false, reason: 'the store address is not known to checkout.' };
+    if (store.workspaceId !== workspaceId || store.businessId !== businessId) return { ok: false, reason: 'the store address belongs to a different business.' };
+    return { ok: true };
+  };
   return {
+    checkStore,
     async canStart({ workspaceId, businessId, storeSlug, productSlug }) {
-      const store = await deps.stores.resolve(storeSlug);
-      if (!store) return { ok: false, reason: 'the store address is not known to checkout.' };
-      if (store.workspaceId !== workspaceId || store.businessId !== businessId) return { ok: false, reason: 'the store address belongs to a different business.' };
+      const own = await checkStore({ workspaceId, businessId, storeSlug });
+      if (!own.ok) return own;
       const ctx = { workspaceId, businessId, actorUserId: 'publish-check', idempotencyKey: 'publish-check' };
       const listingId = await deps.listingIdFor({ workspaceId, businessId }, productSlug);
       if (!listingId) return { ok: false, reason: 'the product has no approved listing.' };

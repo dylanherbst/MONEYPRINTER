@@ -13,7 +13,8 @@ export const dynamic = 'force-dynamic';
 type Query = { [key: string]: string | string[] | undefined };
 
 // Screen 12: the products of an existing business. Same in-memory DEMO runtime as /start, the overview and the brand page (lost on
-// restart), and off in production unless the demo tools are enabled. `?status=active|draft|archived|all` picks the filter.
+// restart), and off in production unless the demo tools are enabled. `?status=active|draft|archived|all` picks the filter;
+// the default list leaves archived products out (AMP-097), they are listed under `?status=archived`.
 export default async function ProductsPage({ params, searchParams }: { params: Promise<{ business: string }>; searchParams: Promise<Query> }) {
   const { business } = await params;
   const q = await searchParams;

@@ -1,7 +1,7 @@
 // Products page (screen 12, AMP-083; E01). The server read runs against the REAL product service, catalogue service and brand store
 // with the same factories and contexts app/start/_server/runtime.ts uses (that file, and app/start/actions.ts, import lib modules
 // without a `.ts` extension, so the node test runner cannot load them: the server actions are not exercised here).
-// No archive operation exists in the services, so no archive behaviour is claimed or tested.
+// Archive and restore (AMP-097) are tested in aimp-app-products-archive.test.ts.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { NO_BUSINESS, NO_IDEA, guardCreate } from '../app/app/[business]/products/_server/create-guard.ts';
@@ -82,17 +82,21 @@ test('filter links are backed by the URL, and "all" is the plain page', () => {
   assert.equal(filterHref('biz-a', 'archived'), '/app/biz-a/products?status=archived');
 });
 
-test('each filter has plain-English empty copy, and archived says archiving is not available', () => {
+test('each filter has plain-English empty copy, and archived explains what archiving does', () => {
   for (const f of statusFilters) {
     for (const total of [0, 2]) {
-      const c = emptyCopy(f, total);
-      assert.ok(c.title.length > 0 && c.text.length > 0);
-      assert.doesNotMatch(c.title + c.text, /undefined|null|NaN/);
+      for (const archived of [0, total]) {
+        const c = emptyCopy(f, total, archived);
+        assert.ok(c.title.length > 0 && c.text.length > 0);
+        assert.doesNotMatch(c.title + c.text, /undefined|null|NaN/);
+      }
     }
   }
   assert.equal(emptyCopy('archived', 2).text, ARCHIVE_NOTE);
-  assert.match(ARCHIVE_NOTE, /isn't available/i);
-  assert.doesNotMatch(ARCHIVE_NOTE, /service|store|API/i, 'beginner wording, no developer terms');
+  assert.doesNotMatch(ARCHIVE_NOTE, /isn't available|not available/i, 'archiving is real now (AMP-097)');
+  assert.match(ARCHIVE_NOTE, /restore/i);
+  assert.match(emptyCopy('all', 2, 2).title, /archived/i, 'every product archived: the default list says where they went');
+  assert.doesNotMatch(ARCHIVE_NOTE, /service|\bstore\b|API/i, 'beginner wording, no developer terms ("restore" is fine)');
   // The note belongs to the Archived filter only (also when the business has no products at all).
   assert.equal(emptyCopy('archived', 0).text, ARCHIVE_NOTE);
   for (const f of ['all', 'active', 'draft'] as const) for (const total of [0, 3]) assert.notEqual(emptyCopy(f, total).text, ARCHIVE_NOTE);
@@ -147,7 +151,7 @@ test('a draft listing price is labelled as a draft price; a failed check is said
   assert.match(failed.detail, /Failed a check/);
 });
 
-test('filters split rows by status and counts match; archived is always empty today', () => {
+test('filters split rows by status and counts match; archived is empty when nothing is archived', () => {
   const rows = [
     buildRow(src({ id: 'a', versions: [{ version: 1, status: 'approved', qaPassed: true, spec: { title: 'A' } as never }], listing: [{ version: 1, status: 'approved', priceMinor: 500, currency: 'AUD' }] })),
     buildRow(src({ id: 'b' })), buildRow(src({ id: 'c' })),

@@ -19,6 +19,9 @@ export interface ProductRecord {
   businessId: string;
   blueprintId: string;
   createdAt: string;
+  /** AMP-096: set while the product is archived (hidden from sale); absent when active. Versions are never touched. */
+  archivedAt?: string;
+  archivedBy?: string | null;
 }
 
 export interface ProductVersion {
@@ -66,6 +69,10 @@ export class ProductError extends Error {
 export interface ProductStore {
   createProduct(p: ProductRecord): Promise<void>;
   getProduct(workspaceId: string, productId: string): Promise<ProductRecord | null>;
+  /** Every product of one business in this workspace, oldest first. */
+  listProducts(workspaceId: string, businessId: string): Promise<ProductRecord[]>;
+  /** Atomically set (or clear with null) the archived flag. Only that flag changes. Rejects an unknown product ('not_found'). */
+  setArchived(workspaceId: string, productId: string, archive: { archivedAt: string; archivedBy: string | null } | null): Promise<ProductRecord>;
   listVersions(workspaceId: string, productId: string): Promise<ProductVersion[]>;
   getVersion(workspaceId: string, versionId: string): Promise<ProductVersion | null>;
   /**

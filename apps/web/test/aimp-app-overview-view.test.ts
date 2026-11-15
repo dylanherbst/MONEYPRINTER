@@ -77,7 +77,8 @@ test('top item with a built page: the button links to exactly that item, with no
 test('top item with no page and a later doable item: the top item stays primary and the later one is only a labelled secondary link', () => {
   const o = overviewOf('new_setup');
   const payments = { ...setupItem(o, 'payments', 'payments'), title: 'Connect payments first' };
-  const vm = withNeeds(o, [payments, setupItem(o, 'first_order', 'orders'), setupItem(o, 'brand', 'brand'), setupItem(o, 'product', 'products')]);
+  // AMP-086: /orders is built now, so the stand-in for "a page that does not exist" is /website.
+  const vm = withNeeds(o, [payments, setupItem(o, 'first_order', 'website'), setupItem(o, 'brand', 'brand'), setupItem(o, 'product', 'products')]);
   const p = vm.primary;
   assert.equal(p.kind, 'fix');
   if (p.kind !== 'fix') return;
@@ -89,7 +90,7 @@ test('top item with no page and a later doable item: the top item stays primary 
   assert.equal(p.secondary?.title, 'Finish brand');
   assert.match(p.secondary?.lead ?? '', /next thing you can do now/);
   // With nothing doable, there is no secondary link at all.
-  const none = withNeeds(o, [payments, setupItem(o, 'first_order', 'orders')]).primary;
+  const none = withNeeds(o, [payments, setupItem(o, 'first_order', 'website')]).primary;
   assert.equal(none.kind === 'fix' ? none.secondary : 'x', null);
 });
 
@@ -184,7 +185,8 @@ test('demo storage off (production without the demo switch): the page stops at a
   const gateAt = body.indexOf('overviewGate(availability(), checkBusiness(business))');
   const offAt = body.indexOf("gate.kind === 'off'");
   assert.ok(gateAt > 0 && offAt > gateAt);
-  for (const read of ['loadBusinessOverview(', 'demoSnapshot(', 'runtime()', 'extras()', 'toolsEnabled()']) {
+  // AMP-093: the page reads through the one shared cache (`extras` is handed over as a function, so it is not called here).
+  for (const read of ['loadCachedBusinessOverview(', 'sharedOverviewCache(', 'demoSnapshot(', 'runtime()', 'toolsEnabled()']) {
     assert.ok(body.indexOf(read) > offAt, read);
   }
   assert.match(body.slice(offAt, body.indexOf("gate.kind === 'unknown'")), /return \([\s\S]*gate\.title[\s\S]*gate\.noticeTitle[\s\S]*gate\.reason/);

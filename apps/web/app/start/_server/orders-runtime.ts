@@ -1,0 +1,183 @@
+// Order store, checkout and fulfilment for the /start demo runtime (AMP-103). Server-only helpers; no screen code.
+// It wires the REAL checkout, order, files and fulfilment services on in-memory stores, in the same workspace as the /start
+// businesses, with FIXTURE payments and FIXTURE email only (no network, no Stripe, no mail sent). Everything is DEMO storage and is
+// lost when the server restarts.
+//
+// This file uses `.ts` import paths and takes everything it needs as arguments, so the node tests can load it (runtime.ts itself
+// cannot be loaded there). It never imports runtime.ts.
+//
+// SAMPLE DATA. A /start business has no seller account, so checkout is gated. `createSampleOrders` passes that gate honestly: it
+// registers a FIXTURE seller account for the business, clearly labelled as sample data (id `acct_sample_demo_<business>`, the real
+// "ready" fixture snapshot), and then buys through the real path: startCheckout -> fixture payment -> signed paid event ->
+// handlePaymentEvent -> fulfilment delivers a link by fixture email. Buyers are `sample-buyer-N@example.test`. No row is written
+// to any store directly, and no lib service contains seeded data.
+import { randomBytes } from 'node:crypto';
+import type { CatalogueService } from '../../../lib/aimp/catalogue/service.ts';
+import { paySessionWithFixture } from '../../../lib/aimp/checkout/fixture-events.ts';
+import { createCheckoutService } from '../../../lib/aimp/checkout/service.ts';
+import type { CheckoutService, StoreDirectory } from '../../../lib/aimp/checkout/service.ts';
+import { FIXTURE_WEBHOOK_SECRET } from '../../../lib/aimp/checkout/signature.ts';
+import { createFilesService } from '../../../lib/aimp/files/service.ts';
+import type { FilesService } from '../../../lib/aimp/files/service.ts';
+import { createMemoryFileStorage } from '../../../lib/aimp/files/storage.ts';
+import type { StoredFile } from '../../../lib/aimp/files/types.ts';
+import { grantTokenSigner } from '../../../lib/aimp/fulfilment/link.ts';
+import { createFulfilmentService } from '../../../lib/aimp/fulfilment/service.ts';
+import type { FulfilmentService } from '../../../lib/aimp/fulfilment/service.ts';
+import { createMemoryFulfilmentStore } from '../../../lib/aimp/fulfilment/store.ts';
+import { createMemoryOrderStore, createOrderBook } from '../../../lib/aimp/orders/index.ts';
+import type { OrderStore } from '../../../lib/aimp/orders/index.ts';
+import type { ProductService } from '../../../lib/aimp/products/service.ts';
+import type { ProductStore } from '../../../lib/aimp/products/types.ts';
+import { createProviderRegistry } from '../../../lib/aimp/providers/index.ts';
+import type { EmailAdapter } from '../../../lib/aimp/providers/types.ts';
+import { FIXTURE_SELLERS, createInMemorySellerStore } from '../../../lib/aimp/sellers/index.ts';
+import type { SellerAccountStore } from '../../../lib/aimp/sellers/index.ts';
+
+export const SAMPLE_SELLER_PREFIX = 'acct_sample_demo_';
+export const SAMPLE_BUYER_DOMAIN = 'example.test';
+export const MAX_SAMPLE_ORDERS = 2;
+export const DOWNLOAD_PATH = '/api/aimp/fulfilment/download';
+export const SAMPLE_STORE_PREFIX = 'sample-';
+
+/** The parts of the /start runtime the sample orders read. `JourneyRuntime` satisfies this. */
+export interface SampleSource {
+  catalogue: Pick<CatalogueService, 'listApprovedForBusiness' | 'getCheckoutPrice'>;
+  products: Pick<ProductService, 'getBuyerFile'>;
+  slugs: Map<string, string>;
+}
+
+export interface StartOrders {
+  workspaceId: string;
+  actorId: string;
+  orders: OrderStore;
+  files: FilesService;
+  productStore: Pick<ProductStore, 'getVersion' | 'listVersions'>;
+  sellers: SellerAccountStore;
+  checkout: CheckoutService;
+  fulfilment: FulfilmentService;
+  /** Fixture email: messages go to an in-memory outbox, never to a real address. */
+  email: EmailAdapter;
+  now: () => Date;
+  /** Store address -> business (what the checkout service resolves a store address with). */
+  stores: Map<string, { workspaceId: string; businessId: string }>;
+  /** Sample order ids per business, so a second call does not add more. */
+  sampled: Map<string, string[]>;
+  inflight: Map<string, Promise<SampleResult>>;
+  registry: ReturnType<typeof createProviderRegistry>;
+}
+
+export interface StartOrdersOptions {
+  workspaceId: string;
+  actorId: string;
+  /** The store the product service runs on: the files service reads the approved version from it. */
+  productStore: Pick<ProductStore, 'getVersion' | 'listVersions'>;
+  catalogue: Pick<CatalogueService, 'getApprovedListing' | 'getCheckoutPrice'>;
+  now?: () => Date;
+  /** The ONE seller account store of the runtime (so Payments and Orders read the same accounts). A private one is made when absent. */
+  sellers?: SellerAccountStore;
+}
+
+/** Builds the order store, checkout and fulfilment services. Fixture payments and email regardless of the real environment. */
+export function createStartOrders(opts: StartOrdersOptions): StartOrders {
+  const now = opts.now ?? (() => new Date());
+  // An EMPTY env gives the fixture adapters (the same as every fixture world); real keys in process.env are never read here.
+  const registry = createProviderRegistry({ env: {} });
+  const email = registry.email.adapter;
+  if (!email) throw new Error('The fixture email adapter is off.');
+  const orders = createMemoryOrderStore();
+  const sellers = opts.sellers ?? createInMemorySellerStore();
+  const stores = new Map<string, { workspaceId: string; businessId: string }>();
+  const directory: StoreDirectory = { resolve: async (slug) => stores.get(slug) ?? null };
+  // A fresh random secret per server process: download links from this demo only work in this process.
+  const filesSecret = randomBytes(32).toString('hex');
+  const files = createFilesService({
+    storage: createMemoryFileStorage(), products: opts.productStore, orders: createOrderBook(orders, [opts.workspaceId]), secret: filesSecret, now,
+  });
+  const checkout = createCheckoutService({
+    stores: directory, catalogue: opts.catalogue, sellers, orders, webhookSecret: FIXTURE_WEBHOOK_SECRET, now,
+    payments: () => ({ status: registry.payments.status, adapter: registry.payments.adapter }),
+    returnUrls: () => ({ successUrl: '/app', cancelUrl: '/app' }),
+  });
+  const fulfilment = createFulfilmentService({
+    orders, files, stores: directory, store: createMemoryFulfilmentStore(), webhookSecret: FIXTURE_WEBHOOK_SECRET, now,
+    email: () => email,
+    downloadUrl: ({ token }) => `${DOWNLOAD_PATH}/${token}`,
+    grantToken: grantTokenSigner(filesSecret),
+    storeName: (slug) => (stores.has(slug) ? 'Sample store (demo)' : null),
+  });
+  fulfilment.attachToCheckout(checkout);
+  return {
+    workspaceId: opts.workspaceId, actorId: opts.actorId, orders, files, productStore: opts.productStore, sellers, checkout, fulfilment, email, now, stores,
+    sampled: new Map(), inflight: new Map(), registry,
+  };
+}
+
+export type SampleResult =
+  | { ok: true; orderIds: string[]; created: number }
+  | { ok: false; message: string };
+
+const BUSINESS_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+const SLUG = /^[A-Za-z0-9._:-]{1,120}$/;
+
+/**
+ * Creates up to MAX_SAMPLE_ORDERS labelled sample orders for one /start business through the REAL checkout and paid-event path.
+ * Needs an approved listing for the business (otherwise answers `ok: false`, nothing is created). Safe to call again: a business
+ * that already has its sample orders gets the same ids back. Never throws.
+ */
+export async function createSampleOrders(so: StartOrders, src: SampleSource, businessId: string, count = MAX_SAMPLE_ORDERS): Promise<SampleResult> {
+  if (typeof businessId !== 'string' || !BUSINESS_ID.test(businessId)) return { ok: false, message: 'Unknown business.' };
+  const running = so.inflight.get(businessId);
+  if (running) return running;
+  const want = Math.min(MAX_SAMPLE_ORDERS, Math.max(1, Math.trunc(Number(count)) || 1));
+  const work = run(so, src, businessId, want)
+    .catch((): SampleResult => ({ ok: false, message: 'The sample orders could not be created.' }))
+    .finally(() => { so.inflight.delete(businessId); });
+  so.inflight.set(businessId, work);
+  return work;
+}
+
+async function run(so: StartOrders, src: SampleSource, businessId: string, want: number): Promise<SampleResult> {
+  const have = so.sampled.get(businessId) ?? [];
+  if (have.length >= want) return { ok: true, orderIds: have, created: 0 };
+
+  const ctx = { workspaceId: so.workspaceId, businessId, actorUserId: so.actorId, idempotencyKey: `sample:${businessId}` };
+  const listing = (await src.catalogue.listApprovedForBusiness(ctx, businessId))[0];
+  if (!listing) return { ok: false, message: 'This business has no approved listing yet, so there is nothing to sample-buy.' };
+  const price = await src.catalogue.getCheckoutPrice(ctx, listing.listingId);
+
+  // The buyer file must be deliverable: store the approved master for the version the listing is pinned to (what the owner approved).
+  const versions = await so.productStore.listVersions(so.workspaceId, price.productId);
+  const version = versions.find((v) => v.version === price.productVersion && v.status === 'approved');
+  if (!version) return { ok: false, message: 'The product version for this listing is not approved, so nothing can be delivered.' };
+  const file = await src.products.getBuyerFile({ workspaceId: so.workspaceId, actorId: so.actorId }, price.productId);
+  const master: StoredFile = { fileName: file.fileName, contentType: file.contentType, bytes: file.bytes };
+  await so.files.storeMaster({ workspaceId: so.workspaceId, businessId, actorId: so.actorId }, version.id, master);
+
+  // The sample seller: a FIXTURE account, labelled by its id, that makes the real gate say "ready" for this one business.
+  if (!so.sellers.get(so.workspaceId, businessId)) {
+    const ready = FIXTURE_SELLERS.find((s) => s.key === 'ready')?.snapshot;
+    if (!ready) return { ok: false, message: 'The sample seller fixture is missing.' };
+    const id = `${SAMPLE_SELLER_PREFIX}${businessId}`;
+    so.sellers.register({ workspaceId: so.workspaceId, businessId, stripeAccountId: id, snapshot: { ...ready, id }, lastEventCreated: 0 });
+  }
+
+  // The store address checkout resolves: the business's own site address when it has one, else a labelled sample address.
+  const own = src.slugs.get(businessId);
+  const slug = own && SLUG.test(own) && (!so.stores.has(own) || so.stores.get(own)?.businessId === businessId) ? own : `${SAMPLE_STORE_PREFIX}${businessId}`;
+  so.stores.set(slug, { workspaceId: so.workspaceId, businessId });
+
+  const adapter = so.registry.payments.adapter;
+  if (!adapter) return { ok: false, message: 'The fixture payments adapter is off.' };
+  const ids = [...have];
+  for (let n = have.length + 1; n <= want; n++) {
+    const started = await so.checkout.startCheckout({ storeSlug: slug, listingId: listing.listingId, buyerEmail: `sample-buyer-${n}@${SAMPLE_BUYER_DOMAIN}`, idempotencyKey: `sample-${businessId}-${n}` });
+    if (!started.ok) return { ok: false, message: started.message };
+    const event = await paySessionWithFixture(adapter, started.sessionId, FIXTURE_WEBHOOK_SECRET, so.now());
+    const paid = await so.checkout.handlePaymentEvent(event);
+    if (paid.outcome !== 'paid' && paid.outcome !== 'already_paid' && paid.outcome !== 'duplicate_event') return { ok: false, message: `The sample payment was not accepted (${paid.outcome}).` };
+    ids.push(started.orderId);
+    so.sampled.set(businessId, ids);
+  }
+  return { ok: true, orderIds: ids, created: ids.length - have.length };
+}

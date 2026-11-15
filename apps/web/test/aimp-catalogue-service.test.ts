@@ -51,7 +51,7 @@ test('a draft needs an approved product, an approved brand, and only one listing
   const s = await setup();
   // product with no approved version
   const noApproved = createCatalogueService({
-    products: { listVersions: async (c, id) => (await s.d.products.listVersions(c, id)).map((v) => ({ ...v, status: 'in_review' as const })) },
+    products: { getProduct: s.d.products.getProduct, listVersions: async (c, id) => (await s.d.products.listVersions(c, id)).map((v) => ({ ...v, status: 'in_review' as const })) },
     brands: s.d.brands, assets: s.d.assets,
   });
   await assert.rejects(noApproved.createDraft(A, { businessId: 'biz-a', productId: s.p.productId }), code('product_not_approved'));
@@ -372,7 +372,7 @@ test('checkout is refused when the product is no longer approved', async () => {
   let hide = false;
   const svc = createCatalogueService({
     store: createMemoryCatalogueStore(),
-    products: { listVersions: async (c, id) => (await s.d.products.listVersions(c, id)).map((v) => (hide ? { ...v, status: 'superseded' as const } : v)) },
+    products: { getProduct: s.d.products.getProduct, listVersions: async (c, id) => (await s.d.products.listVersions(c, id)).map((v) => (hide ? { ...v, status: 'superseded' as const } : v)) },
     brands: s.d.brands, assets: s.d.assets,
   });
   await svc.createDraft(A, { businessId: 'biz-a', productId: s.p.productId });

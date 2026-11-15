@@ -136,9 +136,10 @@ test('sources that do not exist are recorded as absent, so visits stay unknown',
 const fixtureVm = (state: OverviewState, label: string | null = null) =>
   buildOverviewViewModel({ overview: buildBusinessOverview({ ...demoSnapshot(state), businessId: 'biz-x' }, DEMO_OVERVIEW_NOW), businessName: 'Example', fixtureLabel: label });
 
-test('the allow-list of built pages holds only the overview, the brand kit and products, and each one is a real page', () => {
+test('the allow-list of built pages holds only the overview, the brand kit, products and orders, and each one is a real page', () => {
   // AMP-083: the Products page now exists, so '/products' is built and its /start link row is gone.
-  assert.deepEqual([...BUILT_APP_PAGES], ['', '/brand', '/products']);
+  // AMP-086: the Orders queue exists, so '/orders' is built (the order detail page is under it and is not its own allow-list entry).
+  assert.deepEqual([...BUILT_APP_PAGES], ['', '/brand', '/products', '/orders']);
   assert.equal(isBuiltHref('/app/biz-x/products', 'biz-x'), true);
   assert.equal(isBuiltHref('/app/biz-x/products?status=draft', 'biz-x'), true);
   assert.equal(START_STEP_ROUTES.product, undefined);
@@ -148,8 +149,9 @@ test('the allow-list of built pages holds only the overview, the brand kit and p
   assert.equal(isBuiltHref('/app/other/brand', 'biz-x'), false);
   assert.equal(isBuiltHref('/app/biz-x/brand/extra', 'biz-x'), false);
   assert.equal(START_STEP_ROUTES.brand, undefined);
-  assert.equal(isBuiltHref('/app/biz-x/orders', 'biz-x'), false);
+  assert.equal(isBuiltHref('/app/biz-x/orders', 'biz-x'), true);
   assert.equal(isBuiltHref('/app/biz-x/orders/ord_1', 'biz-x'), false);
+  assert.equal(isBuiltHref('/app/biz-x/website', 'biz-x'), false);
   assert.equal(isBuiltHref('/app/other', 'biz-x'), false);
   assert.equal(isBuiltHref('/app/biz-xy', 'biz-x'), false);
 });
@@ -281,7 +283,7 @@ test('nothing in the view model links to a page that is not built, and the exact
     ];
     for (const l of all) {
       assert.equal(l.href === null, !l.built, s);
-      if (l.href !== null) assert.ok(l.href === '/app/biz-x' || l.href === '/app/biz-x/brand' || l.href === '/app/biz-x/products' || Object.values(START_STEP_ROUTES).includes(l.href), `${s}: ${l.href}`);
+      if (l.href !== null) assert.ok(l.href === '/app/biz-x' || l.href === '/app/biz-x/brand' || l.href === '/app/biz-x/products' || l.href === '/app/biz-x/orders' || Object.values(START_STEP_ROUTES).includes(l.href), `${s}: ${l.href}`);
       assert.equal(l.guided, l.href !== null && l.href.startsWith('/start'), `${s}: ${l.href}`);
     }
     if (vm.primary.kind === 'fix') {
@@ -327,12 +329,14 @@ test('business B never receives business A\'s approvals or activity', async () =
 test('setup steps link to the existing /start routes; destinations with no page stay not clickable', () => {
   const vm = fixtureVm('new_setup');
   const byId = Object.fromEntries(vm.progress.steps.map((s) => [s.id, s]));
+  // The catalogue step keeps its guided route even though its destination is /products: that page cannot write or approve a listing.
   for (const id of ['idea', 'catalogue', 'store']) {
     assert.equal(byId[id].href, START_STEP_ROUTES[id], id);
     assert.equal(byId[id].built, true, id);
     assert.equal(byId[id].guided, true, id);
   }
-  // AMP-083: the product step has its own page for THIS business, so it no longer goes through /start.
+  assert.equal(byId.catalogue.href, '/start/catalogue');
+  // AMP-083: the product step has no /start row, so it goes to its own built page for THIS business.
   assert.equal(byId.product.href, '/app/biz-x/products');
   assert.equal(byId.product.built, true);
   assert.equal(byId.product.guided, false);
@@ -340,7 +344,6 @@ test('setup steps link to the existing /start routes; destinations with no page 
   assert.equal(byId.brand.href, '/app/biz-x/brand');
   assert.equal(byId.brand.built, true);
   assert.equal(byId.brand.guided, false);
-  assert.equal(byId.catalogue.href, '/start/catalogue');
   assert.equal(byId.store.href, '/start/store');
   // No /start step exists for payments or the first order: Coming soon, not clickable.
   for (const id of ['payments', 'first_order']) {

@@ -8,7 +8,7 @@ import { DEMO_OVERVIEW_NOW, demoSnapshot } from '../../../lib/aimp/overview/demo
 import { toolsEnabled } from '../../../lib/aimp/files/demo';
 import { availability, brandCtx, catalogueCtx, checkBusiness, productCtx, runtime, siteActor, WORKSPACE } from '../../start/_server/runtime';
 import { OverviewView, UnknownBusiness } from './overview-view';
-import { automationExtras, loadBusinessOverview } from './_server/overview';
+import { automationExtras, loadCachedBusinessOverview, sharedOverviewCache } from './_server/overview';
 import type { OverviewContexts, OverviewExtras } from './_server/overview';
 import { buildOverviewViewModel, overviewGate } from './view-model';
 
@@ -58,7 +58,9 @@ export default async function BusinessOverviewPage({ params, searchParams }: { p
 
   let found;
   try {
-    found = await loadBusinessOverview(runtime(), contexts, extras(), business);
+    // One cache per server process, keyed by workspace + business. `extras` is passed as a function so every read uses the current demo sources.
+    const rt = runtime();
+    found = await loadCachedBusinessOverview(sharedOverviewCache(rt, contexts, extras), rt, contexts, business);
   } catch (e) {
     console.error('[app overview] could not load the overview:', e instanceof Error ? e.name : 'unknown error');
     return (
@@ -71,6 +73,6 @@ export default async function BusinessOverviewPage({ params, searchParams }: { p
     );
   }
   if (!found.found) return <UnknownBusiness />;
-  const vm = buildOverviewViewModel({ overview: found.overview, businessName: found.businessName, storeStatus: found.storeStatus });
+  const vm = buildOverviewViewModel({ overview: found.overview, businessName: found.businessName, storeStatus: found.storeStatus, freshness: found.freshness });
   return <OverviewView vm={vm} />;
 }

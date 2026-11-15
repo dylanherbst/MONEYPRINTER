@@ -15,11 +15,18 @@ import { generateProductSpec, ProductFactoryError } from '../../../lib/aimp/fact
 import type { ProductSpec } from '../../../lib/aimp/factory/spec';
 import { toolsEnabled } from '../../../lib/aimp/files/demo';
 import { createProductService } from '../../../lib/aimp/products/service';
+import { createMemoryProductStore } from '../../../lib/aimp/products/store';
 import type { ProductService } from '../../../lib/aimp/products/service';
 import type { ProductRecord } from '../../../lib/aimp/products/types';
 import { createProviderRegistry } from '../../../lib/aimp/providers/index';
 import { createSiteVersionStore } from '../../../lib/aimp/site-versions/store';
 import type { Actor, SiteVersionStore } from '../../../lib/aimp/site-versions/store';
+import { createInMemorySellerStore } from '../../../lib/aimp/sellers/index';
+import type { SellerAccountStore } from '../../../lib/aimp/sellers/index';
+import { createStartOrders } from './orders-runtime';
+import type { StartOrders } from './orders-runtime';
+import { createStartMarketing } from './marketing-runtime';
+import type { StartMarketing } from './marketing-runtime';
 import { isBusinessId } from '../journey';
 import type { Availability } from '../journey-types';
 
@@ -53,6 +60,14 @@ export interface JourneyRuntime {
   productIds: Map<string, string[]>;
   slugs: Map<string, string>;
   businesses: Set<string>;
+  /** Order store, checkout and fulfilment (fixtures) in the same workspace; read by the Orders pages (AMP-103). */
+  orderDemo: StartOrders;
+  /** The one seller account store (same object as `orderDemo.sellers`), read by Payments (AMP-107). */
+  sellers: SellerAccountStore;
+  /** Campaign store (AMP-050), read by Marketing, Creative Studio and Calendar (AMP-135). */
+  campaigns: StartMarketing['campaigns'];
+  /** Campaign-asset store (AMP-051), read by Creative Studio and Calendar (AMP-135). */
+  campaignAssets: StartMarketing['campaignAssets'];
 }
 
 type G = typeof globalThis & { __aimpStartJourney?: JourneyRuntime };
@@ -68,7 +83,9 @@ export function runtime(): JourneyRuntime {
   if (g.__aimpStartJourney) return g.__aimpStartJourney;
   const llm = createProviderRegistry({ env: process.env }).llm;
   const seeds = new Map<string, BusinessSeed>();
+  const productStore = createMemoryProductStore();
   const products = createProductService({
+    store: productStore,
     generateSpec: (p: ProductRecord) => {
       const seed = seeds.get(p.businessId);
       if (!seed) throw new ProductFactoryError('The details for this business are no longer on the server. Go back to your idea and choose it again.');
@@ -77,11 +94,19 @@ export function runtime(): JourneyRuntime {
   });
   const brands = createMemoryBrandStore();
   const assets = createMemoryCoverAssets();
+  // The ONE seller account store of this runtime (workspace WORKSPACE). Empty until something registers an account: only the
+  // labelled sample orders register a fixture seller (orders-runtime.ts). Payments and Orders both read it.
+  const sellers = createInMemorySellerStore();
+  const catalogue = createCatalogueService({ products, brands, assets });
   const rt: JourneyRuntime = {
-    llm, products, brands, assets, seeds,
-    catalogue: createCatalogueService({ products, brands, assets }),
+    llm, products, brands, assets, seeds, catalogue,
     sites: createSiteVersionStore(),
     productIds: new Map(), slugs: new Map(), businesses: new Set(),
+    // Orders and fulfilment: same workspace and owner as the business, fixture payments and email (see orders-runtime.ts).
+    sellers,
+    orderDemo: createStartOrders({ workspaceId: WORKSPACE, actorId: OWNER, productStore, catalogue, sellers }),
+    // Campaigns and campaign assets: in-memory stores, scoped by workspace and business inside the services (see marketing-runtime.ts).
+    ...createStartMarketing(),
   };
   g.__aimpStartJourney = rt;
   return rt;

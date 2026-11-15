@@ -69,6 +69,68 @@ test('wired: a job with no store named fails before publishing anything', async 
   assert.equal((await versions.resolvePublished(demoStore.slug)).status, 'none');
 });
 
+const stepOutput = (j: { steps: { name: string; output: unknown }[] }, name: string) => j.steps.find((s) => s.name === name)?.output as Record<string, unknown> | null | undefined;
+
+test('AMP-098 #5: the smoke-test step reports the real result and says checkout was skipped (demo store), never passed', async () => {
+  const { publishSite } = await wired(false);
+  const h = await harness(publishSite);
+  await h.service.enqueue(h.ctx, { kind: 'publish-site', input: { storeSlug: demoStore.slug } });
+  await h.runner.drain();
+  const [j] = await h.service.list(h.ctx);
+  assert.equal(j.status, 'succeeded');
+  const out = stepOutput(j, 'smoke-test');
+  assert.equal(out?.smokeTest, 'pass');
+  assert.equal(out?.checkout, 'skipped');
+  assert.ok(Array.isArray(out?.skipped) && out.skipped.length > 0);
+  assert.ok(Number(out?.checks) > 0);
+});
+
+test('AMP-098 #5: with checkout tested the smoke-test step says checkout passed', async () => {
+  const versions = createSiteVersionStore();
+  await versions.createSite(demoActorA, { ...structuredClone(demoStore), demo: false, merchant: { chargesEnabled: true } });
+  const base = createPageLoader(async (slug) => { const r = await versions.resolvePublished(slug); return r.status === 'live' ? r.config : null; });
+  const publishSite: PublishWithCheckDeps = {
+    versions,
+    check: { resolveLive: (s) => versions.resolvePublished(s), loadPage: base, checkout: { canStart: async () => ({ ok: true }) }, checkoutAvailable: true },
+  };
+  const h = await harness(publishSite);
+  await h.service.enqueue(h.ctx, { kind: 'publish-site', input: { storeSlug: demoStore.slug } });
+  await h.runner.drain();
+  const [j] = await h.service.list(h.ctx);
+  assert.equal(j.status, 'succeeded');
+  assert.equal(stepOutput(j, 'smoke-test')?.checkout, 'passed');
+});
+
+test('AMP-098 #6: a failed check is stored on the job result with its failed and checks lists, and the job fails with the message', async () => {
+  const { publishSite } = await wired(true);
+  const h = await harness(publishSite);
+  await h.service.enqueue(h.ctx, { kind: 'publish-site', input: { storeSlug: demoStore.slug } });
+  await h.runner.drain();
+  const [j] = await h.service.list(h.ctx);
+  assert.equal(j.status, 'failed');
+  const pub = stepOutput(j, 'publish');
+  assert.equal(pub?.published, false);
+  assert.equal(pub?.outcome, 'unpublished');
+  assert.ok(Array.isArray(pub?.failed) && (pub.failed as { check: string }[]).some((f) => f.check === 'page:home'));
+  assert.ok(Array.isArray(pub?.checks) && pub.checks.length > 0);
+});
+
+test('AMP-098 #6: a conflict while publishing is retried by the job, not failed for good', async () => {
+  const { versions, publishSite } = await wired(false);
+  let calls = 0;
+  const flaky = { ...publishSite, versions: {
+    publish: versions.publish.bind(versions), rollback: versions.rollback.bind(versions), pause: versions.pause.bind(versions),
+    history: versions.history.bind(versions), resolvePublished: versions.resolvePublished.bind(versions), getVersion: versions.getVersion.bind(versions),
+  } };
+  flaky.versions.publish = async (...a) => { calls++; return calls === 1 ? { ok: false, code: 'conflict', errors: ['The store changed while publishing. Try again.'] } : versions.publish(...a); };
+  const h = await harness(flaky);
+  await h.service.enqueue(h.ctx, { kind: 'publish-site', input: { storeSlug: demoStore.slug } });
+  await h.runner.drain();
+  const [j] = await h.service.list(h.ctx);
+  assert.equal(j.status, 'waiting-retry');
+  assert.equal(calls, 1);
+});
+
 test('not wired: the demo stubs still run and say they are demo', async () => {
   const h = await harness(undefined);
   await h.service.enqueue(h.ctx, { kind: 'publish-site' });

@@ -16,7 +16,7 @@ import type { CreatePlan, ProductRow, ProductSource } from '../view-model.ts';
 
 /** The parts of the /start runtime this page reads. `JourneyRuntime` satisfies this. */
 export type ProductsRuntime = Pick<OverviewRuntime, 'businesses' | 'seeds' | 'slugs' | 'productIds'> & {
-  products: Pick<ProductService, 'listVersions'>;
+  products: Pick<ProductService, 'listVersions' | 'getProduct'>;
   catalogue: Pick<CatalogueService, 'listVersions'>;
   seeds: { has(businessId: string): boolean };
 };
@@ -36,13 +36,18 @@ export async function loadProducts(rt: ProductsRuntime, ctx: ProductsContexts, b
   const sources: ProductSource[] = [];
   for (const id of rt.productIds.get(businessId) ?? []) {
     let versions;
-    try { versions = await rt.products.listVersions(ctx.productCtx, id); } catch (e) {
+    let archived: boolean;
+    try {
+      versions = await rt.products.listVersions(ctx.productCtx, id);
+      // The archived flag is the product service's (AMP-096). Asked with the business, so another business's product is 'not_found'.
+      archived = Boolean((await rt.products.getProduct(ctx.productCtx, id, businessId)).archivedAt);
+    } catch (e) {
       if (e instanceof ProductError && e.code === 'not_found') continue; // not in this workspace: it is not shown
       throw e;
     }
     if (!versions.length || versions.some((v) => v.businessId !== businessId)) continue;
     const listing = await rt.catalogue.listVersions(ctx.catalogueCtx(businessId), listingIdFor(id));
-    sources.push({ id, typeTitle: blueprintRegistry.find(versions[0].spec.blueprint.id)?.title ?? null, versions, listing });
+    sources.push({ id, typeTitle: blueprintRegistry.find(versions[0].spec.blueprint.id)?.title ?? null, versions, listing, archived });
   }
   const rows = buildRows(sources);
   return { found: true, rows, create: planCreate({ hasSeed: rt.seeds.has(businessId), count: rt.productIds.get(businessId)?.length ?? 0, max: ctx.maxProducts }) };

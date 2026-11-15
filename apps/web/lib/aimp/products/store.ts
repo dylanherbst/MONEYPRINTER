@@ -29,6 +29,19 @@ export function createMemoryProductStore(): ProductStore {
       const p = products.get(productId);
       return p && p.workspaceId === workspaceId ? clone(p) : null;
     },
+    async listProducts(workspaceId, businessId) {
+      return [...products.values()].filter((p) => p.workspaceId === workspaceId && p.businessId === businessId).map(clone);
+    },
+    async setArchived(workspaceId, productId, archive) {
+      const p = products.get(productId);
+      if (!p || p.workspaceId !== workspaceId) throw new ProductError('not_found', 'That product was not found.');
+      const next: ProductRecord = { ...p };
+      delete next.archivedAt;
+      delete next.archivedBy;
+      if (archive) { next.archivedAt = archive.archivedAt; next.archivedBy = archive.archivedBy; }
+      products.set(productId, clone(next));
+      return clone(next);
+    },
     async listVersions(workspaceId, productId) {
       return ofProduct(workspaceId, productId).sort((a, b) => a.version - b.version).map(clone);
     },

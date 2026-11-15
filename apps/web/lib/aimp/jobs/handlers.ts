@@ -142,10 +142,32 @@ export function createDemoJobDefinitions(deps: HandlerDeps): JobKindDefinition[]
         step('publish-site', 'publish', (a) => once(a, 'site.publish', async (): Promise<JsonValue> => {
           if (!deps.publishSite) return { liveUrl: `https://demo.invalid/${a.job.id}`, demo: true };
           const r = await publishWithCheck(deps.publishSite, { actor: { workspaceId: a.job.workspaceId, userId: 'publish-job' }, businessId: a.job.businessId ?? '', storeSlug: str(a.input, 'storeSlug', '') });
-          if (!r.ok) throw new JobError('permanent', r.message);
-          return { version: r.version, checks: r.checks.length, skipped: r.skipped.map((s) => s.detail) };
+          // A conflict or "please try again" is temporary: the job retries with backoff instead of failing for good.
+          if (!r.ok && r.retryable) throw new JobError('temporary', r.message);
+          // Everything else is recorded as this step's result (also a failed check, with its structured lists) and judged by the next step.
+          const lists = {
+            checks: r.checks.map((c) => ({ check: c.check, detail: c.detail })),
+            skipped: r.skipped.map((c) => ({ check: c.check, detail: c.detail })),
+            failed: r.ok ? [] : r.failed.map((f) => ({ check: f.check, reason: f.reason })),
+          };
+          if (r.ok) return { published: true, outcome: r.outcome, version: r.version, ...lists };
+          return {
+            published: false, outcome: r.outcome, message: r.message, version: r.version ?? null, rolledBackTo: r.rolledBackTo ?? null,
+            rollbackErrors: r.rollbackErrors ?? [], ...lists,
+          };
         })),
-        step('publish-site', 'smoke-test', async (a): Promise<JsonValue> => (deps.publishSite ? { smokeTest: 'pass', checks: (a.outputs.publish as { checks?: number } | undefined)?.checks ?? 0 } : { smokeTest: 'pass', demo: true })),
+        // The real result of the check: it fails the job when the publish did not pass, and says honestly when checkout was not tested.
+        step('publish-site', 'smoke-test', async (a): Promise<JsonValue> => {
+          if (!deps.publishSite) return { smokeTest: 'pass', demo: true };
+          const p = a.outputs.publish;
+          const rec = p !== null && typeof p === 'object' && !Array.isArray(p) ? p : undefined;
+          if (!rec || rec.published !== true) {
+            throw new JobError('permanent', rec && typeof rec.message === 'string' && rec.message ? rec.message : 'The publish check did not pass, so the store was not confirmed live.');
+          }
+          const checks = Array.isArray(rec.checks) ? rec.checks : [];
+          const checkoutTested = checks.some((c) => c !== null && typeof c === 'object' && !Array.isArray(c) && typeof c.check === 'string' && c.check.startsWith('checkout:'));
+          return { smokeTest: 'pass', checks: checks.length, checkout: checkoutTested ? 'passed' : 'skipped', skipped: Array.isArray(rec.skipped) ? rec.skipped : [] };
+        }),
       ],
     },
     {

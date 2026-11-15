@@ -6,18 +6,24 @@
 // What is really wired, and what is not (see `OVERVIEW_SOURCES`):
 //   wired   steps (seeds, brand, products, catalogue), store (site versions), orders (optional source), approvals and activity
 //           (optional source), business name and currency
-//   absent  analytics (visits stay "Not measured yet"), fulfilment and money events (the fulfilment demo is its own fixed world),
-//           seller readiness (no seller account exists for a /start business, so payments read as not connected)
+//   absent  analytics (visits stay "Not measured yet"; no counter exists)
+//   wired only when the runtime carries the store (AMP-093, through the AMP-091 adapters): seller readiness (`rt.sellers`),
+//           fulfilment and money events (`rt.fulfilment`). The /start runtime has neither today (AMP-103 / AMP-107), so a /start
+//           business still reads as "payments not connected" with nothing to deliver. That is the truth, not a placeholder number.
 import type { BrandStore } from '../../../../lib/aimp/branding/store.ts';
 import { getApprovedBrand } from '../../../../lib/aimp/branding/service.ts';
 import type { CatalogueService } from '../../../../lib/aimp/catalogue/service.ts';
 import type { OperationContext } from '../../../../lib/aimp/catalogue/types.ts';
 import type { ProductService } from '../../../../lib/aimp/products/service.ts';
 import type { Order } from '../../../../lib/aimp/orders/types.ts';
-import { getBusinessOverview } from '../../../../lib/aimp/overview/index.ts';
-import type {
-  BusinessOverview, OverviewBuildSteps, OverviewDeps, OverviewOrder, OverviewScope, OverviewStore, Tenanted,
+import type { FulfilmentStore } from '../../../../lib/aimp/fulfilment/types.ts';
+import {
+  createAbsentVisitsSource, createFulfilmentSource, createOverviewCache, createSellerSource, getBusinessOverview,
 } from '../../../../lib/aimp/overview/index.ts';
+import type {
+  BusinessOverview, OverviewBuildSteps, OverviewCache, OverviewDeps, OverviewOrder, OverviewScope, OverviewStore, Tenanted,
+} from '../../../../lib/aimp/overview/index.ts';
+import type { SellerAccountStore } from '../../../../lib/aimp/sellers/store.ts';
 import { deriveReadiness } from '../../../../lib/aimp/sellers/readiness.ts';
 import type { ActivityEntry, ApprovalView } from '../../../../lib/aimp/automation/types.ts';
 import type { SiteVersionStore } from '../../../../lib/aimp/site-versions/store.ts';
@@ -33,6 +39,10 @@ export interface OverviewRuntime {
   productIds: { get(businessId: string): string[] | undefined };
   slugs: { get(businessId: string): string | undefined };
   businesses: { has(businessId: string): boolean };
+  /** Optional (AMP-093). When the runtime has a seller account store, payments readiness is read from it; otherwise "not connected". */
+  sellers?: Pick<SellerAccountStore, 'get'>;
+  /** Optional (AMP-093). When the runtime has a fulfilment store, deliveries, refunds and disputes are read from it; otherwise none. */
+  fulfilment?: Pick<FulfilmentStore, 'list' | 'listMoneyEvents'>;
 }
 
 /** The contexts the /start runtime uses for the same reads (from `app/start/_server/runtime.ts`). */
@@ -69,10 +79,27 @@ export function automationExtras(automation: () => AutomationReads, ctxFor: (sco
   };
 }
 
-export const OVERVIEW_SOURCES = {
-  steps: 'wired', store: 'wired', orders: 'wired when the checkout demo is on', approvals: 'wired when the automation demo is on',
-  activity: 'wired when the automation demo is on', analytics: 'absent', fulfilment: 'absent', moneyEvents: 'absent', seller: 'absent (not connected)',
-} as const;
+export interface OverviewSourceStatus {
+  steps: 'wired'; store: 'wired'; orders: string; approvals: string; activity: string;
+  /** No visit counter exists anywhere yet, so this is always absent (visits read as "Not measured yet", never 0). */
+  analytics: 'absent';
+  fulfilment: 'wired' | 'absent';
+  moneyEvents: 'wired' | 'absent';
+  seller: 'wired' | 'absent (not connected)';
+}
+
+/** What is really read for THIS runtime (AMP-093). Seller, fulfilment and money events are real only when the runtime carries the store. */
+export function overviewSources(rt: Pick<OverviewRuntime, 'sellers' | 'fulfilment'>): OverviewSourceStatus {
+  return {
+    steps: 'wired', store: 'wired', orders: 'wired when the checkout demo is on', approvals: 'wired when the automation demo is on',
+    activity: 'wired when the automation demo is on', analytics: 'absent',
+    fulfilment: rt.fulfilment ? 'wired' : 'absent', moneyEvents: rt.fulfilment ? 'wired' : 'absent',
+    seller: rt.sellers ? 'wired' : 'absent (not connected)',
+  };
+}
+
+/** The sources for a runtime with no seller or fulfilment store, which is what the /start runtime is today (AMP-103 / AMP-107). */
+export const OVERVIEW_SOURCES: OverviewSourceStatus = overviewSources({});
 
 /** True when the server has seen this business: it wrote a seed, brand, product, listing or site, or was admitted by /start. */
 export function isKnownBusiness(rt: Pick<OverviewRuntime, 'businesses' | 'seeds' | 'slugs' | 'productIds'>, businessId: string): boolean {
@@ -113,23 +140,106 @@ export const toOverviewOrder = (o: Order): Tenanted<OverviewOrder> => ({
   workspaceId: o.workspaceId, businessId: o.businessId,
 });
 
-/** `OverviewDeps` over the /start runtime. */
-export function createRuntimeOverviewDeps(rt: OverviewRuntime, ctx: OverviewContexts, extras: OverviewExtras, now: () => Date): OverviewDeps {
+/**
+ * Whether the approvals read failed, per workspace + business (AMP-109). `failed` is the latest read; `shown` is the value that
+ * belongs to the saved copy the cache is serving (a later failed re-read keeps the older copy, so it keeps that copy's value).
+ */
+export interface ApprovalsHealth { failed: Set<string>; shown: Map<string, boolean> }
+export const createApprovalsHealth = (): ApprovalsHealth => ({ failed: new Set(), shown: new Map() });
+const scopeKey = (s: OverviewScope): string => `${s.workspaceId}/${s.businessId}`;
+const healthOf = new WeakMap<OverviewCache, ApprovalsHealth>();
+
+/**
+ * `OverviewDeps` over the /start runtime. Seller readiness, fulfilment and money events go through the AMP-091 adapters when the
+ * runtime carries the store, and through the "nothing there" stubs when it does not (see `overviewSources`). `extras` may be a
+ * function, so a long-lived cache asks for the current optional sources on every read instead of holding the first request's.
+ */
+export function createRuntimeOverviewDeps(
+  rt: OverviewRuntime, ctx: OverviewContexts, extras: OverviewExtras | (() => OverviewExtras), now: () => Date, health?: ApprovalsHealth,
+): OverviewDeps {
+  const ex = typeof extras === 'function' ? extras : () => extras;
+  // AMP-109: with a `health` record, an approvals read that throws or rejects does not fail the whole overview. It reads as an empty
+  // list AND is recorded as failed, so the page says "could not be read" and never claims that nothing is waiting. Only the error
+  // name is logged. Without a `health` record nobody could say so, so the failure is passed on as before.
+  const readApprovals = async (s: OverviewScope): Promise<ApprovalView[]> => {
+    const approvals = ex().approvals;
+    if (!approvals) { health?.failed.delete(scopeKey(s)); return []; }
+    if (!health) return approvals(s);
+    try {
+      const list = await approvals(s);
+      health.failed.delete(scopeKey(s));
+      return list;
+    } catch (e) {
+      health.failed.add(scopeKey(s));
+      console.error('[app overview] could not read approvals:', e instanceof Error ? e.name : 'unknown error');
+      return [];
+    }
+  };
   return {
-    orders: { list: async (s) => (extras.orders ? (await extras.orders(s.workspaceId)).map(toOverviewOrder) : []) },
-    fulfilment: { list: async () => [], moneyEvents: async () => [] },
-    seller: { readiness: async () => deriveReadiness(null) },
+    orders: { list: async (s) => { const orders = ex().orders; return orders ? (await orders(s.workspaceId)).map(toOverviewOrder) : []; } },
+    fulfilment: rt.fulfilment ? createFulfilmentSource(rt.fulfilment) : { list: async () => [], moneyEvents: async () => [] },
+    seller: rt.sellers ? createSellerSource(rt.sellers) : { readiness: async () => deriveReadiness(null) },
     store: { get: async (s) => (await readStore(rt, s)).store },
     steps: { get: (s) => readBuildSteps(rt, ctx, s) },
-    automation: { approvals: async (s) => (extras.approvals ? extras.approvals(s) : []), activity: async (s) => (extras.activity ? extras.activity(s) : []) },
+    automation: {
+      approvals: readApprovals,
+      activity: async (s) => { const activity = ex().activity; return activity ? activity(s) : []; },
+    },
+    analytics: createAbsentVisitsSource(),
     business: { currency: async () => 'AUD' },
     now,
   };
 }
 
+/** When the numbers were read, for the "Last updated" line. Times only; no error text. */
+export interface OverviewFreshness {
+  refreshedAt: string; ageMs: number; stale: boolean; refreshFailed: boolean;
+  /** The approvals list could not be read for these numbers: approvals are unknown, not none (AMP-109). */
+  approvalsFailed?: boolean;
+}
+
 export type OverviewLookup =
   | { found: false }
-  | { found: true; overview: BusinessOverview; businessName: string | null; storeStatus: StoreStatus };
+  | {
+    found: true; overview: BusinessOverview; businessName: string | null; storeStatus: StoreStatus; freshness?: OverviewFreshness;
+    /** True when the approvals list could not be read: the overview then carries no approvals, which means unknown, not zero. */
+    approvalsFailed?: boolean;
+  };
+
+/** The page re-reads a business once its saved copy is older than this. A failed re-read keeps the older copy and says so. */
+export const OVERVIEW_REFRESH_AFTER_MS = 5_000;
+
+let shared: { rt: OverviewRuntime; cache: OverviewCache } | null = null;
+
+/**
+ * The ONE overview cache for this server process. It is keyed by workspace + business inside `createOverviewCache`, so one business
+ * never gets another's snapshot. A different runtime object (a test, a rebuilt demo runtime) gets a fresh cache, never the old one's data.
+ */
+export function sharedOverviewCache(rt: OverviewRuntime, ctx: OverviewContexts, extras: OverviewExtras | (() => OverviewExtras), now: () => Date = () => new Date()): OverviewCache {
+  if (!shared || shared.rt !== rt) {
+    const health = createApprovalsHealth();
+    shared = { rt, cache: createOverviewCache({ deps: createRuntimeOverviewDeps(rt, ctx, extras, now, health), refreshAfterMs: OVERVIEW_REFRESH_AFTER_MS }) };
+    healthOf.set(shared.cache, health);
+  }
+  return shared.cache;
+}
+
+/** The page's read: unknown business => `found: false` (nothing read or cached); otherwise the cached overview and when it was read. */
+export async function loadCachedBusinessOverview(cache: OverviewCache, rt: OverviewRuntime, ctx: OverviewContexts, businessId: string): Promise<OverviewLookup> {
+  if (!isKnownBusiness(rt, businessId)) return { found: false };
+  const scope: OverviewScope = { workspaceId: ctx.workspaceId, businessId };
+  const [c, businessName, { status }] = await Promise.all([cache.get(scope), readBusinessName(rt, ctx, businessId), readStore(rt, scope)]);
+  const health = healthOf.get(cache);
+  const k = scopeKey(scope);
+  const latest = health?.failed.has(k) ?? false;
+  // A failed re-read serves the older copy, so the older copy's value is kept; otherwise the copy shown is the latest read.
+  if (health && !c.refreshFailed) health.shown.set(k, latest);
+  const approvalsFailed = health ? (health.shown.get(k) ?? latest) : false;
+  return {
+    found: true, overview: c.overview, businessName, storeStatus: status, approvalsFailed,
+    freshness: { refreshedAt: c.refreshedAt, ageMs: c.ageMs, stale: c.stale, refreshFailed: c.refreshFailed, ...(approvalsFailed ? { approvalsFailed } : {}) },
+  };
+}
 
 /** One call for the page: unknown business => `found: false`; otherwise the AMP-080 overview for that business only. */
 export async function loadBusinessOverview(
@@ -137,8 +247,9 @@ export async function loadBusinessOverview(
 ): Promise<OverviewLookup> {
   if (!isKnownBusiness(rt, businessId)) return { found: false };
   const scope: OverviewScope = { workspaceId: ctx.workspaceId, businessId };
+  const health = createApprovalsHealth();
   const [overview, businessName, { status }] = await Promise.all([
-    getBusinessOverview(createRuntimeOverviewDeps(rt, ctx, extras, now), scope), readBusinessName(rt, ctx, businessId), readStore(rt, scope),
+    getBusinessOverview(createRuntimeOverviewDeps(rt, ctx, extras, now, health), scope), readBusinessName(rt, ctx, businessId), readStore(rt, scope),
   ]);
-  return { found: true, overview, businessName, storeStatus: status };
+  return { found: true, overview, businessName, storeStatus: status, approvalsFailed: health.failed.has(scopeKey(scope)) };
 }

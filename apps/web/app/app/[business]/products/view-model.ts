@@ -2,10 +2,11 @@
 // Nothing here is a product or pricing rule. What a product is, and its price, come from the product and catalogue services;
 // this file only decides how that is grouped and worded for the screen.
 //
-// STATUS. The product service has no "archived" state and no archive operation, so the three filters are:
-//   active    the product has an approved listing in the catalogue (the store can sell it)
-//   draft     everything else that exists: still being built or reviewed, or approved but not listed yet
-//   archived  always empty today (the services cannot archive); the page says so
+// STATUS. Archived is the product service's own flag (AMP-096, `ProductRecord.archivedAt`); it wins over the other two:
+//   archived  the owner put the product away: hidden from sale, nothing deleted, can be restored
+//   active    not archived, and the product has an approved listing in the catalogue (the store can sell it)
+//   draft     not archived, everything else: still being built or reviewed, or approved but not listed yet
+// FILTERS. "All" is the default list and leaves archived products out; they are listed only under "Archived".
 import { formatMoney } from '../../../../lib/aimp/overview/format.ts';
 import type { ProductVersion } from '../../../../lib/aimp/products/types.ts';
 import type { CatalogueListing } from '../../../../lib/aimp/catalogue/types.ts';
@@ -25,6 +26,9 @@ export function parseFilter(raw: string | string[] | undefined): StatusFilter {
 
 export const filterHref = (businessId: string, f: StatusFilter): string => `/app/${businessId}/products${f === 'all' ? '' : `?status=${f}`}`;
 
+/** The product editor page for one product (screen 13, AMP-084). */
+export const productHref = (businessId: string, productId: string): string => `/app/${businessId}/products/${productId}`;
+
 /** What the server reads for one product, straight from the services. */
 export interface ProductSource {
   id: string;
@@ -32,6 +36,8 @@ export interface ProductSource {
   typeTitle: string | null;
   versions: Pick<ProductVersion, 'version' | 'status' | 'qaPassed' | 'spec'>[];
   listing: Pick<CatalogueListing, 'version' | 'status' | 'priceMinor' | 'currency'>[];
+  /** From the product service (`archivedAt` is set). Absent means not archived. */
+  archived?: boolean;
 }
 
 export interface ProductRow {
@@ -53,10 +59,13 @@ export function buildRow(src: ProductSource, currencyFallback = 'AUD'): ProductR
   const approvedVersion = src.versions.find((v) => v.status === 'approved');
   const approvedListing = src.listing.find((l) => l.status === 'approved');
   const latestListing = src.listing[src.listing.length - 1];
-  const active = Boolean(approvedListing);
+  const archived = Boolean(src.archived);
+  const active = Boolean(approvedListing) && !archived;
+  const status: ProductStatus = archived ? 'archived' : active ? 'active' : 'draft';
 
   let detail: string;
-  if (active) detail = 'Approved and in your catalogue.';
+  if (archived) detail = ARCHIVED_DETAIL;
+  else if (active) detail = 'Approved and in your catalogue.';
   else if (approvedVersion) detail = latestListing ? 'The product is approved. Its listing still needs your approval.' : 'The product is approved but has no listing yet.';
   else if (latest && !latest.qaPassed) detail = 'Failed a check. Rebuild it in guided set-up.';
   else detail = 'Built, waiting for your approval.';
@@ -72,32 +81,50 @@ export function buildRow(src: ProductSource, currencyFallback = 'AUD'): ProductR
     id: src.id,
     name: (latest?.spec.title ?? '').trim() || 'Untitled product',
     type: src.typeTitle ?? 'Product',
-    status: active ? 'active' : 'draft',
-    statusLabel: active ? statusNames.active : statusNames.draft,
+    status,
+    statusLabel: statusNames[status],
     detail, price, priceNote,
   };
 }
 
 export const buildRows = (sources: ProductSource[]): ProductRow[] => sources.map((s) => buildRow(s));
 
-export const applyFilter = (rows: ProductRow[], f: StatusFilter): ProductRow[] => (f === 'all' ? rows : rows.filter((r) => r.status === f));
+/** "All" is the default list: everything that is not archived. Archived products are listed only under "Archived". */
+export const applyFilter = (rows: ProductRow[], f: StatusFilter): ProductRow[] => rows.filter((r) => (f === 'all' ? r.status !== 'archived' : r.status === f));
 
+const count = (rows: ProductRow[], s: ProductStatus): number => rows.filter((r) => r.status === s).length;
+
+/** Each number is the number of rows that filter lists, so "All" does not include archived products. */
 export const filterCounts = (rows: ProductRow[]): Record<StatusFilter, number> => ({
-  all: rows.length, active: rows.filter((r) => r.status === 'active').length, draft: rows.filter((r) => r.status === 'draft').length, archived: 0,
+  all: rows.length - count(rows, 'archived'), active: count(rows, 'active'), draft: count(rows, 'draft'), archived: count(rows, 'archived'),
 });
 
-export const ARCHIVE_NOTE = "Archiving isn't available yet. For now, products can't be put away from this page.";
+export const ARCHIVED_DETAIL = 'Archived: hidden from sale. Nothing was deleted, and you can restore it.';
+export const ARCHIVE_NOTE = 'Archive a product to hide it from sale without deleting it. Archived products are listed here, and you can restore them at any time.';
 export const BUNDLES_NOTE = 'Bundles are not available yet.';
+/** The demo limit counts every product the business has (app/start/actions.ts), archived or not. Shown only when some are archived. */
+export const LIMIT_COUNTS_ARCHIVED = 'Archived products still count towards the demo limit.';
+
+/** Said under the filters when some products are archived, so the smaller "All" number is explained. Empty when none are. */
+export function archivedHint(archived: number): string {
+  if (archived <= 0) return '';
+  return archived === 1 ? '1 archived product is not in this list. Find it under Archived.' : `${archived} archived products are not in this list. Find them under Archived.`;
+}
+
+/** What the owner is asked before an archive. Names the product so the question is clear on its own. */
+export const confirmArchiveText = (name: string): string =>
+  `Archive ${name}? It will be hidden from sale. Nothing is deleted, people who already bought it keep their files, and you can restore it later.`;
 
 export interface EmptyCopy { title: string; text: string }
 
-/** Plain-English empty state per filter. `total` is the number of products the business has at all. */
-export function emptyCopy(f: StatusFilter, total: number): EmptyCopy {
+/** Plain-English empty state per filter. `total` is the number of products the business has at all, `archived` how many of those are archived. */
+export function emptyCopy(f: StatusFilter, total: number, archived = 0): EmptyCopy {
   if (f === 'archived') return { title: 'Nothing is archived', text: ARCHIVE_NOTE };
   if (total === 0) return { title: 'No products yet', text: 'Add your first product below. It is built from the idea you chose in guided set-up.' };
+  if (total - archived <= 0) return { title: 'All your products are archived', text: 'Look under Archived to restore one.' };
   switch (f) {
     case 'active': return { title: 'No active products yet', text: 'A product becomes active once you approve it and approve its listing. Look under Draft to see what is waiting.' };
-    case 'draft': return { title: 'No drafts', text: 'Everything you have built is already active.' };
+    case 'draft': return { title: 'No drafts', text: archived > 0 ? 'Nothing is waiting as a draft.' : 'Everything you have built is already active.' };
     default: return { title: 'No products yet', text: 'Add your first product below.' };
   }
 }

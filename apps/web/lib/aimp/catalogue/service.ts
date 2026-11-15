@@ -41,13 +41,21 @@ export interface CatalogueService {
   /** What the storefront shows: approved listings only, public fields only. */
   listApprovedForBusiness(ctx: OperationContext, businessId: string): Promise<PublicListing[]>;
   suggestPrice(ctx: OperationContext, listingId: string, opts?: { comparablePricesMinor?: number[] }): Promise<PriceSuggestion>;
-  /** The price checkout must charge, read from the stored approved listing. Refuses when nothing is approved. */
+  /**
+   * AMP-096: true when the listing's product is archived. Archived listings keep every version and their status untouched
+   * (owner pages still read them with getListing/listVersions); they just cannot be sold or shown: getApprovedListing returns
+   * null, listApprovedForBusiness omits them and getCheckoutPrice refuses ('not_approved'). Unarchiving the product restores
+   * exactly the pre-archive state. False for an unknown listing.
+   */
+  isListingArchived(ctx: OperationContext, listingId: string): Promise<boolean>;
+  /** The price checkout must charge, read from the stored approved listing. Refuses when nothing is approved or the product is archived. */
   getCheckoutPrice(ctx: OperationContext, listingId: string): Promise<CheckoutPrice>;
 }
 
 export interface CatalogueDeps {
   store?: CatalogueStore;
-  products: Pick<ProductService, 'listVersions'>;
+  /** `getProduct` is REQUIRED (AMP-100): it is how an archived product (AMP-096) is noticed, so a catalogue cannot ignore archiving. */
+  products: Pick<ProductService, 'listVersions' | 'getProduct'>;
   brands: BrandStore;
   assets: CoverAssetSource;
   blueprints?: Pick<BlueprintRegistry, 'get' | 'find'>;
@@ -61,6 +69,8 @@ const COVER_ORDER = ['cover', 'preview', 'mockup'] as const;
 const NOT_FOUND = 'That listing was not found.';
 
 export function createCatalogueService(deps: CatalogueDeps): CatalogueService {
+  // Fail closed at build time too (JS callers, casts): never construct a catalogue that would silently ignore archiving.
+  if (typeof deps?.products?.getProduct !== 'function') throw new TypeError('createCatalogueService needs products.getProduct so archived products are never sold.');
   const store = deps.store ?? createMemoryCatalogueStore();
   const registry = deps.blueprints ?? blueprintRegistry;
   const iso = (): string => {
@@ -82,6 +92,14 @@ export function createCatalogueService(deps: CatalogueDeps): CatalogueService {
   async function productVersions(ctx: OperationContext, productId: string): Promise<ProductVersion[]> {
     try { return await deps.products.listVersions({ workspaceId: ctx.workspaceId, actorId: ctx.actorUserId }, productId); } catch (e) {
       if (e instanceof ProductError && e.code === 'not_found') throw new CatalogueError('not_found', 'That product was not found.');
+      throw e;
+    }
+  }
+  async function productArchived(ctx: OperationContext, productId: string): Promise<boolean> {
+    // (the constructor already guarantees getProduct exists)
+    try { return Boolean((await deps.products.getProduct({ workspaceId: ctx.workspaceId, actorId: ctx.actorUserId }, productId)).archivedAt); } catch (e) {
+      // Fail closed: a listing whose product record is missing is treated as not sellable.
+      if (e instanceof ProductError && e.code === 'not_found') return true;
       throw e;
     }
   }
@@ -267,8 +285,20 @@ export function createCatalogueService(deps: CatalogueDeps): CatalogueService {
 
     async getApprovedListing(ctx, listingId) {
       readScope(ctx);
-      try { return (await loadVersions(ctx, listingId)).find((v) => v.status === 'approved') ?? null; } catch (e) {
+      try {
+        const approved = (await loadVersions(ctx, listingId)).find((v) => v.status === 'approved');
+        if (!approved || await productArchived(ctx, approved.productId)) return null;
+        return approved;
+      } catch (e) {
         if (e instanceof CatalogueError && e.code === 'not_found') return null;
+        throw e;
+      }
+    },
+
+    async isListingArchived(ctx, listingId) {
+      readScope(ctx);
+      try { return await productArchived(ctx, (await loadVersions(ctx, listingId))[0]!.productId); } catch (e) {
+        if (e instanceof CatalogueError && e.code === 'not_found') return false;
         throw e;
       }
     },
@@ -284,9 +314,10 @@ export function createCatalogueService(deps: CatalogueDeps): CatalogueService {
     async listApprovedForBusiness(ctx, businessId) {
       readScope(ctx);
       if (typeof businessId !== 'string' || !businessOk(ctx, businessId)) return [];
-      return (await store.listByBusiness(ctx.workspaceId, businessId))
-        .filter((v) => v.status === 'approved' && v.cover)
-        .map(toPublicListing);
+      const live = (await store.listByBusiness(ctx.workspaceId, businessId)).filter((v) => v.status === 'approved' && v.cover);
+      const out: PublicListing[] = [];
+      for (const v of live) if (!(await productArchived(ctx, v.productId))) out.push(toPublicListing(v));
+      return out;
     },
 
     async suggestPrice(ctx, listingId, opts = {}) {
@@ -302,6 +333,7 @@ export function createCatalogueService(deps: CatalogueDeps): CatalogueService {
       readScope(ctx);
       const approved = (await loadVersions(ctx, listingId)).find((v) => v.status === 'approved');
       if (!approved) throw new CatalogueError('not_approved', 'This listing has no approved price yet, so it cannot be sold.');
+      if (await productArchived(ctx, approved.productId)) throw new CatalogueError('not_approved', 'This product has been archived, so it cannot be sold.');
       // The buyer must be able to receive the file: the product still needs an approved version.
       await approvedProduct(ctx, approved.productId);
       return {

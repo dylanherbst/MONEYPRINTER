@@ -1,6 +1,7 @@
 // Product validation, preview, approval, regeneration and versioning (AMP-022).
 import { assessSpec, renderBuyerFile, sha256 } from './qa.ts';
 import type { BuyerFile } from './qa.ts';
+import type { PublishedStoreProbe, StoreShowsProduct } from './published-store.ts';
 import { createMemoryProductStore } from './store.ts';
 import { ProductError } from './types.ts';
 import type { Ctx, ProductRecord, ProductStore, ProductVersion, VersionStatus } from './types.ts';
@@ -8,12 +9,33 @@ import type { ProductSpec } from '../factory/spec.ts';
 
 export const MAX_REGENERATIONS = 5;
 
+/**
+ * AMP-100: the archived product plus what the published store does. A store published before the archive keeps showing the
+ * product (buy button refused by checkout) until the owner publishes again.
+ *  - `storeNeedsRepublish: true`  a live store still shows the product: ask the owner to republish.
+ *  - `storeNeedsRepublish: false` no live store shows it (or there is no live store).
+ *  - `storeNeedsRepublish: null`  unknown (no published-store data wired, or the lookup failed): do not claim either way.
+ */
+export type ArchiveResult = ProductRecord & { publishedStore: StoreShowsProduct; storeNeedsRepublish: boolean | null };
+
 export interface ProductService {
   /** Create a product and its first version (v1), then run QA. Failed QA leaves the version in review as qa_failed. */
   createProduct(ctx: Ctx, input: { businessId: string; spec: ProductSpec }): Promise<{ product: ProductRecord; version: ProductVersion }>;
   /** New version from a freshly generated spec. Never touches an approved version. */
   regenerate(ctx: Ctx, productId: string): Promise<ProductVersion>;
   listVersions(ctx: Ctx, productId: string): Promise<ProductVersion[]>;
+  /** One product record (including archivedAt/archivedBy). Wrong workspace or business looks like an unknown product ('not_found'). */
+  getProduct(ctx: Ctx, productId: string, businessId?: string): Promise<ProductRecord>;
+  /** Every product of a business, archived ones included (check `archivedAt`). */
+  listProducts(ctx: Ctx, businessId: string): Promise<ProductRecord[]>;
+  /**
+   * AMP-096: archive a product. Only the product flag changes: every version (approved, superseded...) stays as it was and
+   * stays readable by id, so past orders keep resolving. Idempotent (the first archivedAt/archivedBy are kept).
+   * Wrong workspace, wrong business and unknown product are all 'not_found'.
+   */
+  archiveProduct(ctx: Ctx, productId: string, businessId: string): Promise<ArchiveResult>;
+  /** Clear the archived flag. Idempotent. Nothing else changed while archived, so the product is exactly as it was before. */
+  unarchiveProduct(ctx: Ctx, productId: string, businessId: string): Promise<ProductRecord>;
   /** Approve a QA-passed version and pin its hash. Supersedes the previously approved version. */
   approve(ctx: Ctx, versionId: string): Promise<ProductVersion>;
   /** The exact bytes buyers would receive for this version; refuses when they no longer match the recorded hash. */
@@ -31,6 +53,8 @@ export interface ProductServiceDeps {
   now?: () => Date;
   newId?: () => string;
   maxRegenerations?: number;
+  /** AMP-100: real published-site data, so archiveProduct can say a live store still shows the product. Absent = 'unknown'. */
+  publishedStores?: PublishedStoreProbe;
 }
 
 export function createProductService(deps: ProductServiceDeps): ProductService {
@@ -46,6 +70,11 @@ export function createProductService(deps: ProductServiceDeps): ProductService {
     need(ctx);
     const p = await store.getProduct(ctx.workspaceId, id);
     if (!p) throw new ProductError('not_found', 'That product was not found.');
+    return p;
+  }
+  async function scoped(ctx: Ctx, id: string, businessId: string): Promise<ProductRecord> {
+    const p = await getProduct(ctx, id);
+    if (p.businessId !== businessId) throw new ProductError('not_found', 'That product was not found.');
     return p;
   }
   async function getVersion(ctx: Ctx, id: string): Promise<ProductVersion> {
@@ -100,6 +129,35 @@ export function createProductService(deps: ProductServiceDeps): ProductService {
     async listVersions(ctx, productId) {
       await getProduct(ctx, productId);
       return store.listVersions(ctx.workspaceId, productId);
+    },
+
+    async getProduct(ctx, productId, businessId) {
+      const p = await getProduct(ctx, productId);
+      if (businessId !== undefined && p.businessId !== businessId) throw new ProductError('not_found', 'That product was not found.');
+      return p;
+    },
+
+    async listProducts(ctx, businessId) {
+      need(ctx);
+      if (typeof businessId !== 'string' || !businessId) return [];
+      return store.listProducts(ctx.workspaceId, businessId);
+    },
+
+    async archiveProduct(ctx, productId, businessId) {
+      const p = await scoped(ctx, productId, businessId);
+      const archived = p.archivedAt ? p : await store.setArchived(ctx.workspaceId, productId, { archivedAt: now(), archivedBy: ctx.actorId ?? null });
+      // Asked every time (also on a repeat archive): the owner may still not have republished.
+      let published: StoreShowsProduct = 'unknown';
+      if (deps.publishedStores) {
+        try { published = await deps.publishedStores.isProductShown({ workspaceId: ctx.workspaceId }, archived); } catch { published = 'unknown'; }
+      }
+      return { ...archived, publishedStore: published, storeNeedsRepublish: published === 'unknown' ? null : published === 'shown' };
+    },
+
+    async unarchiveProduct(ctx, productId, businessId) {
+      const p = await scoped(ctx, productId, businessId);
+      if (!p.archivedAt) return p;
+      return store.setArchived(ctx.workspaceId, productId, null);
     },
 
     async approve(ctx, versionId) {

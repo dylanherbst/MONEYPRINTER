@@ -163,7 +163,7 @@ test('a rollback that fails is reported, never swallowed', async () => {
   await versions.editDraft(A, SLUG, setHeading(BROKEN));
   const failing: PublishSiteApi = {
     publish: versions.publish.bind(versions), pause: versions.pause.bind(versions),
-    history: versions.history.bind(versions), resolvePublished: versions.resolvePublished.bind(versions),
+    history: versions.history.bind(versions), resolvePublished: versions.resolvePublished.bind(versions), getVersion: versions.getVersion.bind(versions),
     rollback: async () => ({ ok: false, code: 'failed', errors: ['Storage is unavailable.'] }),
   };
   const r = await publishWithCheck(deps(failing), { actor: A, businessId: BIZ_A, storeSlug: SLUG });
@@ -179,7 +179,7 @@ test('a pause that fails on a first publish is also reported', async () => {
   await versions.editDraft(A, SLUG, setHeading(BROKEN));
   const failing: PublishSiteApi = {
     publish: versions.publish.bind(versions), rollback: versions.rollback.bind(versions),
-    history: versions.history.bind(versions), resolvePublished: versions.resolvePublished.bind(versions),
+    history: versions.history.bind(versions), resolvePublished: versions.resolvePublished.bind(versions), getVersion: versions.getVersion.bind(versions),
     pause: async () => ({ ok: false, code: 'failed', errors: ['Could not pause.'] }),
   };
   const r = await publishWithCheck(deps(failing), { actor: A, businessId: BIZ_A, storeSlug: SLUG });

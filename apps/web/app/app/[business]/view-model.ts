@@ -4,7 +4,7 @@ import { formatMoneyList, formatUtc, plural } from '../../../lib/aimp/overview/i
 import type { BusinessOverview, NeedsYouItem, OverviewState, Severity } from '../../../lib/aimp/overview/index.ts';
 
 /** The one allow-list of owner pages that exist. Paths are relative to `/app/<business>`; `''` is the overview itself. */
-export const BUILT_APP_PAGES: readonly string[] = ['', '/brand', '/products'];
+export const BUILT_APP_PAGES: readonly string[] = ['', '/brand', '/products', '/orders'];
 
 export const isBuiltHref = (href: string, businessId: string): boolean => {
   const base = `/app/${businessId}`;
@@ -15,8 +15,8 @@ export const isBuiltHref = (href: string, businessId: string): boolean => {
 /**
  * Setup steps that the guided journey already covers. Each step id maps to the real /start page that does the same job, so an
  * unfinished setup has a way forward today. These /start pages take no business id (one journey per session), so they are used only for
- * the setup steps, never for approvals, orders or other destinations. Each /app page REPLACES its /start link when it ships: add the
- * page to BUILT_APP_PAGES and delete its row here. Steps with no row (payments, first order) stay "Coming soon" and are not clickable.
+ * the setup steps, never for approvals, orders or other destinations. A step with a row here always goes to its guided /start page, even
+ * when its /app destination is built; delete the row only when the /app page can do the whole step. Steps with no row (payments, first order) stay "Coming soon" and are not clickable.
  */
 export const START_STEP_ROUTES: Readonly<Record<string, string>> = {
   idea: '/start/ideas',
@@ -45,7 +45,7 @@ export const PRIMARY_DESCRIPTION_ID = 'ao-primary-action';
  * never a link. `guided` is true when `href` is a /start page: the view must then show GUIDED_SETUP_NOTE beside it.
  */
 export interface LinkVM { href: string | null; destination: string; built: boolean; guided: boolean }
-export interface BannerVM { id: 'stale' | 'degraded_checkout' | 'payments_not_ready'; tone: 'warn' | 'error'; title: string; text: string; link: (LinkVM & { label: string }) | null }
+export interface BannerVM { id: 'stale' | 'refresh_failed' | 'approvals_not_read' | 'invalid_amounts' | 'degraded_checkout' | 'payments_not_ready'; tone: 'warn' | 'error'; title: string; text: string; link: (LinkVM & { label: string }) | null }
 export interface TileVM { id: 'visits' | 'orders' | 'gross' | 'refunds' | 'delivery'; label: string; value: string; note: string; unknown: boolean }
 export interface NeedsYouVM extends LinkVM {
   id: string; rank: number; title: string; action: string; impact: string; severity: Severity; severityLabel: string; categoryLabel: string;
@@ -74,6 +74,8 @@ export interface OverviewViewModel {
   lede: string;
   storeLine: { text: string; url: string | null };
   updatedText: string;
+  /** The words drawn next to "Last updated": how long ago in plain words, then the exact time. */
+  updatedWords: string;
   demoText: string;
   banners: BannerVM[];
   primary: PrimaryVM;
@@ -113,12 +115,33 @@ export interface ViewModelInput {
   /** Set when the page shows a labelled fixture instead of real data. */
   fixtureLabel?: string | null;
   storeStatus?: 'no_site' | 'draft' | 'live' | 'paused';
+  /** From the overview cache (AMP-093): when the numbers were read, their real age, and whether the latest re-read failed. */
+  freshness?: { refreshedAt: string; ageMs: number; stale: boolean; refreshFailed: boolean; approvalsFailed?: boolean } | null;
+  /** The approvals list could not be read (AMP-109): approvals are unknown, not none. Also read from `freshness.approvalsFailed`. */
+  approvalsFailed?: boolean;
 }
 
+export const APPROVALS_NOT_READ_TITLE = 'We could not read your approvals list';
+export const APPROVALS_NOT_READ_TEXT = 'Something may be waiting for your OK that is not shown here. This is not the same as nothing waiting. Open this page again in a minute to try again.';
+export const CALM_APPROVALS_NOT_READ = 'Nothing else needs you, but we could not check your approvals list just now.';
+
+/** How long ago, in plain words. An age that is not a real number is never shown as "just now". */
+export const agoWords = (ageMs: number): string => {
+  if (!Number.isFinite(ageMs) || ageMs < 0) return 'at an unknown time';
+  const minutes = Math.floor(ageMs / 60_000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${plural(minutes, 'minute')} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `about ${plural(hours, 'hour')} ago`;
+  return `about ${plural(Math.floor(hours / 24), 'day')} ago`;
+};
+const capital = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+
 const link = (destination: string, businessId: string, stepId?: string): LinkVM => {
-  if (isBuiltHref(destination, businessId)) return { href: destination, destination, built: true, guided: false };
   const start = stepId && Object.hasOwn(START_STEP_ROUTES, stepId) ? START_STEP_ROUTES[stepId] : undefined;
-  return start ? { href: start, destination, built: true, guided: true } : { href: null, destination, built: false, guided: false };
+  if (start) return { href: start, destination, built: true, guided: true };
+  if (isBuiltHref(destination, businessId)) return { href: destination, destination, built: true, guided: false };
+  return { href: null, destination, built: false, guided: false };
 };
 
 /** The page's first decision: demo storage off => say so and read nothing; a malformed id => unknown business; otherwise load. */
@@ -157,17 +180,39 @@ const httpsUrl = (u: string | null): string | null => {
   try { return new URL(u).protocol === 'https:' ? u : null; } catch { return null; }
 };
 
-export function buildOverviewViewModel({ overview: o, businessName, fixtureLabel, storeStatus }: ViewModelInput): OverviewViewModel {
+export function buildOverviewViewModel({ overview: o, businessName, fixtureLabel, storeStatus, freshness, approvalsFailed: approvalsFlag }: ViewModelInput): OverviewViewModel {
+  const approvalsFailed = Boolean(approvalsFlag || freshness?.approvalsFailed);
   const b = o.businessId;
   const s = o.summary;
-  const stale = o.flags.stale;
+  // Stale comes from the real age of the saved copy when the cache gives one, as well as from the data's own time.
+  const stale = o.flags.stale || Boolean(freshness?.stale);
+  const refreshFailed = Boolean(freshness?.refreshFailed);
   const staleNote = stale ? ' May be out of date.' : '';
+  const ago = freshness ? agoWords(freshness.ageMs) : null;
+  const updatedAt = formatUtc(freshness?.refreshedAt ?? s.lastUpdatedAt);
+  const lastUpdated = ago ? `Last updated ${ago} (${updatedAt}).` : `Last updated ${updatedAt}.`;
 
   const banners: BannerVM[] = [];
-  if (o.flags.stale) {
+  if (refreshFailed) {
+    // Shown even when the numbers are not old yet: the owner should know the latest read did not work.
+    banners.push({
+      id: 'refresh_failed', tone: 'warn', title: 'We could not refresh your numbers',
+      text: `We tried to get the latest numbers and it did not work, so you are seeing the last ones we have. ${lastUpdated} ${stale ? 'They may be out of date. ' : ''}Open this page again in a minute to try again.`,
+      link: null,
+    });
+  } else if (stale) {
     banners.push({
       id: 'stale', tone: 'warn', title: 'These numbers may be out of date',
-      text: `Last updated ${formatUtc(s.lastUpdatedAt)}. Check again before you act on them.`, link: null,
+      text: `${lastUpdated} Check again before you act on them.`, link: null,
+    });
+  }
+  if (approvalsFailed) banners.push({ id: 'approvals_not_read', tone: 'warn', title: APPROVALS_NOT_READ_TITLE, text: APPROVALS_NOT_READ_TEXT, link: null });
+  if (s.invalidAmounts > 0) {
+    const one = s.invalidAmounts === 1;
+    banners.push({
+      id: 'invalid_amounts', tone: 'warn', title: 'Your totals may be too low',
+      text: `We could not read ${plural(s.invalidAmounts, 'amount')}, so we left ${one ? 'it' : 'them'} out. Gross sales or refunds may be lower than the real figure.`,
+      link: null,
     });
   }
   const sellerItem = o.needsYou.find((i) => i.source.kind === 'seller');
@@ -208,7 +253,7 @@ export function buildOverviewViewModel({ overview: o, businessName, fixtureLabel
       ...to,
     };
   };
-  const primary: PrimaryVM = top ? primaryVm() : { kind: 'calm', label: NOTHING_NEEDS_YOU, text: 'We will show the next thing here as soon as there is one.' };
+  const primary: PrimaryVM = top ? primaryVm() : { kind: 'calm', label: NOTHING_NEEDS_YOU, text: approvalsFailed ? CALM_APPROVALS_NOT_READ : 'We will show the next thing here as soon as there is one.' };
 
   const v = s.visits;
   const d = s.delivery;
@@ -244,7 +289,8 @@ export function buildOverviewViewModel({ overview: o, businessName, fixtureLabel
     title: businessName?.trim() || 'Your business',
     lede: outage && o.state === 'degraded_checkout' ? OUTAGE_LEDE : STATE_LEDE[o.state],
     storeLine,
-    updatedText: `Updated ${formatUtc(s.lastUpdatedAt)}`,
+    updatedText: ago ? `Updated ${ago}` : `Updated ${updatedAt}`,
+    updatedWords: ago ? `${capital(ago)} · ${updatedAt}` : updatedAt,
     demoText: fixtureLabel
       ? `Example data for the "${fixtureLabel}" state. It is not your business.`
       : 'DEMO: this data is held in memory on the server and is lost when it restarts.',

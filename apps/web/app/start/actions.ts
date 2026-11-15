@@ -92,7 +92,17 @@ export async function demoFastForwardAction(): Promise<DemoFastForwardReply> {
   let b = await brandAction(businessId, { kind: 'start', input: { niche: idea.niche, audience: idea.whoToSellTo, productType: idea.whatToSell }, nameIndex: 0 });
   if (!b.ok) return { ok: false, message: `Brand step failed: ${b.message || b.errors.join(', ')}` };
   b = await brandAction(businessId, { kind: 'approve' });
-  if (!b.ok) return { ok: false, message: `Could not approve the demo brand: ${b.message || b.errors.join(', ')}` };
+  if (!b.ok) {
+    // A second demo business gets the same example name, so its store address is already taken by the first one.
+    // Give this one its own address (name unchanged) and approve again.
+    const draft = b.state.versions.find((v) => v.status === 'draft');
+    const suffix = Math.floor(Math.random() * 36 ** 4).toString(36).padStart(4, '0');
+    if (draft) {
+      b = await brandAction(businessId, { kind: 'save', edits: { slug: `${draft.slug.slice(0, 36)}-${suffix}` } });
+      if (b.ok) b = await brandAction(businessId, { kind: 'approve' });
+    }
+  }
+  if (!b.ok) return { ok: false, message: `Could not approve the demo brand: ${[b.message, ...b.errors].filter(Boolean).join(' ')}` };
 
   let p = await productsAction(businessId, { kind: 'create', blueprintId: idea.blueprint.id, inputs });
   if (!p.ok) return { ok: false, message: `Could not build the demo product: ${p.message || p.errors.join(', ')}` };

@@ -35,7 +35,7 @@ export function OverviewView({ vm, fixtureLabel }: { vm: OverviewViewModel; fixt
         <p>{vm.lede}</p>
         <dl className="ao-facts">
           <div><dt>Store address</dt><dd data-testid="store-line">{vm.storeLine.url ? <a className="plg-link" href={vm.storeLine.url}>{vm.storeLine.text}</a> : vm.storeLine.text}</dd></div>
-          <div><dt>Last updated</dt><dd data-testid="updated">{vm.updatedText.replace(/^Updated /, '')}</dd></div>
+          <div><dt>Last updated</dt><dd data-testid="updated">{vm.updatedWords}</dd></div>
         </dl>
         <p className="plg-note" data-testid="demo-note">{vm.demoText}</p>
       </AppIntro>
