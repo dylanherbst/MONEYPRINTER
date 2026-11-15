@@ -32,6 +32,8 @@ import type {
   ActionReply, BrandOp, BrandReply, BrandState, CatalogueOp, CatalogueState, Connection, IdeasResponse, ListingRow, PaymentsState, ProductView, ProductsOp,
   ProductsState, StoreOp, StoreState, VersionView,
 } from './journey-types';
+import { runTestPurchase } from './_server/orders-runtime';
+import type { TestPurchaseResult } from './_server/orders-runtime';
 import { buildStoreDraft, storeProductsFrom } from './store-draft';
 import type { ListingExtras } from './store-draft';
 
@@ -377,4 +379,14 @@ export async function paymentsState(): Promise<PaymentsState> {
     provider: conn(provider), adapterNote: DISCONNECTED_REASON, readiness: real.readiness, gate: real.gate,
     samples: FIXTURE_SELLERS.map((s) => ({ key: s.key, label: s.label, ...gateFor(s.snapshot) })),
   };
+}
+
+// ---------- Payments: one test purchase through the real checkout, paid-event and delivery path (fixtures only) ----------
+export async function testPurchaseAction(businessId: string, buyerEmail: string): Promise<TestPurchaseResult> {
+  const a = availability();
+  if (!a.available) return { ok: false, message: a.reason };
+  if (!checkBusiness(businessId)) return { ok: false, message: NO_BUSINESS };
+  const rt = runtime();
+  if (!rt.businesses.has(businessId)) return { ok: false, message: NO_BUSINESS };
+  return runTestPurchase(rt.orderDemo, { catalogue: rt.catalogue, products: rt.products, slugs: rt.slugs }, businessId, buyerEmail);
 }

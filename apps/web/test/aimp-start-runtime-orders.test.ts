@@ -9,7 +9,7 @@ import { loadOrder, loadOrders, ordersSource } from '../app/app/[business]/order
 import type { OrdersRuntime } from '../app/app/[business]/orders/_server/orders.ts';
 import { NO_ORDER, guardOrderAction } from '../app/app/[business]/orders/_server/order-guard.ts';
 import { buildDetail, buildList } from '../app/app/[business]/orders/view-model.ts';
-import { MAX_SAMPLE_ORDERS, SAMPLE_SELLER_PREFIX, createSampleOrders, createStartOrders } from '../app/start/_server/orders-runtime.ts';
+import { DOWNLOAD_PATH, MAX_SAMPLE_ORDERS, SAMPLE_SELLER_PREFIX, createSampleOrders, createStartOrders, runTestPurchase } from '../app/start/_server/orders-runtime.ts';
 import type { SampleSource, StartOrders } from '../app/start/_server/orders-runtime.ts';
 import { blueprintRegistry } from '../lib/aimp/blueprints/index.ts';
 import { approveBrand, createBrandDraft } from '../lib/aimp/branding/service.ts';
@@ -196,4 +196,60 @@ test('two businesses never see each other\'s orders, in the list, the detail, or
   assert.equal(orderDemo.email.outbox().length, outbox, 'no email went out for the crossed request');
   // each business has its own sample seller
   assert.notEqual(orderDemo.sellers.get(WORKSPACE, 'biz-a')?.stripeAccountId, orderDemo.sellers.get(WORKSPACE, 'biz-b')?.stripeAccountId);
+});
+
+test('test purchase: pays through the real path, delivers the approved file once, and a replayed payment gives no second delivery', async () => {
+  const { orderDemo, src, business } = await setup();
+  await business('biz-t', 'Wedding planning');
+  const r = await runTestPurchase(orderDemo, src, 'biz-t', ' Owner@Example.com ');
+  assert.ok(r.ok, JSON.stringify(r));
+  const x = r.summary;
+  assert.equal(x.buyerEmail, 'owner@example.com');
+  assert.equal(x.orderStatus, 'paid');
+  assert.equal(x.priceMinor, 1400);
+  assert.match(x.productTitle, /Wedding Planning/i);
+  assert.deepEqual(x.deliveries, { grants: 1, emails: 1 });
+  assert.equal(x.replay.secondDelivery, false);
+  assert.equal(x.replay.grants, 1);
+  assert.equal(x.replay.emails, 1);
+  assert.notEqual(x.replay.outcome, 'paid');
+  // the order is paid exactly once in the store, and the fixture seller is labelled sample/demo
+  assert.equal((await orderDemo.orders.get(WORKSPACE, x.orderId))?.status, 'paid');
+  assert.match(orderDemo.sellers.get(WORKSPACE, 'biz-t')?.stripeAccountId ?? '', /sample_demo/);
+});
+
+test('test purchase: the emailed link downloads the approved file, and it is the file the product page offers', async () => {
+  const { orderDemo, src, business } = await setup();
+  const { productId } = await business('biz-d', 'Teacher planning');
+  const r = await runTestPurchase(orderDemo, src, 'biz-d', 'me@example.com');
+  assert.ok(r.ok);
+  assert.ok(r.summary.downloadPath?.startsWith(`${DOWNLOAD_PATH}/`));
+  const token = (r.summary.downloadPath as string).slice(DOWNLOAD_PATH.length + 1);
+  const got = await orderDemo.files.redeem(token);
+  assert.ok(got.ok);
+  const approved = await src.products.getBuyerFile({ workspaceId: WORKSPACE, actorId: OWNER }, productId);
+  assert.equal(got.file.fileName, approved.fileName);
+  assert.deepEqual(Buffer.from(got.file.bytes), Buffer.from(approved.bytes));
+  assert.equal(r.summary.fileName, approved.fileName);
+});
+
+test('test purchase: the same email again returns the same order, a different email is a separate order, and bad input is refused', async () => {
+  const { orderDemo, src, business } = await setup();
+  await business('biz-r', 'Meal planning');
+  const a = await runTestPurchase(orderDemo, src, 'biz-r', 'a@example.com');
+  const again = await runTestPurchase(orderDemo, src, 'biz-r', 'A@example.com');
+  const b = await runTestPurchase(orderDemo, src, 'biz-r', 'b@example.com');
+  assert.ok(a.ok && again.ok && b.ok);
+  assert.equal(again.summary.orderId, a.summary.orderId);
+  assert.notEqual(b.summary.orderId, a.summary.orderId);
+  assert.equal(again.summary.deliveries.emails, 1, 'running it twice still sent one delivery email');
+  for (const bad of ['', 'not-an-email', 'a@b', 42, null]) assert.equal((await runTestPurchase(orderDemo, src, 'biz-r', bad)).ok, false);
+  assert.equal((await runTestPurchase(orderDemo, src, '../nope', 'a@example.com')).ok, false);
+});
+
+test('test purchase: a business with no approved listing is refused and nothing is created', async () => {
+  const { orderDemo, src } = await setup();
+  const r = await runTestPurchase(orderDemo, src, 'biz-empty', 'a@example.com');
+  assert.equal(r.ok, false);
+  assert.equal(orderDemo.email.outbox().length, 0);
 });

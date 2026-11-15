@@ -11,7 +11,7 @@
 // "ready" fixture snapshot), and then buys through the real path: startCheckout -> fixture payment -> signed paid event ->
 // handlePaymentEvent -> fulfilment delivers a link by fixture email. Buyers are `sample-buyer-N@example.test`. No row is written
 // to any store directly, and no lib service contains seeded data.
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import type { CatalogueService } from '../../../lib/aimp/catalogue/service.ts';
 import { paySessionWithFixture } from '../../../lib/aimp/checkout/fixture-events.ts';
 import { createCheckoutService } from '../../../lib/aimp/checkout/service.ts';
@@ -25,7 +25,7 @@ import { grantTokenSigner } from '../../../lib/aimp/fulfilment/link.ts';
 import { createFulfilmentService } from '../../../lib/aimp/fulfilment/service.ts';
 import type { FulfilmentService } from '../../../lib/aimp/fulfilment/service.ts';
 import { createMemoryFulfilmentStore } from '../../../lib/aimp/fulfilment/store.ts';
-import { createMemoryOrderStore, createOrderBook } from '../../../lib/aimp/orders/index.ts';
+import { createMemoryOrderStore, createOrderBook, orderItemId } from '../../../lib/aimp/orders/index.ts';
 import type { OrderStore } from '../../../lib/aimp/orders/index.ts';
 import type { ProductService } from '../../../lib/aimp/products/service.ts';
 import type { ProductStore } from '../../../lib/aimp/products/types.ts';
@@ -141,6 +141,28 @@ async function run(so: StartOrders, src: SampleSource, businessId: string, want:
   const have = so.sampled.get(businessId) ?? [];
   if (have.length >= want) return { ok: true, orderIds: have, created: 0 };
 
+  const prep = await prepareBusiness(so, src, businessId);
+  if (!prep.ok) return prep;
+  const { listing, slug } = prep;
+  const adapter = so.registry.payments.adapter;
+  if (!adapter) return { ok: false, message: 'The fixture payments adapter is off.' };
+  const ids = [...have];
+  for (let n = have.length + 1; n <= want; n++) {
+    const started = await so.checkout.startCheckout({ storeSlug: slug, listingId: listing.listingId, buyerEmail: `sample-buyer-${n}@${SAMPLE_BUYER_DOMAIN}`, idempotencyKey: `sample-${businessId}-${n}` });
+    if (!started.ok) return { ok: false, message: started.message };
+    const event = await paySessionWithFixture(adapter, started.sessionId, FIXTURE_WEBHOOK_SECRET, so.now());
+    const paid = await so.checkout.handlePaymentEvent(event);
+    if (paid.outcome !== 'paid' && paid.outcome !== 'already_paid' && paid.outcome !== 'duplicate_event') return { ok: false, message: `The sample payment was not accepted (${paid.outcome}).` };
+    ids.push(started.orderId);
+    so.sampled.set(businessId, ids);
+  }
+  return { ok: true, orderIds: ids, created: ids.length - have.length };
+}
+
+type Prepared = { ok: true; listing: { listingId: string }; slug: string; title: string; priceMinor: number; fileName: string } | { ok: false; message: string };
+
+/** Everything a purchase of this business's approved listing needs: the approved master stored, the fixture seller registered, the store address known. */
+async function prepareBusiness(so: StartOrders, src: SampleSource, businessId: string): Promise<Prepared> {
   const ctx = { workspaceId: so.workspaceId, businessId, actorUserId: so.actorId, idempotencyKey: `sample:${businessId}` };
   const listing = (await src.catalogue.listApprovedForBusiness(ctx, businessId))[0];
   if (!listing) return { ok: false, message: 'This business has no approved listing yet, so there is nothing to sample-buy.' };
@@ -167,17 +189,65 @@ async function run(so: StartOrders, src: SampleSource, businessId: string, want:
   const slug = own && SLUG.test(own) && (!so.stores.has(own) || so.stores.get(own)?.businessId === businessId) ? own : `${SAMPLE_STORE_PREFIX}${businessId}`;
   so.stores.set(slug, { workspaceId: so.workspaceId, businessId });
 
-  const adapter = so.registry.payments.adapter;
-  if (!adapter) return { ok: false, message: 'The fixture payments adapter is off.' };
-  const ids = [...have];
-  for (let n = have.length + 1; n <= want; n++) {
-    const started = await so.checkout.startCheckout({ storeSlug: slug, listingId: listing.listingId, buyerEmail: `sample-buyer-${n}@${SAMPLE_BUYER_DOMAIN}`, idempotencyKey: `sample-${businessId}-${n}` });
+  return { ok: true, listing, slug, title: price.title, priceMinor: price.priceMinor, fileName: file.fileName };
+}
+
+export interface TestPurchaseSummary {
+  orderId: string;
+  buyerEmail: string;
+  productTitle: string;
+  priceMinor: number;
+  fileName: string;
+  orderStatus: string;
+  /** Signed download path from the delivery email, or null when none was found. */
+  downloadPath: string | null;
+  /** The signed token inside that path, for the download route that reads this same demo store. */
+  downloadToken: string | null;
+  /** Exactly what exists after the first payment. */
+  deliveries: { grants: number; emails: number };
+  /** What the same paid event does when the provider sends it again. */
+  replay: { outcome: string; grants: number; emails: number; secondDelivery: boolean };
+}
+export type TestPurchaseResult = { ok: true; summary: TestPurchaseSummary } | { ok: false; message: string };
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * One test purchase of the business's approved listing through the REAL checkout, paid-event and fulfilment path with FIXTURE
+ * payment and email (no Stripe, no mail leaves the server). Then the same signed paid event is sent again, the way a provider
+ * retries, and the result reports whether a second delivery happened. Safe to call again with the same email: it returns the
+ * same order. Never throws.
+ */
+export async function runTestPurchase(so: StartOrders, src: SampleSource, businessId: string, buyerEmail: unknown): Promise<TestPurchaseResult> {
+  try {
+    if (typeof businessId !== 'string' || !BUSINESS_ID.test(businessId)) return { ok: false, message: 'Unknown business.' };
+    const email = typeof buyerEmail === 'string' ? buyerEmail.trim().toLowerCase() : '';
+    if (!EMAIL.test(email) || email.length > 254) return { ok: false, message: 'Enter an email address like name@example.com. Nothing is sent to it in this test.' };
+    const prep = await prepareBusiness(so, src, businessId);
+    if (!prep.ok) return prep;
+    const adapter = so.registry.payments.adapter;
+    if (!adapter) return { ok: false, message: 'The fixture payments adapter is off.' };
+    const started = await so.checkout.startCheckout({ storeSlug: prep.slug, listingId: prep.listing.listingId, buyerEmail: email, idempotencyKey: `test-purchase:${businessId}:${createHash('sha256').update(email).digest('hex').slice(0, 24)}` });
     if (!started.ok) return { ok: false, message: started.message };
     const event = await paySessionWithFixture(adapter, started.sessionId, FIXTURE_WEBHOOK_SECRET, so.now());
-    const paid = await so.checkout.handlePaymentEvent(event);
-    if (paid.outcome !== 'paid' && paid.outcome !== 'already_paid' && paid.outcome !== 'duplicate_event') return { ok: false, message: `The sample payment was not accepted (${paid.outcome}).` };
-    ids.push(started.orderId);
-    so.sampled.set(businessId, ids);
-  }
-  return { ok: true, orderIds: ids, created: ids.length - have.length };
+    const first = await so.checkout.handlePaymentEvent(event);
+    if (first.outcome !== 'paid' && first.outcome !== 'already_paid' && first.outcome !== 'duplicate_event') return { ok: false, message: `The test payment was not accepted (${first.outcome}).` };
+
+    const ctx = { workspaceId: so.workspaceId, businessId, actorId: so.actorId };
+    const count = async () => ({
+      grants: (await so.files.listGrants(ctx, orderItemId(started.orderId))).length,
+      emails: so.email.outbox().filter((m) => m.to === email && m.text.includes(DOWNLOAD_PATH)).length,
+    });
+    const before = await count();
+    const again = await so.checkout.handlePaymentEvent(event);
+    const after = await count();
+    const order = await so.orders.get(so.workspaceId, started.orderId);
+    const mail = [...so.email.outbox()].reverse().find((m) => m.to === email && m.text.includes(DOWNLOAD_PATH));
+    const link = mail ? new RegExp(`${DOWNLOAD_PATH.replace(/\//g, '\\/')}\\/[A-Za-z0-9._~-]+`).exec(mail.text)?.[0] ?? null : null;
+    return { ok: true, summary: {
+      orderId: started.orderId, buyerEmail: email, productTitle: prep.title, priceMinor: prep.priceMinor, fileName: prep.fileName, orderStatus: order?.status ?? 'unknown',
+      downloadPath: link, downloadToken: link ? link.slice(DOWNLOAD_PATH.length + 1) : null, deliveries: before,
+      replay: { outcome: again.outcome, grants: after.grants, emails: after.emails, secondDelivery: after.grants > before.grants || after.emails > before.emails },
+    } };
+  } catch { return { ok: false, message: 'The test purchase could not be completed.' }; }
 }
