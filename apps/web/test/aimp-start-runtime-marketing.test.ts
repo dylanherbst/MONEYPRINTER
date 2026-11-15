@@ -11,12 +11,13 @@ import { creativeStoresOf, loadCreative } from '../app/app/[business]/marketing/
 import type { CreativeRuntime } from '../app/app/[business]/marketing/creative/_server/creative.ts';
 import { runCreativeOp } from '../app/app/[business]/marketing/creative/_server/creative-guard.ts';
 import { runMarketingOp } from '../app/app/[business]/marketing/_server/marketing-guard.ts';
-import { campaignStoreOf, loadMarketing } from '../app/app/[business]/marketing/_server/marketing.ts';
+import { campaignContext, campaignStoreOf, loadMarketing } from '../app/app/[business]/marketing/_server/marketing.ts';
 import type { MarketingContexts } from '../app/app/[business]/marketing/_server/marketing.ts';
 import { createStartMarketing } from '../app/start/_server/marketing-runtime.ts';
 import { getApprovedBrand } from '../lib/aimp/branding/service.ts';
 import { buildCampaignDemo } from '../lib/aimp/campaigns/demo.ts';
 import { getCampaign } from '../lib/aimp/campaigns/service.ts';
+import { checkLaunchKit } from '../lib/aimp/launch/kit.ts';
 import { DEMO_BUSINESS, DEMO_WORKSPACE, demoCtx } from '../lib/aimp/catalogue/demo.ts';
 import { createSiteVersionStore } from '../lib/aimp/site-versions/store.ts';
 import type { Actor } from '../lib/aimp/site-versions/store.ts';
@@ -112,4 +113,33 @@ test('two businesses never see each other\'s campaign or assets, and a draft for
 test('Operator reads the automation demo source passed by its page, not the runtime (no runtime property is needed)', () => {
   const page = readFileSync(new URL('../app/app/[business]/operator/page.tsx', import.meta.url), 'utf8');
   assert.match(page, /automation: automationSource\(\)/);
+});
+
+test('launch kit: every post names the real product and links to the live shop, and a stale or foreign link is caught', async () => {
+  const { rt, marketing, input } = await setup();
+  assert.equal((await runMarketingOp(input, A, { kind: 'draft', confirmed: true })).ok, true);
+  const kit = await getCampaign({ store: marketing.campaigns }, { workspaceId: DEMO_WORKSPACE, businessId: A });
+  assert.ok(kit);
+  const cctx = await campaignContext(rt, ctx, A);
+  const good = checkLaunchKit(kit.plan, cctx);
+  assert.deepEqual(good.problems, []);
+  assert.ok(good.ok && good.items > 0 && good.products.length > 0);
+  const slug = cctx.store.slug;
+  assert.ok(kit.plan.items.every((i) => i.targetUrl.includes(slug) && i.targetUrl.includes('/products/')), 'each link is a product page of this shop');
+
+  const wrongLink = structuredClone(kit.plan);
+  wrongLink.items[0].targetUrl = 'https://example.com/elsewhere';
+  assert.match(checkLaunchKit(wrongLink, cctx).problems.join(' '), /not to your live product page/);
+  const wrongTitle = structuredClone(kit.plan);
+  wrongTitle.items[0].productTitle = 'Some other product';
+  assert.match(checkLaunchKit(wrongTitle, cctx).problems.join(' '), /but your listing is/);
+  const wrongPrice = structuredClone(kit.plan);
+  wrongPrice.items[0].priceMinor += 100;
+  assert.match(checkLaunchKit(wrongPrice, cctx).problems.join(' '), /old price/);
+  const wrongShop = structuredClone(kit.plan);
+  wrongShop.store.slug = 'someone-elses-shop';
+  assert.match(checkLaunchKit(wrongShop, cctx).problems.join(' '), /different shop/);
+  // a paused shop cannot be linked to
+  const paused = { ...cctx, store: { ...cctx.store, status: 'paused' as const } };
+  assert.equal(checkLaunchKit(kit.plan, paused).ok, false);
 });

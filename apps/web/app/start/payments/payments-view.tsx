@@ -44,7 +44,10 @@ export function PaymentsView() {
 
   const r = payments.readiness;
   return (
-    <JourneyShell {...shell} footer={<GlassButton variant="secondary" href={journeyRoute('store')}>Back to your store</GlassButton>}>
+    <JourneyShell {...shell} footer={<>
+      <GlassButton variant="primary" href={`/app/${encodeURIComponent(journey.businessId)}/marketing`} icon={<GlassIcon name="spark" size={22} tone="deep" />}>Get customers: make my launch kit</GlassButton>
+      <GlassButton variant="secondary" href={journeyRoute('store')}>Back to your store</GlassButton>
+    </>}>
       <AppIntro eyebrow={journey.idea.niche} title="Payments and a test purchase">
         <p>Check what is needed to take real payments, and try one test purchase to see exactly what a buyer would get.</p>
       </AppIntro>
