@@ -12,7 +12,7 @@ import './plant.css';
 import { fontVars } from './fonts';
 
 export const metadata: Metadata = {
-  title: `${site.name} · Start a side hustle without spending weeks building it`,
+  title: `${site.name} · Start a side business without spending weeks building it`,
   description: 'Pick an idea. AI builds your first digital product, shop, checkout and launch content. You approve everything before it goes live.',
   alternates: { canonical: `https://${site.domain}/` },   // the owner approved this page as the public home page (15 Nov 2026)
 };
@@ -21,7 +21,7 @@ export const viewport: Viewport = { themeColor: '#e3dbf6', width: 'device-width'
 /** Every main action opens the real onboarding: welcome, account, goals, then the researched ideas. */
 const START = startRoutes.welcome;
 const SIGN_IN = `${startRoutes.account}?mode=login`;
-const CTA = 'Find my side hustle';
+const CTA = 'Find my side business';
 /** The bottom action bar on phones stays out of the way over these sections (they carry their own button). */
 const STICKY_HIDE = ['#story', '.amp-final', '.amp-footer'];
 const links = [
@@ -107,7 +107,7 @@ export default function PlantLabHome() {
             <Still stage="seed" alt="A floating white seed with a glowing lavender glass core" />
             <div className="amp-wrap amp-chapter-inner">
               <div className="amp-copy">
-                <h1 className="amp-display">Start a side hustle <span className="amp-soft">without spending weeks building it.</span></h1>
+                <h1 className="amp-display">Start a side business <span className="amp-soft">without spending weeks building it.</span></h1>
                 <p className="amp-lead">Pick an idea. AI builds your first product, shop and launch content.</p>
                 <p className="amp-reassure">Free to start. No card needed.</p>
                 <div className="amp-dock">
@@ -199,7 +199,7 @@ export default function PlantLabHome() {
           <Still stage="tree" alt="" />
           <div className="amp-wrap amp-final-inner">
             <div className="amp-glass amp-final-card">
-              <h2 id="final-h" className="amp-h2">Your side hustle starts with one idea.</h2>
+              <h2 id="final-h" className="amp-h2">Your side business starts with one idea.</h2>
               <p className="amp-lead">See ideas that fit your budget and your time before you pay for anything.</p>
               <TrackedLink className="amp-btn amp-btn-primary amp-btn-wide" href={START} event={{ cta: 'final' }}>{CTA}<span className="amp-go"><Icon name="arrowUp" size={20} /></span></TrackedLink>
             </div>

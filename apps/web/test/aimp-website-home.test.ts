@@ -22,9 +22,9 @@ test('no earnings promises, urgency or absolute claims in the site copy', () => 
 
 test('the hero says what it is and every main action opens the real onboarding', () => {
   // The headline is set in two weights, so it is split by a span in the markup.
-  assert.match(page.replace(/<\/?span[^>]*>/g, ''), /Start a side hustle without spending weeks building it\./);
+  assert.match(page.replace(/<\/?span[^>]*>/g, ''), /Start a side business without spending weeks building it\./);
   assert.match(page, /Pick an idea\. AI builds your first product, shop and launch content\./);
-  assert.match(page, /const CTA = 'Find my side hustle';/);
+  assert.match(page, /const CTA = 'Find my side business';/);
   assert.match(page, /const START = startRoutes\.welcome;/);
   assert.equal(startRoutes.welcome, '/start');
   assert.doesNotMatch(copy, /plant-lab\/build/, 'the preview flow folder is not in the repository; nothing may link to it');
