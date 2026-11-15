@@ -3,7 +3,7 @@
 export const site = {
   name: 'AiMoneyPrinter',
   workingName: false,
-  domain: 'aiventra.com.au',
+  domain: 'aimoneyprinter.com',
   supportEmail: 'hello@aiventra.com.au',
   // Draft pricing hypotheses from the business plan §13.1, to be validated with pilot users. Never shown as final.
   plans: [

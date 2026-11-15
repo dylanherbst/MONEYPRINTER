@@ -286,6 +286,21 @@ export class PlantScene {
     this.dirty = true; this.kick();
   }
 
+  /**
+   * Where the level ground under the plant lands on screen, in CSS pixels of the canvas: the centre, and the half
+   * width and half height a flat circle of `radius` world units around the plant projects to. The page draws its
+   * growth ring from this, so the ring always sits under the plant whatever the screen shape.
+   */
+  groundAnchor(radius = 1.45): { x: number; y: number; rx: number; ry: number } {
+    this.camera.updateMatrixWorld();
+    const px = (x: number, z: number) => {
+      const v = this.v1.set(x, 0, z).project(this.camera);
+      return { x: (v.x + 1) / 2 * this.width, y: (1 - v.y) / 2 * this.height };
+    };
+    const c = px(0, 0), side = px(radius, 0), near = px(0, radius), far = px(0, -radius);
+    return { x: c.x, y: (near.y + far.y) / 2, rx: Math.abs(side.x - c.x), ry: Math.abs(near.y - far.y) / 2 };
+  }
+
   private applyPose(pose: Pose) {
     const pulse = Math.max(0, this.pulse.value);
     const pulseY = (1 - Math.min(1, pulse)) * 3.1, pulseOn = pulse > 0.001 ? Math.min(1, pulse * 3) : 0;

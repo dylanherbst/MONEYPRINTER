@@ -17,6 +17,7 @@ export function Example() {
   const pin = preview.marketing.pins[0];
   return (
     <div className="amp-example st" style={coverVars}>
+      <div className="amp-ex-track amp-swipe">
       <article className="amp-glass amp-ex amp-ex-product" aria-labelledby="ex-product">
         <p className="amp-ex-kind"><Icon name="product" size={18} />Your first product</p>
         <div className="amp-ex-product-body">
@@ -58,6 +59,7 @@ export function Example() {
           </div>
         </div>
       </article>
+      </div>
 
       <p className="amp-note amp-ex-note">{previewLabel}. Posts are drafts until you approve them.</p>
     </div>

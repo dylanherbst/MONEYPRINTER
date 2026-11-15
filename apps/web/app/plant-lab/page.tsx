@@ -3,8 +3,9 @@ import { site } from '../../lib/aimp/site-config';
 import { startRoutes } from '../start/flow';
 import { StoryCanvas } from './_scene/story-canvas';
 import { Example } from './example';
-import { Icon, type IconName } from './icons';
+import { Icon } from './icons';
 import { SiteHeader } from './site-header';
+import { StickyCta } from './sticky-cta';
 import { TrackedLink } from './tracked-link';
 import './tokens.css';
 import './plant.css';
@@ -13,14 +14,16 @@ import { fontVars } from './fonts';
 export const metadata: Metadata = {
   title: `${site.name} · Start a side hustle without spending weeks building it`,
   description: 'Pick an idea. AI builds your first digital product, shop, checkout and launch content. You approve everything before it goes live.',
-  robots: { index: false, follow: false }, // lab route until approved for the homepage
+  alternates: { canonical: `https://${site.domain}/` },   // the owner approved this page as the public home page (15 Nov 2026)
 };
-export const viewport: Viewport = { themeColor: '#ddd0ff', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
+export const viewport: Viewport = { themeColor: '#e3dbf6', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
 /** Every main action opens the real onboarding: welcome, account, goals, then the researched ideas. */
 const START = startRoutes.welcome;
 const SIGN_IN = `${startRoutes.account}?mode=login`;
 const CTA = 'Find my side hustle';
+/** The bottom action bar on phones stays out of the way over these sections (they carry their own button). */
+const STICKY_HIDE = ['#story', '.amp-final', '.amp-footer'];
 const links = [
   { href: '#how', label: 'How it works' },
   { href: '#example', label: 'What AI builds' },
@@ -58,10 +61,10 @@ function Waves() {
   );
 }
 
-const steps: { id: string; stage: string; alt: string; icon: IconName; tab: string; title: string; body: string; chips: string[]; note?: string }[] = [
-  { id: 'foundation', stage: 'planted', alt: 'The seed planted in a soft white landscape', icon: 'idea', tab: 'Pick', title: 'Pick an idea', body: 'Tell us a little about you. You get researched ideas with the costs shown, and you choose one.', chips: ['Your budget', 'Your spare hours', 'What you enjoy'] },
-  { id: 'creation', stage: 'sprout', alt: 'A small sprout with two glass leaves', icon: 'build', tab: 'Build', title: 'AI builds it', body: 'Everything is made for the idea you picked, and you review all of it.', chips: ['First product', 'Branded shop', 'Checkout'] },
-  { id: 'growth', stage: 'tree', alt: 'A luminous three-leaf glass tree', icon: 'launch', tab: 'Launch', title: 'Launch when you’re ready', body: 'Publish the shop and approve the launch posts written for you. Nothing goes live without your OK.', chips: ['You approve everything', 'Posts drafted for you'], note: 'Checkout and automatic delivery are in pilot testing. Scheduled posting is coming soon.' },
+const steps: { id: string; stage: string; alt: string; title: string; body: string; chips: string[]; note?: string }[] = [
+  { id: 'foundation', stage: 'planted', alt: 'The seed planted in a soft white landscape', title: 'Pick an idea', body: 'Tell us a little about you. You get researched ideas with the costs shown, and you choose one.', chips: ['Your budget', 'Your spare hours', 'What you enjoy'] },
+  { id: 'creation', stage: 'sprout', alt: 'A small sprout with two glass leaves', title: 'AI builds it', body: 'Everything is made for the idea you picked, and you review all of it.', chips: ['First product', 'Branded shop', 'Checkout'] },
+  { id: 'growth', stage: 'tree', alt: 'A luminous three-leaf glass tree', title: 'Launch when you’re ready', body: 'Publish the shop and approve the launch posts written for you. Nothing goes live without your OK.', chips: ['You approve everything', 'Posts drafted for you'], note: 'Checkout and automatic delivery are in pilot testing. Scheduled posting is coming soon.' },
 ];
 
 const faqs = [
@@ -84,20 +87,27 @@ export default function PlantLabHome() {
           <div className="amp-stage" aria-hidden="true">
             <Waves />
             <Still stage="seed" alt="" />
+            {/* Growth ring: the platform the plant stands on. Its marker moves as you scroll (live 3D scene only). */}
+            <div className="amp-ring">
+              <svg viewBox="-1.04 -1.04 2.08 2.08" preserveAspectRatio="none" focusable="false">
+                <circle className="amp-ring-line" r="1" />
+                <path className="amp-ring-done" d="M-1 0A1 1 0 0 0 -0.809 0.588" />
+              </svg>
+            </div>
             <StoryCanvas storyId="story" />
-            <div className="amp-cue"><span>Scroll to grow</span><i /></div>
+            <div className="amp-ring-marker"><i /><span className="amp-ring-word">Seed</span></div>
           </div>
 
           <div className="amp-chapter amp-chapter-hero" data-chapter="potential">
             <Still stage="seed" alt="A floating white seed with a glowing lavender glass core" />
             <div className="amp-wrap amp-chapter-inner">
               <div className="amp-copy">
-                <h1 className="amp-display"><span className="amp-thin">Start a side hustle</span> without spending weeks building it.</h1>
+                <h1 className="amp-display">Start a side hustle <span className="amp-soft">without spending weeks building it.</span></h1>
                 <p className="amp-lead">Pick an idea. AI builds your first product, shop and launch content.</p>
-                <p className="amp-reassure">Free to start, no card needed.</p>
+                <p className="amp-reassure">Free to start. No card needed.</p>
                 <div className="amp-dock">
                   <TrackedLink className="amp-round" href="#example" event={{ cta: 'hero_secondary' }} label="See what AI builds"><Icon name="play" size={22} /></TrackedLink>
-                  <TrackedLink className="amp-btn amp-btn-primary amp-btn-wide" href={START} event={{ cta: 'hero_primary' }}>{CTA}<Icon name="arrowUp" size={22} /></TrackedLink>
+                  <TrackedLink className="amp-btn amp-btn-primary amp-btn-wide" href={START} event={{ cta: 'hero_primary' }}>{CTA}<span className="amp-go"><Icon name="arrowUp" size={20} /></span></TrackedLink>
                 </div>
               </div>
             </div>
@@ -108,14 +118,13 @@ export default function PlantLabHome() {
             <div className="amp-chapter amp-chapter-step" data-chapter={s.id} key={s.id}>
               <Still stage={s.stage} alt={s.alt} />
               <div className="amp-wrap amp-chapter-inner">
+                <ul className="amp-badges amp-step-badges">{s.chips.map((c) => <li key={c}>{c}</li>)}</ul>
                 <div className="amp-glass amp-step-card">
-                  <p className="amp-sr">Step {i + 1} of {steps.length}</p>
-                  <ol className="amp-tabs" aria-hidden="true">
-                    {steps.map((t, n) => <li key={t.id} className={n === i ? 'is-on' : undefined}>{n === i ? <Icon name={t.icon} size={18} /> : null}{t.tab}</li>)}
-                  </ol>
-                  <h2 className="amp-h2">{s.title}</h2>
+                  <div className="amp-step-head">
+                    <h2 className="amp-h2">{s.title}</h2>
+                    <p className="amp-count">Step <b>{i + 1}</b> of {steps.length}</p>
+                  </div>
                   <p className="amp-lead">{s.body}</p>
-                  <ul className="amp-chips">{s.chips.map((c) => <li key={c}>{c}</li>)}</ul>
                   {s.note ? <p className="amp-note">{s.note}</p> : null}
                   {i === steps.length - 1 ? (
                     <div className="amp-bar">
@@ -143,10 +152,10 @@ export default function PlantLabHome() {
         <section id="pricing" className="amp-section amp-pricing" aria-labelledby="pricing-h">
           <div className="amp-wrap">
             <div className="amp-section-head">
-              <h2 id="pricing-h" className="amp-h2">Free to start. Simple after that.</h2>
+              <h2 id="pricing-h" className="amp-h2">Free to start. <span className="amp-soft">Simple after that.</span></h2>
               <p className="amp-lead">Draft pilot pricing in AUD including GST, and it may change. Stripe charges its own card fee on each sale.</p>
             </div>
-            <ul className="amp-plans">
+            <ul className="amp-plans amp-swipe">
               {site.plans.map((plan) => (
                 <li key={plan.id} className={`amp-glass${plan.id === 'launch' ? ' is-recommended' : ''}`}>
                   <h3>{plan.name}{plan.id === 'launch' ? <span className="amp-tag">Recommended</span> : null}</h3>
@@ -187,11 +196,13 @@ export default function PlantLabHome() {
             <div className="amp-glass amp-final-card">
               <h2 id="final-h" className="amp-h2">Your side hustle starts with one idea.</h2>
               <p className="amp-lead">See ideas that fit your budget and your time before you pay for anything.</p>
-              <TrackedLink className="amp-btn amp-btn-primary amp-btn-wide" href={START} event={{ cta: 'final' }}>{CTA}<Icon name="arrowUp" size={22} /></TrackedLink>
+              <TrackedLink className="amp-btn amp-btn-primary amp-btn-wide" href={START} event={{ cta: 'final' }}>{CTA}<span className="amp-go"><Icon name="arrowUp" size={20} /></span></TrackedLink>
             </div>
           </div>
         </section>
       </main>
+
+      <StickyCta href={START} label={CTA} hideOver={STICKY_HIDE} />
 
       <footer className="amp-footer">
         <div className="amp-wrap amp-footer-inner">

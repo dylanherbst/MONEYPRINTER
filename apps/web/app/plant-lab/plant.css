@@ -8,19 +8,26 @@
   /* The one strong colour treatment: peach to lavender, for the primary action and selected states only. */
   --amp-grad: linear-gradient(118deg, #ffc9a8 0%, #f3b9d4 46%, #bba3f6 100%);
   /* Glassmorphism: a see-through frosted fill, so the colour and the plant behind a card show through it. */
-  --amp-glass-fill: linear-gradient(140deg, rgb(255 255 255 / .5), rgb(255 255 255 / .2) 55%, rgb(255 255 255 / .3));
+  --amp-glass-fill: linear-gradient(140deg, rgb(255 255 255 / .46), rgb(255 255 255 / .16) 55%, rgb(255 255 255 / .28));
   --amp-glass-edge: rgb(255 255 255 / .8);
-  --amp-glass-blur: blur(22px) saturate(170%);
-  --amp-glass-shadow: 0 26px 50px -26px rgb(70 45 140 / .4), 0 2px 8px rgb(70 45 140 / .07), inset 0 1px 0 rgb(255 255 255 / .95), inset 0 -1px 0 rgb(255 255 255 / .3), inset 0 0 26px rgb(255 255 255 / .2);
+  --amp-glass-blur: blur(24px) saturate(140%);
+  --amp-glass-shadow: 0 28px 56px -30px rgb(45 28 110 / .38), 0 2px 8px rgb(70 45 140 / .07), inset 0 1px 0 rgb(255 255 255 / .95), inset 0 -1px 0 rgb(255 255 255 / .3), inset 0 0 26px rgb(255 255 255 / .2);
   --amp-header-h: 56px;
   --amp-safe-top: env(safe-area-inset-top, 0px);
   --amp-safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* Deep plum is the one dark: text, the main action and the recommended plan. Everything else stays light. */
+  --amp-ink: #1d1638; --amp-ink-2: #453d5f; --amp-charcoal: #1d1638; --amp-plum-2: #2c2156;
   font-family: var(--amp-font);
   font-size: 1.0625rem;
   background: var(--amp-bg);
   overflow-x: clip;
 }
-.amp-outfit { --amp-body: 'Outfit Variable', 'Outfit'; }
+.amp-outfit { --amp-body: 'Hanken Grotesk Variable', 'Hanken Grotesk'; --amp-heading: 'Outfit Variable', 'Outfit'; }
+/* Headings, the name and prices are set in Outfit; everything else in Hanken Grotesk. */
+.amp-home :where(h1, h2, h3), .amp-logo, .amp-price, .amp-count b { font-family: var(--amp-heading), var(--amp-font); }
+/* phones: no grey flash on tap, no double-tap zoom delay, and text keeps its size when the phone is turned */
+.amp-home { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.amp-home :where(a, button, summary) { touch-action: manipulation; }
 .amp-sr { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .amp-home ::selection { background: #ddd2fb; color: var(--amp-ink); }
 .amp-home a { color: inherit; }
@@ -30,7 +37,7 @@
    shadow that lifts them off the scene. Text stays deep charcoal, which reads on every tint the page puts behind them. */
 .amp-glass {
   position: relative; isolation: isolate;
-  background: var(--amp-glass-fill); border: 1px solid var(--amp-glass-edge); border-radius: 30px; box-shadow: var(--amp-glass-shadow);
+  background: var(--amp-glass-fill); border: 1px solid var(--amp-glass-edge); border-radius: 28px; box-shadow: var(--amp-glass-shadow);
   -webkit-backdrop-filter: var(--amp-glass-blur); backdrop-filter: var(--amp-glass-blur);
 }
 .amp-glass::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
@@ -42,8 +49,13 @@
 /* buttons */
 .amp-home .amp-btn { min-height: 52px; transition: transform 160ms var(--ease-out), box-shadow 160ms ease, background-color 160ms ease; }
 .amp-home .amp-btn:active { transform: scale(0.97); }
-.amp-home .amp-btn-primary { background: var(--amp-grad); color: var(--amp-ink); border-color: rgb(255 255 255 / .75); box-shadow: 0 14px 30px -14px rgb(150 100 220 / .6), inset 0 1px 0 rgb(255 255 255 / .7); }
-.amp-home .amp-btn-primary:hover { background: var(--amp-grad); box-shadow: 0 18px 34px -14px rgb(150 100 220 / .7), inset 0 1px 0 rgb(255 255 255 / .8); }
+/* The main action is a solid plum pill with white words: the one dark shape on a light screen. */
+.amp-home .amp-btn-primary { background: linear-gradient(150deg, var(--amp-plum-2), var(--amp-ink)); color: #fff; border-color: transparent; box-shadow: 0 18px 32px -16px rgb(29 22 56 / .7), inset 0 1px 0 rgb(255 255 255 / .2); }
+.amp-home .amp-btn-primary:hover { background: linear-gradient(150deg, #382a6c, #241b45); }
+/* the arrow sits in a white disc at the end of the wide pill */
+.amp-go { flex: none; display: inline-grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: #fff; color: var(--amp-ink); box-shadow: 0 6px 14px -8px rgb(0 0 0 / .5); transition: transform 200ms var(--ease-out); }
+.amp-btn:hover .amp-go { transform: translate(2px, -2px); }
+@media (prefers-reduced-motion: reduce) { .amp-go { transition: none; } .amp-btn:hover .amp-go { transform: none; } }
 .amp-home .amp-btn-secondary { background: rgb(255 255 255 / .6); border-color: var(--amp-glass-edge); box-shadow: inset 0 1px 0 #fff, 0 6px 16px -10px rgb(60 40 120 / .25); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 .amp-home .amp-btn-secondary:hover { background: rgb(255 255 255 / .85); }
 .amp-home .amp-btn-lg { min-height: 58px; font-size: 1.06rem; padding-inline: 1.75rem; }
@@ -61,13 +73,13 @@
 .amp-header .amp-logo, .amp-menu-btn { background: linear-gradient(140deg, rgb(255 255 255 / .6), rgb(255 255 255 / .3)); border: 1px solid var(--amp-glass-edge); box-shadow: 0 12px 30px -18px rgb(70 45 140 / .5), inset 0 1px 0 #fff, inset 0 -1px 0 rgb(255 255 255 / .3); -webkit-backdrop-filter: var(--amp-glass-blur); backdrop-filter: var(--amp-glass-blur); }
 .amp-header .amp-logo { min-height: 52px; padding: 0 1.1rem 0 .65rem; border-radius: 999px; }
 .amp-logo { display: inline-flex; align-items: center; gap: .55rem; font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; text-decoration: none; color: var(--amp-ink); margin: 0; min-height: 44px; }
-.amp-mark { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: var(--amp-grad); color: var(--amp-ink); box-shadow: inset 0 1px 0 rgb(255 255 255 / .7); }
+.amp-mark { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: var(--amp-ink); color: #fff; }
 .amp-nav { display: none; gap: 1.6rem; margin-left: auto; font-size: .92rem; }
 .amp-nav a { text-decoration: none; color: var(--amp-ink-2); padding: .75rem 0; }
 .amp-nav a:hover { color: var(--amp-ink); }
 .amp-header-cta { display: none; }
 .amp-menu-btn { appearance: none; font: inherit; cursor: pointer; margin-left: auto; padding: 0; display: inline-grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; color: var(--amp-ink); }
-.amp-header[data-open] .amp-menu-btn { background: var(--amp-grad); }
+.amp-header[data-open] .amp-menu-btn { background: var(--amp-ink); color: #fff; }
 .amp-sheet.amp-glass { background: linear-gradient(140deg, rgb(255 255 255 / .78), rgb(255 255 255 / .6)); }
 .amp-sheet { margin: 8px 12px 0; padding: .5rem .75rem .9rem; display: grid; gap: .6rem; animation: amp-in 220ms var(--ease-out); }
 .amp-sheet[hidden] { display: none; }
@@ -87,19 +99,34 @@
 }
 
 /* type */
-.amp-display { font-size: clamp(2.6rem, 5.2vw, 4.2rem); line-height: 1.04; margin-bottom: 1.25rem; letter-spacing: -0.025em; font-weight: 600; }
-.amp-thin { display: block; font-weight: 300; }
-.amp-h2 { font-size: clamp(1.75rem, 4vw, 3rem); line-height: 1.08; letter-spacing: -0.02em; font-weight: 600; text-wrap: balance; }
+.amp-display { font-size: clamp(2.6rem, 5.2vw, 4.2rem); line-height: 1.05; margin-bottom: 1.25rem; letter-spacing: -0.03em; font-weight: 600; text-wrap: balance; }
+/* the second half of a heading, in a quieter tone */
+.amp-soft { color: #77718f; }
+.amp-h2 { font-size: clamp(1.7rem, 3.4vw, 2.6rem); line-height: 1.1; letter-spacing: -0.025em; font-weight: 600; text-wrap: balance; }
+.amp-home :where(h3) { font-weight: 600; letter-spacing: -0.015em; }
+.amp-home .amp-btn { font-weight: 600; letter-spacing: -0.005em; }
+.amp-reassure { margin: .5rem 0 0; font-size: .9rem; color: #5d5870; }
 .amp-lead { font-size: clamp(1.03rem, 1.4vw, 1.2rem); color: var(--amp-ink-2); line-height: 1.5; max-width: 34rem; text-wrap: pretty; }
-.amp-reassure { margin: .35rem 0 0; font-size: .92rem; color: #5d5870; }
 .amp-note { font-size: .9rem; color: var(--amp-muted); margin-top: 1rem; }
 .amp-small { font-size: .82rem; color: var(--amp-muted); }
 
 /* story: a sticky stage with the 3D scene, and the hero plus three steps scrolling in front of it */
-.amp-story { position: relative; background: #efe7ff; }
+.amp-story { position: relative; background: #efeaf9; }
+/* the last screen of the story fades into the page colour, so the next section starts without a visible edge */
+.amp-story::after { content: ''; position: absolute; inset: auto 0 0; height: 18vh; height: 18svh; background: linear-gradient(to bottom, rgb(247 245 251 / 0), var(--amp-bg)); pointer-events: none; }
 .amp-stage { position: sticky; top: 0; height: 100vh; height: 100svh; margin-bottom: -100vh; margin-bottom: -100svh; overflow: hidden; pointer-events: none;
-  background: radial-gradient(120% 60% at 85% 0%, #c9b6ff 0%, rgb(201 182 255 / 0) 60%), radial-gradient(110% 55% at 0% 100%, #ffcfb4 0%, rgb(255 207 180 / 0) 62%), linear-gradient(180deg, #ddd0ff 0%, #efe7ff 34%, #fbf1f3 62%, #ffe4d4 100%); }
-.amp-waves { mix-blend-mode: soft-light; }
+  background: radial-gradient(120% 60% at 88% 0%, rgb(196 180 245 / .7) 0%, rgb(196 180 245 / 0) 62%), radial-gradient(110% 50% at 0% 100%, rgb(255 208 184 / .7) 0%, rgb(255 208 184 / 0) 62%), linear-gradient(180deg, #e3dbf6 0%, #efeaf9 36%, #f8f3f5 66%, #fbe8dd 100%); }
+/* growth ring: a thin platform ring on the ground under the plant; the marker and the coloured arc follow the scroll */
+.amp-ring, .amp-ring-marker { position: absolute; left: 0; top: 0; opacity: 0; transition: opacity 600ms var(--ease-out); }
+.amp-home[data-scene='on'] :is(.amp-ring, .amp-ring-marker) { opacity: var(--amp-plant-fade, 1); }
+.amp-ring svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.amp-ring-line, .amp-ring-done { fill: none; vector-effect: non-scaling-stroke; }
+.amp-ring-line { stroke: rgb(29 22 56 / .16); stroke-width: 1; }
+.amp-ring-done { stroke: var(--amp-ink); stroke-width: 1.5; stroke-linecap: round; }
+.amp-ring-marker { display: grid; justify-items: center; gap: 5px; padding-top: 0; font-size: .72rem; font-weight: 500; letter-spacing: .01em; color: var(--amp-ink-2); white-space: nowrap; will-change: transform; }
+.amp-ring-marker i { width: 13px; height: 13px; border-radius: 50%; background: var(--amp-ink); border: 3px solid #fff; box-shadow: 0 2px 8px rgb(29 22 56 / .35); margin-top: 18px; }
+.amp-home[data-capture='1'] :is(.amp-ring, .amp-ring-marker) { display: none; }
+.amp-waves { mix-blend-mode: soft-light; opacity: .45; }
 .amp-waves { position: absolute; inset: 0; width: 100%; height: 100%; }
 .amp-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: 0; transition: opacity 600ms var(--ease-out); }
 .amp-stage > .amp-still { position: absolute; inset: 0; transition: opacity 600ms var(--ease-out); }
@@ -113,19 +140,26 @@
 /* Phones: the plant owns the upper part of the screen; the words sit in the calm lower part on a pearl wash. On short
    screens the spacer keeps its minimum, so the chapter grows and scrolls instead of squeezing the type. */
 .amp-copy { padding-top: max(44vh, 17.5rem); padding-top: max(44svh, 17.5rem); }
-.amp-chapter-hero::before { content: ''; position: absolute; inset: 46% 0 0; background: linear-gradient(to bottom, rgb(255 240 232 / 0), rgb(255 238 230 / .55) 45%, rgb(255 232 220 / .7)); pointer-events: none; }
-.amp-chapter-hero .amp-display { font-size: clamp(2.2rem, 10.6vw, 2.9rem); margin-bottom: .7rem; }
+.amp-chapter-hero::before { content: ''; position: absolute; inset: 46% 0 0; background: linear-gradient(to bottom, rgb(250 244 244 / 0), rgb(250 244 244 / .6) 45%, rgb(251 236 228 / .75)); pointer-events: none; }
+.amp-chapter-hero .amp-display { font-size: clamp(2.05rem, 9.8vw, 2.65rem); margin-bottom: .75rem; }
+/* small glass badges: the reassurance above the headline, and each step's details above its card */
+.amp-badges { list-style: none; padding: 0; margin: 0 0 .8rem; display: flex; flex-wrap: wrap; justify-content: center; gap: .35rem; }
+.amp-badges li { display: inline-flex; align-items: center; min-height: 28px; padding: 0 .7rem; border-radius: 999px; font-size: .76rem; color: var(--amp-ink-2);
+  background: rgb(255 255 255 / .45); border: 1px solid rgb(255 255 255 / .8); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.amp-step-badges { margin-bottom: .8rem; }
+@media (min-width: 900px) { .amp-step-badges { justify-content: flex-start; max-width: 30rem; } }
+.amp-step-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .6rem; }
+.amp-step-head .amp-h2 { margin: 0; }
+.amp-count { margin: 0; flex: none; font-size: .8rem; color: #5d5870; font-variant-numeric: tabular-nums; }
+.amp-count b { font-size: 1.05rem; font-weight: 600; color: var(--amp-ink); }
 .amp-chapter-hero .amp-lead { font-size: 1rem; margin-bottom: 0; color: #3d394b; max-width: 21rem; }
 /* the action dock: a round glass button beside one wide primary pill, label on the left and arrow on the right */
 .amp-dock { display: flex; align-items: center; gap: .6rem; margin-top: 1.1rem; }
 .amp-round { flex: none; display: inline-grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; color: var(--amp-ink); text-decoration: none;
   background: linear-gradient(140deg, rgb(255 255 255 / .6), rgb(255 255 255 / .28)); border: 1px solid var(--amp-glass-edge); box-shadow: 0 14px 28px -16px rgb(70 45 140 / .5), inset 0 1px 0 #fff; -webkit-backdrop-filter: var(--amp-glass-blur); backdrop-filter: var(--amp-glass-blur); transition: transform 160ms var(--ease-out); }
 .amp-round:active { transform: scale(0.96); }
-.amp-home .amp-btn-wide { flex: 1 1 auto; min-height: 60px; justify-content: space-between; padding: 0 1.35rem 0 1.6rem; font-size: 1.08rem; }
-/* step tabs, chips and the inner action bar */
-.amp-tabs { list-style: none; padding: 0; margin: 0 0 .9rem; display: flex; gap: .4rem; }
-.amp-tabs li { display: inline-flex; align-items: center; gap: .4rem; min-height: 38px; padding: 0 .95rem; border-radius: 999px; font-size: .9rem; color: #4a4657; background: rgb(255 255 255 / .34); border: 1px solid rgb(255 255 255 / .7); }
-.amp-tabs li.is-on { background: var(--amp-grad); color: var(--amp-ink); font-weight: 600; border-color: rgb(255 255 255 / .85); box-shadow: 0 8px 18px -10px rgb(150 100 220 / .7), inset 0 1px 0 rgb(255 255 255 / .7); }
+.amp-home .amp-btn-wide { flex: 1 1 auto; min-height: 60px; justify-content: space-between; padding: 0 .5rem 0 1.6rem; font-size: 1.08rem; }
+/* chips and the inner action bar */
 .amp-chips { list-style: none; padding: 0; margin: .8rem 0 0; display: flex; flex-wrap: wrap; gap: .4rem; }
 .amp-chips li { padding: .32rem .75rem; border-radius: 999px; font-size: .82rem; color: #3d394b; background: rgb(255 255 255 / .42); border: 1px solid rgb(255 255 255 / .8); box-shadow: inset 0 1px 0 rgb(255 255 255 / .8); }
 .amp-bar { display: grid; grid-template-columns: 1fr 1.45fr; gap: .4rem; margin-top: 1rem; padding: .35rem; border-radius: 999px; background: rgb(255 255 255 / .3); border: 1px solid rgb(255 255 255 / .7); box-shadow: inset 0 1px 0 rgb(255 255 255 / .7); }
@@ -133,14 +167,14 @@
 .amp-home .amp-bar .amp-btn-secondary { background: transparent; border-color: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .amp-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.15rem; }
 .amp-actions .amp-btn { flex: 1 1 100%; }
-.amp-chapter-step .amp-chapter-inner { padding-top: max(52vh, 17rem); padding-top: max(52svh, 17rem); }
+/* the step's badges and card start below the growth ring, so the ring and its marker stay clear */
+.amp-chapter-step .amp-chapter-inner { padding-top: max(57vh, 18rem); padding-top: max(57svh, 18rem); }
 .amp-how-anchor { height: 0; }
-.amp-step-card { padding: 1.1rem 1.15rem 1.15rem; max-width: 30rem; }
-.amp-step-card .amp-h2 { font-size: clamp(1.5rem, 6.4vw, 2.4rem); margin-bottom: .5rem; }
+.amp-step-card { padding: 1.25rem 1.25rem 1.3rem; max-width: 30rem; }
+.amp-step-card .amp-h2 { font-size: clamp(1.3rem, 5.4vw, 1.7rem); letter-spacing: -0.02em; }
 .amp-step-card .amp-lead { font-size: 1rem; margin: 0; }
 .amp-step-card .amp-note { margin: .7rem 0 0; font-size: .85rem; }
 .amp-step-card .amp-btn { width: 100%; margin-top: 1rem; }
-.amp-cue { display: none; }
 
 @media (min-width: 900px) {
   .amp-chapter { align-items: center; }
@@ -151,15 +185,12 @@
   .amp-chapter-hero .amp-lead { font-size: 1.25rem; max-width: 30rem; }
   .amp-dock { margin-top: 2rem; }
   .amp-home .amp-btn-wide { flex: 0 1 auto; min-width: 19rem; }
-  .amp-reassure { margin-top: .6rem; }
   .amp-actions { margin-top: 2rem; gap: .75rem; }
   .amp-actions .amp-btn { flex: 0 1 auto; }
   .amp-chapter-step .amp-chapter-inner { padding-top: 0; }
   .amp-step-card { padding: 1.75rem 1.9rem 2rem; }
   .amp-step-card .amp-lead { font-size: 1.1rem; }
   .amp-step-card .amp-btn { width: auto; }
-  .amp-cue { position: absolute; left: 75%; bottom: 1.5rem; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: .5rem; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--amp-muted); }
-  .amp-cue i { width: 1px; height: 36px; background: linear-gradient(var(--amp-muted), transparent); }
 }
 
 /* static story (reduced motion, no WebGL, or no JavaScript): each chapter shows its own authored frame */
@@ -177,8 +208,7 @@
 
 /* sections after the story: compact, one column on phones, soft coloured light behind the glass */
 .amp-section { position: relative; z-index: 1; padding: clamp(3.25rem, 9vw, 7rem) 0; background:
-  radial-gradient(60% 26% at 100% 8%, rgb(196 176 255 / .75), transparent 72%), radial-gradient(64% 24% at 0% 34%, rgb(255 204 176 / .75), transparent 72%),
-  radial-gradient(60% 24% at 100% 62%, rgb(240 182 214 / .6), transparent 72%), radial-gradient(66% 26% at 0% 92%, rgb(190 172 255 / .7), transparent 72%), var(--amp-bg); }
+  radial-gradient(75% 30% at 100% 36%, rgb(196 180 245 / .5), transparent 70%), radial-gradient(75% 30% at 0% 66%, rgb(255 210 188 / .5), transparent 70%), var(--amp-bg); }
 .amp-section-head { max-width: 44rem; margin-bottom: clamp(1.5rem, 4vw, 3rem); }
 .amp-section-head .amp-h2 { margin-bottom: .75rem; }
 .amp-section-cta { margin-top: 1.5rem; width: 100%; }
@@ -228,10 +258,11 @@
 
 /* example: the product, the shop and the launch post, together */
 .amp-example { display: grid; gap: .9rem; }
+.amp-ex-track { display: grid; gap: .9rem; min-width: 0; }
 .amp-ex { padding: 1.05rem 1.1rem 1.2rem; min-width: 0; }
 .amp-ex h3 { font-size: 1.15rem; letter-spacing: -0.02em; margin-bottom: .3rem; }
 .amp-ex p { margin: 0; color: #3d394b; font-size: .95rem; }
-.amp-ex-kind { display: flex; align-items: center; gap: .5rem; margin: 0 0 .85rem !important; font-size: .78rem !important; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: #5a3fbf !important; }
+.amp-ex-kind { display: flex; align-items: center; gap: .45rem; margin: 0 0 .85rem !important; font-size: .84rem !important; font-weight: 500; color: #5d5870 !important; }
 .amp-ex .st-cover { border-radius: 10px; box-shadow: 0 10px 22px -14px rgb(60 40 120 / .45); }
 .amp-ex-product-body, .amp-ex-post-body { display: grid; grid-template-columns: minmax(0, 104px) minmax(0, 1fr); gap: 1rem; align-items: start; }
 .amp-ex-list { list-style: none; padding: 0; margin: .6rem 0 0; display: grid; gap: .3rem; font-size: .88rem; color: var(--amp-ink-2); }
@@ -251,19 +282,27 @@
 .amp-ex .amp-ex-meta { margin-top: .6rem; font-size: .82rem; color: var(--amp-muted); }
 .amp-ex-note { margin: .2rem 0 0; }
 @media (min-width: 1000px) {
-  .amp-example { grid-template-columns: 1fr 1.15fr 1fr; gap: 1.1rem; align-items: stretch; }
+  .amp-ex-track { grid-template-columns: 1fr 1.15fr 1fr; gap: 1.1rem; align-items: stretch; }
   .amp-ex { padding: 1.4rem 1.5rem 1.6rem; }
-  .amp-ex-note { grid-column: 1 / -1; }
 }
 
 /* pricing */
 .amp-plans { list-style: none; padding: 0; margin: 0; display: grid; gap: .9rem; }
 .amp-plans > li { padding: 1.25rem 1.2rem 1.3rem; display: flex; flex-direction: column; gap: .5rem; }
-/* selected state: the peach-to-lavender edge */
-.amp-plans > li.is-recommended { border: 2px solid transparent; background: linear-gradient(140deg, rgb(255 255 255 / .72), rgb(255 255 255 / .5)) padding-box, var(--amp-grad) border-box; }
+/* the recommended plan is the one dark card on the page, with a white action */
+.amp-plans > li.is-recommended { background: linear-gradient(155deg, #34276a 0%, var(--amp-ink) 70%); border-color: rgb(255 255 255 / .22); color: #fff; box-shadow: 0 34px 60px -28px rgb(29 22 56 / .8), inset 0 1px 0 rgb(255 255 255 / .22); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.amp-plans > li.is-recommended::before { background: radial-gradient(90% 60% at 100% 0%, rgb(187 163 246 / .28), transparent 70%); }
+.amp-plans > li.is-recommended :is(h3, .amp-price) { color: #fff; }
+.amp-plans > li.is-recommended .amp-plan-blurb { color: rgb(255 255 255 / .8); }
+.amp-plans > li.is-recommended ul { color: rgb(255 255 255 / .92); }
+.amp-plans > li.is-recommended ul .amp-i { color: #cdbdf7; }
+.amp-home .amp-plans > li.is-recommended .amp-price span { color: rgb(255 255 255 / .7); }
+.amp-home .amp-plans > li.is-recommended .amp-btn-primary { background: #fff; color: var(--amp-ink); box-shadow: 0 14px 26px -14px rgb(0 0 0 / .6); }
+.amp-home .amp-plans > li.is-recommended .amp-btn-primary:hover { background: #f1ebff; }
+.amp-plans > li.is-recommended :focus-visible { outline-color: #fff; }
 .amp-plans h3 { font-size: 1.1rem; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
-.amp-tag { font-size: .72rem; font-weight: 650; padding: .25rem .6rem; border-radius: 999px; background: var(--amp-grad); color: var(--amp-ink); letter-spacing: 0; }
-.amp-price { font-size: 2rem; letter-spacing: -0.03em; font-weight: 680; margin: 0; font-variant-numeric: tabular-nums; }
+.amp-tag { font-size: .72rem; font-weight: 500; padding: .22rem .6rem; border-radius: 999px; background: rgb(255 255 255 / .12); border: 1px solid rgb(255 255 255 / .35); color: #fff; letter-spacing: 0; }
+.amp-price { font-size: 2rem; letter-spacing: -0.03em; font-weight: 600; margin: 0; font-variant-numeric: tabular-nums; }
 .amp-price span { font-size: .95rem; font-weight: 500; color: var(--amp-muted); letter-spacing: 0; }
 .amp-plan-blurb { color: var(--amp-ink-2); margin: 0; font-size: .97rem; }
 .amp-plans ul { list-style: none; padding: 0; margin: .25rem 0 .75rem; display: grid; align-content: start; gap: .45rem; font-size: .93rem; flex: 1; }
@@ -281,8 +320,10 @@
 
 /* faq */
 .amp-faq { display: grid; gap: 1rem; }
-.amp-faq details { border-bottom: 1px solid var(--amp-line); }
-.amp-faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 1rem; min-height: 56px; padding: .9rem 0; font-size: 1.08rem; font-weight: 620; letter-spacing: -0.015em; }
+.amp-faq > div { display: grid; gap: .6rem; }
+.amp-faq details { padding: 0 1.15rem; border-radius: 20px; background: var(--amp-glass-fill); border: 1px solid var(--amp-glass-edge); box-shadow: 0 18px 36px -26px rgb(45 28 110 / .5), inset 0 1px 0 rgb(255 255 255 / .95); -webkit-backdrop-filter: var(--amp-glass-blur); backdrop-filter: var(--amp-glass-blur); }
+.amp-faq details[open] { background: linear-gradient(140deg, rgb(255 255 255 / .7), rgb(255 255 255 / .42)); }
+.amp-faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 1rem; min-height: 60px; padding: .9rem 0; font-size: 1.02rem; font-weight: 600; letter-spacing: -0.01em; }
 .amp-faq summary::-webkit-details-marker { display: none; }
 .amp-faq summary .amp-i { transition: transform 200ms var(--ease-out); color: var(--amp-muted); }
 .amp-faq details[open] summary .amp-i { transform: rotate(180deg); }
@@ -298,7 +339,7 @@
 .amp-final-card .amp-h2 { margin-bottom: .6rem; }
 .amp-final-card .amp-lead { margin-bottom: 1.1rem; font-size: 1rem; }
 .amp-final-card .amp-btn { width: 100%; }
-.amp-final { background: linear-gradient(180deg, var(--amp-bg) 0%, #efe7ff 40%, #ffe4d4 100%); }
+.amp-final { background: linear-gradient(180deg, var(--amp-bg) 0%, #efeaf9 40%, #f8ece6 78%, var(--amp-bg) 100%); }
 @media (min-width: 900px) {
   .amp-final { align-items: center; min-height: 88vh; }
   .amp-final > .amp-still { inset: 0; }
@@ -315,7 +356,7 @@
 .amp-footer a { text-underline-offset: 3px; }
 
 /* still capture mode (?still=p): only the scene */
-.amp-home[data-capture='1'] .amp-header, .amp-home[data-capture='1'] .amp-cue, .amp-home[data-capture='1'] .amp-chapter, .amp-home[data-capture='1'] .amp-waves { visibility: hidden; }
+.amp-home[data-capture='1'] .amp-header, .amp-home[data-capture='1'] .amp-chapter, .amp-home[data-capture='1'] .amp-waves { visibility: hidden; }
 .amp-home[data-capture='1'] .amp-stage > .amp-still { display: none; }
 
 /* Anchor targets clear the floating header. The steps start a full screen, so their anchor needs no offset. */
@@ -327,3 +368,27 @@
 /* The main action's label stays on one line, also on the narrowest phones. */
 .amp-home .amp-btn-wide { white-space: nowrap; gap: .75rem; }
 @media (max-width: 360px) { .amp-home .amp-btn-wide { padding: 0 1rem 0 1.2rem; font-size: 1rem; } .amp-round { width: 56px; height: 56px; } }
+
+/* Phones: sets of cards (the sample, the plans) are one swipeable row with the next card showing at the edge, so a
+   long stack becomes a single screen. Each card snaps into place; the row runs to both screen edges. */
+@media (max-width: 719px) {
+  .amp-swipe { display: flex; grid-template-columns: none; gap: .75rem; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scroll-padding-inline: 1rem;
+    margin: 0 -1rem -1.25rem; padding: .25rem 1rem 2.25rem; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .amp-swipe::-webkit-scrollbar { display: none; }
+  .amp-swipe > * { flex: 0 0 86%; scroll-snap-align: start; min-width: 0; }
+  .amp-swipe:focus-visible { outline-offset: -4px; }
+}
+
+/* Phones: the main action in a glass bar at the bottom of the screen, after the opening story */
+.amp-sticky { position: fixed; inset: auto 0 0; z-index: 15; padding: .6rem max(.75rem, env(safe-area-inset-right, 0px)) calc(var(--amp-safe-bottom) + .6rem) max(.75rem, env(safe-area-inset-left, 0px));
+  background: linear-gradient(to bottom, rgb(247 245 251 / .55), rgb(247 245 251 / .85)); border-top: 1px solid rgb(255 255 255 / .8); -webkit-backdrop-filter: var(--amp-glass-blur); backdrop-filter: var(--amp-glass-blur);
+  transform: translateY(110%); visibility: hidden; transition: transform 320ms var(--ease-out), visibility 0s 320ms; }
+.amp-sticky[data-show] { transform: none; visibility: visible; transition: transform 320ms var(--ease-out); }
+.amp-home .amp-sticky .amp-btn { width: 100%; min-height: 54px; }
+@media (prefers-reduced-motion: reduce) { .amp-sticky, .amp-sticky[data-show] { transition: none; } }
+@media (min-width: 900px) { .amp-sticky { display: none; } }
+@media (max-width: 899px) { .amp-footer { padding-bottom: calc(var(--amp-safe-bottom) + 3rem); } }
+
+/* room under the last step's card for its shadow, so the next section does not cut it off */
+.amp-story > .amp-chapter-step:last-of-type .amp-chapter-inner { padding-bottom: calc(var(--amp-safe-bottom) + 3.25rem); }
+@media (min-width: 900px) { .amp-story > .amp-chapter-step:last-of-type .amp-chapter-inner { padding-bottom: 0; } }

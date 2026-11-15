@@ -31,10 +31,12 @@ test('the hero says what it is and every main action opens the real onboarding',
   assert.doesNotMatch(copy, /\/workspace/, 'the old VENTRA workspace is not part of this product');
 });
 
-test('the brand comes from site-config, the page is not indexed and unfinished features are labelled', () => {
+test('the brand comes from site-config, the page is the public home page and unfinished features are labelled', () => {
   assert.equal(site.name, 'AiMoneyPrinter');
   assert.doesNotMatch(copy, /Seedline|AiMoneyPrinter/, 'pages read the name from site-config');
-  assert.match(page, /robots: \{ index: false, follow: false \}/);
+  assert.equal(site.domain, 'aimoneyprinter.com');
+  assert.doesNotMatch(page, /index: false/, 'the owner approved this page as the public home page on 15 Nov 2026');
+  assert.match(page, /alternates: \{ canonical: `https:\/\/\$\{site\.domain\}\/` \}/);
   assert.match(page, /in pilot testing/);
   assert.match(page, /Draft pilot pricing/);
 });
