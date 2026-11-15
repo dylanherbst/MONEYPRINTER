@@ -345,8 +345,10 @@ export class PlantScene {
       const size = k * lift;
       leaf.group.scale.setScalar(size);
       leaf.group.rotation.set(0, 0, leaf.fold * 0.7 * (1 - k) * (1 - k));
-      // keep the pivot fixed: position = pivot - R·S·pivot
-      leaf.group.position.copy(pivot).sub(this.v2.copy(pivot).multiplyScalar(size).applyEuler(leaf.group.rotation));
+      // keep the fork on the trunk: position = anchor - R·S·(the fork in the leaf's own geometry). A leaf with no sprout
+      // pose (the third leaf) is modelled at its tree position, while its anchor still follows the morphing trunk.
+      const own = leaf.meshes[0].morphTargetInfluences ? pivot : leaf.pivotTree;
+      leaf.group.position.copy(pivot).sub(this.v2.copy(own).multiplyScalar(size).applyEuler(leaf.group.rotation));
     });
 
     // ground lights sit on the level ground under the subject
