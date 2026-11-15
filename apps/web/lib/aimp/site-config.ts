@@ -2,6 +2,10 @@
 // AiMoneyPrinter on 15 Nov 2026 (it was the placeholder "Seedline"); a legal and Stripe name check is still open.
 export const site = {
   name: 'AiMoneyPrinter',
+  // Said with the name wherever it stands alone (page titles, link previews, the footer, ads), so the first thing anyone
+  // reads is what the product does: it builds a side business with you. It makes no promise about money.
+  descriptor: 'the side business builder',
+  tagline: 'Side business quick start',
   workingName: false,
   domain: 'aimoneyprinter.com',
   supportEmail: 'hello@aiventra.com.au',

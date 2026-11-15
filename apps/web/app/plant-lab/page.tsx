@@ -12,8 +12,13 @@ import './plant.css';
 import { fontVars } from './fonts';
 
 export const metadata: Metadata = {
-  title: `${site.name} · Start a side business without spending weeks building it`,
-  description: 'Pick an idea. AI builds your first digital product, shop, checkout and launch content. You approve everything before it goes live.',
+  title: `${site.name}: ${site.descriptor} · ${site.tagline}`,
+  description: `${site.tagline}. Pick an idea and AI drafts your first digital product, shop and launch content. You approve everything before it goes live. No promise of earnings.`,
+  openGraph: {
+    type: 'website', url: `https://${site.domain}/`, siteName: `${site.name}: ${site.descriptor}`,
+    title: 'Start a side business without spending weeks building it',
+    description: 'Pick an idea. AI drafts your first product, shop and launch content. You approve everything. Free to start.',
+  },
   alternates: { canonical: `https://${site.domain}/` },   // the owner approved this page as the public home page (15 Nov 2026)
 };
 export const viewport: Viewport = { themeColor: '#e3dbf6', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
@@ -211,7 +216,7 @@ export default function PlantLabHome() {
 
       <footer className="amp-footer">
         <div className="amp-wrap amp-footer-inner">
-          <p className="amp-logo"><img className="amp-mark" src="/brand/aimp-logo.webp" alt={site.name} width={32} height={32} decoding="async" /></p>
+          <p className="amp-logo"><img className="amp-mark" src="/brand/aimp-logo.webp" alt="" width={32} height={32} decoding="async" /><span className="amp-brandline">{site.name}: {site.descriptor}</span></p>
           <p><a href={SIGN_IN}>Sign in</a> · Questions? <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a></p>
           <p className="amp-small">Pilot pricing and features are being tested and may change. Nothing on this site is financial advice or a promise of earnings.</p>
         </div>

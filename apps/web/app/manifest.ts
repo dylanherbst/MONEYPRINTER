@@ -9,7 +9,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: '/start',
     name: site.name,
     short_name: site.name,
-    description: 'Start a side business: pick an idea and AI builds your first product, shop and launch content.',
+    description: `${site.tagline}: pick an idea and AI drafts your first product, shop and launch content.`,
     start_url: '/start',
     scope: '/',
     display: 'standalone',
