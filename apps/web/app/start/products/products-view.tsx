@@ -94,6 +94,7 @@ export function ProductsView() {
           { label: 'Paper sizes', value: 'A4 and US Letter' },
           { label: 'File', value: `ZIP, ${kb(latest.fileBytes)}` },
         ]} />
+        {latest.fileHash ? <p><a className="plg-link" data-target="large" data-testid="sample" href={fileHref(`version=${encodeURIComponent(latest.id)}&sample=1`)} target="_blank" rel="noreferrer">Open the free sample (PDF, a few pages)</a></p> : null}
         {latest.fileHash ? <p><a className="plg-link" data-target="large" data-testid="preview" href={fileHref(`version=${encodeURIComponent(latest.id)}`)}>Download this exact file to check it (ZIP)</a></p> : null}
         <div className="plg-stack" data-gap="2">
           <p className="plg-eyebrow">Automatic checks</p>

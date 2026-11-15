@@ -2,7 +2,7 @@
 import { PAPER, PdfDocument } from './pdf.ts';
 import type { PaperSize } from './pdf.ts';
 import { allPages, validateProductSpec } from './spec.ts';
-import type { ProductSpec, TemplateKind } from './spec.ts';
+import type { ProductSpec, SpecPage, TemplateKind } from './spec.ts';
 import { drawPage } from './templates.ts';
 import { createZip } from './zip.ts';
 import { ProductFactoryError } from './generate.ts';
@@ -29,6 +29,36 @@ export function renderProductPdf(spec: ProductSpec, size: PaperSize): RenderedPd
     }
   }
   return { size, fileName: `${slugify(spec.title)}-${size === 'a4' ? 'a4' : 'us-letter'}.pdf`, bytes: doc.build(), pageCount: doc.pageCount, pages };
+}
+
+export const SAMPLE_MAX_PAGES = 3;
+
+/**
+ * A short free sample: the cover plus the first page of each other kind of page, up to SAMPLE_MAX_PAGES. Pages are drawn
+ * exactly as in the full product (same numbers, same total) so what a buyer sees in the sample is what they get.
+ * A single PDF, not a ZIP, so it opens straight away on a phone.
+ */
+export function renderSamplePdf(spec: ProductSpec, size: PaperSize = 'a4'): RenderedPdf {
+  const check = validateProductSpec(spec);
+  if (!check.ok) throw new ProductFactoryError('The product spec is not valid, so no sample was rendered.', check.errors);
+  const paper = PAPER[size];
+  const flat: { page: SpecPage; section: string; no: number }[] = [];
+  let n = 0;
+  for (const section of spec.sections) for (const page of section.pages) { n++; flat.push({ page, section: section.title, no: n }); }
+  const seen = new Set<TemplateKind>();
+  const firsts = flat.filter((f) => !seen.has(f.page.template) && (seen.add(f.page.template), true));
+  // The cover always leads; then the pages that show off the product best, with how-to and notes last.
+  const showcase: TemplateKind[] = ['month', 'week', 'checklist', 'tracker', 'year-glance', 'prompts', 'howto', 'notes'];
+  const rank = (t: TemplateKind) => (t === 'cover' ? -1 : showcase.indexOf(t));
+  const chosen = [...firsts].sort((x, y) => rank(x.page.template) - rank(y.page.template)).slice(0, SAMPLE_MAX_PAGES).sort((x, y) => x.no - y.no);
+  const doc = new PdfDocument({ title: `${spec.title} (free sample)`, subject: spec.subtitle, author: 'VENTRA Product Factory' });
+  const pages: RenderedPageInfo[] = [];
+  for (const f of chosen) {
+    const page = doc.addPage(paper.width, paper.height);
+    drawPage({ page, spec, pageNo: f.no, pageCount: flat.length }, f.page);
+    pages.push({ page: f.no, template: f.page.template, section: f.section, heading: f.page.heading });
+  }
+  return { size, fileName: `${slugify(spec.title)}-sample.pdf`, bytes: doc.build(), pageCount: doc.pageCount, pages };
 }
 
 export interface ClaimCheck { ok: boolean; problems: string[] }
