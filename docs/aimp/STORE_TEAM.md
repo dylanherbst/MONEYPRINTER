@@ -17,3 +17,10 @@ Order status -> verified lookup (sender email must match; wrong reference never 
 2. Resend download through the existing owner-orders action after approval.
 3. Review asker (timer from delivery) and cart follow-up (re-check before send).
 4. Home: "Yesterday" metrics, "Waits for you", Ops log.
+
+## AI workflow runner (added 15 Nov 2026)
+Every AI workflow (order status, receptionist, review replies, later Setter) goes through one runner, `lib/aimp/storeops/agent.ts`:
+- A spec cannot be registered above `draft`. Sending, refunds and spend are owner-run code, never a model.
+- The model sees only verified facts plus the buyer's text wrapped as untrusted data, and has no tools that change anything.
+- Its answer must parse to the expected shape and pass the spec's guard (own links only, no promises). Otherwise: standard reply or hand-off to the owner, with the reason recorded.
+- Provider seam `AgentModel`: tests use a fake; with no `ANTHROPIC_API_KEY` the shop runs on templates. First spec: `receptionist.ts`. To add a workflow: define the spec, add its catalogue entry, add tests with a fake model.
