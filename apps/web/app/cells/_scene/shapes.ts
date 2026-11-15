@@ -10,6 +10,8 @@ export interface Formation {
   tilt: number;
   /** Vertical offset after tilting, so the formation sits where the copy leaves room. */
   lift: number;
+  /** 0 hides the cells in this formation; they fade in as they travel to the next one. Default 1. */
+  opacity?: number;
   make: (n: number, rand: () => number) => Float32Array;
 }
 
@@ -30,15 +32,17 @@ function gauss(rand: () => number): number {
   return Math.sqrt(-2 * Math.log(rand() + 1e-9)) * Math.cos(TAU * rand());
 }
 
-/** Loose field of cells filling the screen: the opening state. */
+/** The opening state: no cells on screen. They wait out of sight around the edges and only appear, fading in,
+ * as they gather into the first column. */
 const field: Formation = {
-  id: 'field', spin: 0.03, tilt: 0, lift: 0,
+  id: 'field', spin: 0.03, tilt: 0, lift: 0, opacity: 0,
   make(n, rand) {
     const out = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) {
-      out[i * 3] = (rand() * 2 - 1) * 1.7;
-      out[i * 3 + 1] = (rand() * 2 - 1) * 2.8;
-      out[i * 3 + 2] = -3.2 + rand() * 4.4;
+      const side = rand() < 0.5 ? -1 : 1;
+      out[i * 3] = side * (1.8 + rand() * 1.8);
+      out[i * 3 + 1] = (rand() * 2 - 1) * 3;
+      out[i * 3 + 2] = -2.5 + rand() * 3.5;
     }
     return out;
   },

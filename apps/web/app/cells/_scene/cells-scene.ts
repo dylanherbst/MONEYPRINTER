@@ -8,7 +8,7 @@ import type { CellSettings } from './settings';
 const vertex = /* glsl */ `
   attribute vec3 aTarget;
   attribute vec3 aRand;
-  uniform float uMix, uTime, uSpinA, uSpinB, uTiltA, uTiltB, uLiftA, uLiftB, uSize, uDpr, uScale;
+  uniform float uMix, uOpA, uOpB, uTime, uSpinA, uSpinB, uTiltA, uTiltB, uLiftA, uLiftB, uSize, uDpr, uScale;
   varying float vTone;
   varying float vAlpha;
 
@@ -37,7 +37,7 @@ const vertex = /* glsl */ `
     gl_Position = projectionMatrix * mv;
     gl_PointSize = uSize * uDpr * (0.55 + aRand.x * 1.0) * 26.0 / -mv.z;
     vTone = aRand.y;
-    vAlpha = clamp(1.25 - (-mv.z - 5.0) * 0.14, 0.3, 1.0);
+    vAlpha = clamp(1.25 - (-mv.z - 5.0) * 0.14, 0.3, 1.0) * mix(uOpA, uOpB, t);
   }
 `;
 
@@ -74,7 +74,7 @@ export class CellsScene {
       transparent: true,
       depthWrite: false,
       uniforms: {
-        uMix: { value: 0 }, uTime: { value: 0 },
+        uMix: { value: 0 }, uOpA: { value: 1 }, uOpB: { value: 1 }, uTime: { value: 0 },
         uSpinA: { value: 0 }, uSpinB: { value: 0 }, uTiltA: { value: 0 }, uTiltB: { value: 0 },
         uLiftA: { value: 0 }, uLiftB: { value: 0 },
         uSize: { value: 1 }, uDpr: { value: 1 }, uScale: { value: 1 }, uOpacity: { value: 0.9 },
@@ -150,6 +150,7 @@ export class CellsScene {
     u.uSpinA.value = a.spin; u.uSpinB.value = b.spin;
     u.uTiltA.value = a.tilt; u.uTiltB.value = b.tilt;
     u.uLiftA.value = a.lift; u.uLiftB.value = b.lift;
+    u.uOpA.value = a.opacity ?? 1; u.uOpB.value = b.opacity ?? 1;
     this.renderer.render(this.scene, this.camera);
   }
 
