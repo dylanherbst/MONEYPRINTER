@@ -7,6 +7,7 @@ import { TrackedLink } from './tracked-link';
 import './tokens.css';
 import './plant.css';
 import { fontVars } from './fonts';
+import { primaryEntry } from '../../lib/aimp/entry';
 
 
 export const metadata: Metadata = {
@@ -64,7 +65,7 @@ export default function PlantLabHome() {
             <a href="#pricing">Pricing</a>
             <a href="#faq">FAQ</a>
           </nav>
-          <TrackedLink className="amp-btn amp-btn-primary amp-btn-sm" href={BUILD} event={{ cta: 'header' }}>Build My AI Business</TrackedLink>
+          <TrackedLink className="amp-btn amp-btn-primary amp-btn-sm" href={primaryEntry.href} event={{ cta: 'header' }}>{primaryEntry.label}</TrackedLink>
         </div>
       </header>
 
@@ -85,7 +86,7 @@ export default function PlantLabHome() {
                 <p className="amp-lead">No coding. No complicated setup. Just choose an idea and our AI will build your online business from start to launch, with our niche and product finder guided by our Profitability Calculator.</p>
                 <p className="amp-journey">Your journey from 9–5 to financial freedom starts here…</p>
                 <div className="amp-actions">
-                  <TrackedLink className="amp-btn amp-btn-primary" href={BUILD} event={{ cta: 'hero_primary' }}>Build My AI Business</TrackedLink>
+                  <TrackedLink className="amp-btn amp-btn-primary" href={primaryEntry.href} event={{ cta: 'hero_primary' }}>{primaryEntry.label}</TrackedLink>
                   <TrackedLink className="amp-btn amp-btn-secondary" href="#watch" event={{ cta: 'hero_secondary' }}>Watch AI Build a Business</TrackedLink>
                 </div>
                 <p className="amp-reassure">Simple setup. Guided launch. You stay in control.</p>
@@ -116,7 +117,7 @@ export default function PlantLabHome() {
               <div className="amp-copy">
                 <h2 className="amp-h2">Built to launch. Designed to sell.</h2>
                 <p className="amp-lead">Real, downloadable products. A branded store on its own web address. Checkout into your own Stripe account. You approve all of it before it goes live.</p>
-                <TrackedLink className="amp-btn amp-btn-primary" href={BUILD} event={{ cta: 'stage_creation' }}>Create My Business</TrackedLink>
+                <TrackedLink className="amp-btn amp-btn-primary" href={primaryEntry.href} event={{ cta: 'stage_creation' }}>{primaryEntry.label}</TrackedLink>
               </div>
             </div>
           </div>
@@ -127,7 +128,7 @@ export default function PlantLabHome() {
               <div className="amp-copy">
                 <h2 className="amp-h2">Build once. Automate what comes next.</h2>
                 <p className="amp-lead">Paid orders deliver themselves. Approved posts go out on schedule. A daily check tells you what needs your attention, and you can pause anything.</p>
-                <TrackedLink className="amp-btn amp-btn-primary" href={BUILD} event={{ cta: 'stage_growth' }}>Activate My Business</TrackedLink>
+                <TrackedLink className="amp-btn amp-btn-primary" href={primaryEntry.href} event={{ cta: 'stage_growth' }}>{primaryEntry.label}</TrackedLink>
                 <p className="amp-note">Checkout and automatic delivery are in pilot testing with a small group first.</p>
               </div>
             </div>
@@ -256,7 +257,7 @@ export default function PlantLabHome() {
           <div className="amp-wrap amp-final-inner">
             <h2 id="final-h" className="amp-display">Your next business starts here.</h2>
             <p className="amp-lead">See your business before you pay for anything.</p>
-            <TrackedLink className="amp-btn amp-btn-primary" href={BUILD} event={{ cta: 'final' }}>Get Started</TrackedLink>
+            <TrackedLink className="amp-btn amp-btn-primary" href={primaryEntry.href} event={{ cta: 'final' }}>{primaryEntry.label}</TrackedLink>
           </div>
         </section>
       </main>

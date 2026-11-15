@@ -3,6 +3,7 @@ import { GlassButton, GlassIcon, OnboardingLayout } from '../design-system/aimp-
 import { site } from '../../lib/aimp/site-config';
 import { DemoFastForwardHeader } from './demo-fast-forward';
 import { startRoutes } from './flow';
+import { primaryEntry } from '../../lib/aimp/entry';
 
 export const metadata: Metadata = { title: `Welcome · ${site.name}` };
 
@@ -15,7 +16,7 @@ export default function StartWelcome() {
       header={<DemoFastForwardHeader />}
       footer={
         <>
-          <GlassButton variant="primary" href={startRoutes.account} icon={<GlassIcon name="spark" size={22} tone="deep" />}>Get started</GlassButton>
+          <GlassButton variant="primary" href={startRoutes.account} icon={<GlassIcon name="spark" size={22} tone="deep" />}>{primaryEntry.label}</GlassButton>
           <GlassButton variant="secondary" href={`${startRoutes.account}?mode=login`}>I already have an account</GlassButton>
           <p className="plg-note start-legal">Free to start, no card needed. Nothing is published or charged without your approval.</p>
         </>
