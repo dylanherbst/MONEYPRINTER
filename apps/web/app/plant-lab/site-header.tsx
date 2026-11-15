@@ -30,7 +30,6 @@ export function SiteHeader({ name, cta, signIn, links }: SiteHeaderProps) {
       <div className="amp-wrap amp-header-inner">
         <a className="amp-logo" href="#top" aria-label={`${name} home`} onClick={close}>
           <img className="amp-mark" src="/brand/aimp-logo.webp" alt="" width={32} height={32} decoding="async" />
-          {name}
         </a>
         <nav className="amp-nav" aria-label="Main">
           {links.map((l) => <a key={l.href} href={l.href}>{l.label}</a>)}
