@@ -43,6 +43,6 @@ test('domain routing: aiventra.com.au serves /site and aimoneyprinter.com serves
   const root = beforeFiles.filter((r: { source: string }) => r.source === '/');
   const hostsTo = (destination: string) => root.filter((r: { destination: string }) => r.destination === destination).map((r: { has: { value: string }[] }) => r.has[0].value).sort();
   assert.deepEqual(hostsTo('/site'), ['aiventra.com.au', 'www.aiventra.com.au']);
-  assert.deepEqual(hostsTo('/plant-lab'), ['aimoneyprinter.com', 'www.aimoneyprinter.com']);
-  assert.ok(beforeFiles.every((r: { has?: unknown[]; destination: string }) => r.has && (r.destination.startsWith('/site') || r.destination === '/plant-lab')));
+  assert.deepEqual(hostsTo('/cells'), ['aimoneyprinter.com', 'www.aimoneyprinter.com']);
+  assert.ok(beforeFiles.every((r: { has?: unknown[]; destination: string }) => r.has && (r.destination.startsWith('/site') || r.destination === '/cells')));
 });
