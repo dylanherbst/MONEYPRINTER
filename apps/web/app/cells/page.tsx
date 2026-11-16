@@ -67,14 +67,11 @@ export default function CellsPage() {
           </div>
         </section>
 
-        <section className="cells-ch cells-ch-split cells-step" data-chapter="horizon" aria-labelledby="cells-h-launch">
-          <div className="cells-copy">
+        <section className="cells-ch cells-ch-top" data-chapter="horizon" aria-label="Launch">
+          <div className="cells-stat">
             <p className="cells-label">Step 3 of 3</p>
-            <h2 id="cells-h-launch">Everything points at one thing: your first sale.</h2>
-          </div>
-          <div className="cells-copy cells-copy-low">
-            <p>Launch posts are drafted and checked before anything goes out. You approve, then they publish on time.</p>
-            <a className="cells-btn" href={START}>{primaryEntry.label}<span className="cells-go" aria-hidden="true">→</span></a>
+            <p className="cells-big">1st</p>
+            <p>sale is what everything points at. Launch posts are drafted and checked before anything goes out; you approve, then they publish on time.</p>
           </div>
         </section>
 

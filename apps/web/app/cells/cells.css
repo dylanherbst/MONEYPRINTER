@@ -37,6 +37,8 @@
 .cells-ch-hero { justify-content: center; text-align: center; padding-bottom: 48px; }
 .cells-ch-low { justify-content: flex-end; padding-bottom: 72px; }
 .cells-ch-mid { justify-content: center; }
+/* Step 3 sits at the top so the horizon of cells stays clear below it. */
+.cells-ch-top { justify-content: flex-start; padding-top: 104px; }
 .cells-ch-split { justify-content: space-between; text-align: center; padding-bottom: 56px; }
 
 /* The app's base styles colour headings and labels for its dark theme; this page sets its own. */
@@ -48,7 +50,6 @@
 .cells-copy { max-width: 26rem; margin: 0 auto; display: grid; gap: 14px; justify-items: center; }
 .cells-lede { font-size: 1.06rem; line-height: 1.5; color: var(--cells-ink-2); max-width: 22rem; }
 .cells-copy-low p { font-size: 1.02rem; line-height: 1.5; color: var(--cells-ink-2); max-width: 21rem; }
-.cells-step .cells-copy-low p { font-size: 1.33rem; line-height: 1.4; max-width: 24rem; }
 
 .cells-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: .86rem; font-weight: 600; color: var(--cells-ink-2); }
 .cells-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cells-accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--cells-accent) 18%, transparent); }
@@ -140,6 +141,6 @@
 /* Wider screens get a first pass only; the desktop layout is the next step. */
 @media (min-width: 900px) {
   .cells-ch { padding-left: 8vw; padding-right: 8vw; }
-  .cells-ch-low, .cells-ch-mid { align-items: flex-start; }
+  .cells-ch-low, .cells-ch-mid, .cells-ch-top { align-items: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) { .cells { transition: none; } }
