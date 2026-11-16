@@ -144,7 +144,7 @@ export function CellsStage() {
                 ))}
               </div>
 
-              {([['bg', 'Background'], ['c1', 'Cell colour'], ['c2', 'Second cell colour']] as const).map(([k, label]) => (
+              {([['bg', 'Background'], ['wave', 'Wave colour'], ['c1', 'Cell colour'], ['c2', 'Second cell colour']] as const).map(([k, label]) => (
                 <label key={k} className="cells-field">
                   <span>{label}</span>
                   <span className="cells-colour">
@@ -155,7 +155,7 @@ export function CellsStage() {
                 </label>
               ))}
 
-              {([['count', 'Number of cells', (v: number) => `${v}k`], ['size', 'Cell size', (v: number) => `${v.toFixed(2)}×`], ['speed', 'Motion', (v: number) => (v === 0 ? 'Still' : `${v.toFixed(2)}×`)]] as const).map(([k, label, fmt]) => (
+              {([['count', 'Number of cells', (v: number) => `${v}k`], ['size', 'Cell size', (v: number) => `${v.toFixed(2)}×`], ['speed', 'Motion', (v: number) => (v === 0 ? 'Still' : `${v.toFixed(2)}×`)], ['waveAmt', 'Wave strength', (v: number) => (v === 0 ? 'Off' : `${Math.round(v * 100)}%`)]] as const).map(([k, label, fmt]) => (
                 <label key={k} className="cells-field">
                   <span>{label} <b>{fmt(settings[k])}</b></span>
                   <input type="range" min={limits[k].min} max={limits[k].max} step={limits[k].step} value={settings[k]}

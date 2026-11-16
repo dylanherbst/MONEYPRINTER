@@ -54,12 +54,44 @@ const fragment = /* glsl */ `
   }
 `;
 
+// Background: soft light waves across the screen, each with a crisp-ish top edge that fades out below,
+// drifting slowly with time and a little with scroll. Drawn behind the cells in the same canvas.
+const waveVertex = /* glsl */ `
+  void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }
+`;
+const waveFragment = /* glsl */ `
+  uniform vec3 uBg, uWave;
+  uniform float uAmt, uTime, uProg;
+  uniform vec2 uRes;
+  float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+  void main() {
+    vec2 uv = gl_FragCoord.xy / uRes;
+    float x = uv.x * (uRes.x / uRes.y) * 1.6;
+    float w = 0.0;
+    for (int i = 0; i < 3; i++) {
+      float fi = float(i);
+      float centre = 0.18 + 0.3 * fi + 0.05 * sin(uProg * 0.9 + fi * 2.1);
+      float y = centre
+        + 0.07 * sin(x * 2.1 + uTime * 0.22 + fi * 1.7)
+        + 0.035 * sin(x * 4.7 - uTime * 0.16 + fi * 0.9);
+      float d = uv.y - y;
+      float spread = d > 0.0 ? 0.0025 : 0.03 + 0.012 * fi;
+      w += (0.85 - 0.18 * fi) * exp(-d * d / spread);
+    }
+    w = clamp(w, 0.0, 1.0) * uAmt;
+    vec3 col = mix(uBg, uWave, w);
+    col += (hash(gl_FragCoord.xy) - 0.5) / 255.0;
+    gl_FragColor = vec4(col, 1.0);
+  }
+`;
+
 export class CellsScene {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(35, 1, 0.1, 50);
   private points: THREE.Points | null = null;
   private material: THREE.ShaderMaterial;
+  private waveMaterial: THREE.ShaderMaterial;
   private shapes: Float32Array[] = [];
   private segment = -1;
   private count = 0;
@@ -81,6 +113,20 @@ export class CellsScene {
         uC1: { value: new THREE.Color() }, uC2: { value: new THREE.Color() },
       },
     });
+    this.waveMaterial = new THREE.ShaderMaterial({
+      vertexShader: waveVertex,
+      fragmentShader: waveFragment,
+      depthTest: false,
+      depthWrite: false,
+      uniforms: {
+        uBg: { value: new THREE.Color() }, uWave: { value: new THREE.Color() },
+        uAmt: { value: 0 }, uTime: { value: 0 }, uProg: { value: 0 }, uRes: { value: new THREE.Vector2(1, 1) },
+      },
+    });
+    const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.waveMaterial);
+    backdrop.frustumCulled = false;
+    backdrop.renderOrder = -1;
+    this.scene.add(backdrop);
   }
 
   get formationCount(): number { return formations.length; }
@@ -91,6 +137,10 @@ export class CellsScene {
     u.uC1.value.set(`#${s.c1}`);
     u.uC2.value.set(`#${s.c2}`);
     u.uSize.value = s.size;
+    const w = this.waveMaterial.uniforms;
+    w.uBg.value.set(`#${s.bg}`);
+    w.uWave.value.set(`#${s.wave}`);
+    w.uAmt.value = s.waveAmt;
     // On a light page cells are drawn as solid dots; on a dark page they add up to a glow.
     const blending = darkBackground ? THREE.AdditiveBlending : THREE.NormalBlending;
     if (this.material.blending !== blending) { this.material.blending = blending; this.material.needsUpdate = true; }
@@ -124,6 +174,7 @@ export class CellsScene {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.material.uniforms.uDpr.value = dpr;
+    this.waveMaterial.uniforms.uRes.value.set(width * dpr, height * dpr);
     // Formations are authored to about 2.1 units wide; fit that to the screen width on phones, cap it on wide screens.
     const halfH = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * this.camera.position.z;
     const halfW = halfH * this.camera.aspect;
@@ -146,6 +197,8 @@ export class CellsScene {
     const u = this.material.uniforms;
     const a = formations[seg]; const b = formations[seg + 1];
     u.uMix.value = p - seg;
+    this.waveMaterial.uniforms.uTime.value = time;
+    this.waveMaterial.uniforms.uProg.value = p;
     u.uTime.value = time;
     u.uSpinA.value = a.spin; u.uSpinB.value = b.spin;
     u.uTiltA.value = a.tilt; u.uTiltB.value = b.tilt;
@@ -157,6 +210,7 @@ export class CellsScene {
   dispose(): void {
     this.points?.geometry.dispose();
     this.material.dispose();
+    this.waveMaterial.dispose();
     this.renderer.dispose();
   }
 }
