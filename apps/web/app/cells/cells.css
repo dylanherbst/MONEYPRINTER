@@ -3,7 +3,7 @@
   --cells-bg: #ffffff;
   --cells-accent: #6d28d9;
   --cells-ink: #1d1638;
-  --cells-ink-2: #4a4366;
+  --cells-ink-2: #2f2848;
   --cells-line: rgba(29, 22, 56, 0.12);
   --cells-font: 'Hanken Grotesk Variable', 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --cells-head: 'Outfit Variable', 'Outfit', var(--cells-font);
@@ -56,6 +56,14 @@
 
 /* A big number with its sentence, set like a figure caption beside the formation. */
 .cells-stat { max-width: 20rem; display: grid; gap: 6px; }
+/* Sentences that sit over the cells get a soft frosted backing: the cells behind blur slightly and fade towards
+   the page colour, so the text reads without hiding the shape. */
+.cells-stat, .cells-copy-low {
+  padding: 14px 16px; border-radius: 22px;
+  background: color-mix(in srgb, var(--cells-bg) 58%, transparent);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.cells-stat { margin-left: -16px; }
 .cells-stat p:last-child { font-size: 1.33rem; line-height: 1.4; color: var(--cells-ink-2); }
 .cells-big { font-family: var(--cells-head); font-size: 6.75rem; line-height: .9; font-weight: 500; letter-spacing: -0.05em; color: var(--cells-ink); }
 
