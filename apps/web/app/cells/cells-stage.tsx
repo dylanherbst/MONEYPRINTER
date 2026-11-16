@@ -85,8 +85,9 @@ export function CellsStage() {
       tops = chapters.map((c) => c.getBoundingClientRect().top + window.scrollY);
       if (paid) {
         const r = paid.getBoundingClientRect();
-        // Scroll position at which the Getting paid heading sits in the middle of the screen.
-        paidCentreY = r.top + window.scrollY + r.height / 2 - window.innerHeight / 2;
+        // Scroll position at which the Getting paid heading is a little below the middle of the screen (68% down):
+        // the cells finish the logo there and turn solid purple by the time the heading reaches the middle.
+        paidCentreY = r.top + window.scrollY + r.height / 2 - window.innerHeight * 0.68;
       }
     };
     measure();
@@ -100,7 +101,7 @@ export function CellsStage() {
       while (i < tops.length - 1 && y >= tops[i + 1]) i++;
       if (i >= scene.formationCount - 1) return scene.formationCount - 1;
       const vh = window.innerHeight;
-      // The cells finish forming the logo exactly as the Getting paid heading reaches the middle of the screen.
+      // The cells finish forming the logo as the Getting paid heading comes up towards the middle of the screen.
       if (i === logoChapter && Number.isFinite(paidCentreY)) {
         return i + smooth(0, 1, (y - (paidCentreY - 0.55 * vh)) / (0.55 * vh));
       }
@@ -111,13 +112,13 @@ export function CellsStage() {
       return i + smooth(from, to, u);
     };
 
-    // From that same moment the logo turns solid purple straight away, over a quarter of a screen of scrolling,
+    // From that same moment the logo turns solid purple straight away, within a sixth of a screen of scrolling,
     // then takes on the brand colours over the next half screen.
     const ending = () => {
       if (!Number.isFinite(paidCentreY) || pinned !== null) return undefined;
       const vh = window.innerHeight;
       const d = window.scrollY - paidCentreY;
-      return { fuse: smooth(0, 1, d / (0.25 * vh)), brand: smooth(0, 1, (d - 0.35 * vh) / (0.45 * vh)) };
+      return { fuse: smooth(0, 1, d / (0.17 * vh)), brand: smooth(0, 1, (d - 0.3 * vh) / (0.45 * vh)) };
     };
 
     let raf = 0;
