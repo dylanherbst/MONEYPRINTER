@@ -86,7 +86,8 @@ const waveFragment = /* glsl */ `
 `;
 
 // The solid logo the cells turn into at the very end. It sits exactly where the logo formation is (same size, sway
-// and lift) and appears through a fine-grained dissolve, so it reads as the cells fusing into one shape.
+// and lift) and appears through a fine-grained dissolve, so it reads as the cells fusing into one shape: first as a
+// light purple, then warming into the brand logo's own colours.
 const solidVertex = /* glsl */ `
   uniform float uTime, uSway, uLift, uScale;
   varying vec2 vUv;
@@ -104,21 +105,28 @@ const solidVertex = /* glsl */ `
 const solidFragment = /* glsl */ `
   uniform sampler2D uMap;
   uniform vec3 uColor;
-  uniform float uSolid;
+  uniform float uSolid, uBrand;
   varying vec2 vUv;
   float hash(vec2 p) { return fract(sin(dot(p, vec2(41.31, 289.17))) * 15731.743); }
   void main() {
-    float mask = texture2D(uMap, vUv).a;
+    vec4 logo = texture2D(uMap, vUv);
+    float mask = logo.a;
     float grain = hash(floor(vUv * 90.0));
     float shown = smoothstep(grain - 0.12, grain + 0.12, uSolid * 1.24 - 0.12);
     float a = mask * shown;
     if (a < 0.003) discard;
-    gl_FragColor = vec4(uColor, a);
+    gl_FragColor = vec4(mix(uColor, logo.rgb, uBrand), a);
   }
 `;
 
-/** Scroll progress over which the cells fuse into the solid logo: the end of the last morph. */
-const SOLID_FROM = 0.55;
+/** Parts of the last morph: the cells fuse into a light purple logo, which then takes on the brand colours. */
+const SOLID_FROM = 0.45;
+const SOLID_TO = 0.72;
+const BRAND_FROM = 0.74;
+const smooth01 = (e0: number, e1: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
+};
 
 export class CellsScene {
   private renderer: THREE.WebGLRenderer;
@@ -169,7 +177,7 @@ export class CellsScene {
     // Same proportions and height as the logo formation (1.95 units tall).
     const logoH = 1.95;
     const logoW = logoH * (574 / 640);
-    const map = new THREE.TextureLoader().load('/brand/aimp-logo-mask.png');
+    const map = new THREE.TextureLoader().load('/brand/aimp-logo-solid.webp');
     map.colorSpace = THREE.NoColorSpace;
     map.anisotropy = 4;
     this.solidMaterial = new THREE.ShaderMaterial({
@@ -179,7 +187,7 @@ export class CellsScene {
       depthWrite: false,
       depthTest: false,
       uniforms: {
-        uMap: { value: map }, uColor: { value: new THREE.Color() }, uSolid: { value: 0 },
+        uMap: { value: map }, uColor: { value: new THREE.Color() }, uSolid: { value: 0 }, uBrand: { value: 0 },
         uTime: { value: 0 }, uSway: { value: 0 }, uLift: { value: 0 }, uScale: { value: 1 },
       },
     });
@@ -207,7 +215,9 @@ export class CellsScene {
     if (this.material.blending !== blending) { this.material.blending = blending; this.material.needsUpdate = true; }
     this.cellOpacity = darkBackground ? 0.75 : 0.85;
     u.uOpacity.value = this.cellOpacity;
-    this.solidMaterial.uniforms.uColor.value.set(`#${s.c1}`);
+    // A lighter version of the main cell colour for the first, plain solid logo.
+    // Kept as plain sRGB values (no conversion) so it mixes evenly with the logo image's own colours.
+    this.solidMaterial.uniforms.uColor.value.setHex(parseInt(s.c1, 16), THREE.LinearSRGBColorSpace).lerp(new THREE.Color(1, 1, 1), 0.42);
     const n = Math.round(s.count * 1000);
     if (n !== this.count) this.build(n);
   }
@@ -264,11 +274,12 @@ export class CellsScene {
     this.waveMaterial.uniforms.uProg.value = p;
 
     // At the end of the last morph the cells fuse into the solid logo and fade out underneath it.
-    const fuse = seg === last - 1 ? Math.min(1, Math.max(0, (p - seg - SOLID_FROM) / (1 - SOLID_FROM))) : 0;
-    const fused = fuse * fuse * (3 - 2 * fuse);
+    const end = seg === last - 1 ? p - seg : 0;
+    const fused = smooth01(SOLID_FROM, SOLID_TO, end);
     this.solid.visible = fused > 0.001;
     const s = this.solidMaterial.uniforms;
     s.uSolid.value = fused;
+    s.uBrand.value = smooth01(BRAND_FROM, 1, end);
     s.uTime.value = time;
     s.uSway.value = b.sway ?? 0;
     s.uLift.value = b.lift;
