@@ -15,6 +15,10 @@ export interface Formation {
   opacity?: number;
   /** Gentle side-to-side turn, radians, for flat shapes that should not spin all the way round. */
   sway?: number;
+  /** Fixed random seed, so two formations can share exactly the same cell positions. */
+  seed?: number;
+  /** Arriving at this formation, cells travel straight without loosening first. */
+  calm?: boolean;
   make: (n: number, rand: () => number) => Float32Array;
 }
 
@@ -206,20 +210,17 @@ function logoPoints(n: number, rand: () => number, loose: number): Float32Array 
   return out;
 }
 
-/** The logo starting to form: the cells have found its shape but are still loose around it. */
-const logoForming: Formation = {
-  id: 'logo-forming', spin: 0, sway: 0.25, tilt: 0, lift: 0.15,
-  make: (n, rand) => logoPoints(n, rand, 0.065),
-};
-
-/** The logo, formed. */
+/** The logo in cells. Formed by the time you reach the Getting paid chapter. */
 const logo: Formation = {
-  id: 'logo', spin: 0, sway: 0.3, tilt: 0, lift: 0.1,
+  id: 'logo', spin: 0, sway: 0.3, tilt: 0, lift: 0.1, seed: 4242,
   make: (n, rand) => logoPoints(n, rand, 0.012),
 };
+
+/** The same cells, held still while they fuse into the solid logo (purple first, then the brand colours). */
+const logoSolid: Formation = { ...logo, id: 'logo-solid', calm: true };
 
 /** Formations not in the sequence right now, kept so they can come back: ring, galaxy. */
 export const spareFormations: Formation[] = [ring, galaxy];
 
-// After step 3 the cells slowly gather into the logo over the last two chapters.
-export const formations: Formation[] = [field, vortex, helix, horizon, logoForming, logo];
+// The cells form the logo by the end of step 3, then fuse into the solid logo through the Getting paid chapter.
+export const formations: Formation[] = [field, vortex, helix, horizon, logo, logoSolid];

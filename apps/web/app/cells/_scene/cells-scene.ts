@@ -8,7 +8,7 @@ import type { CellSettings } from './settings';
 const vertex = /* glsl */ `
   attribute vec3 aTarget;
   attribute vec3 aRand;
-  uniform float uMix, uOpA, uOpB, uTime, uSpinA, uSpinB, uSwayA, uSwayB, uTiltA, uTiltB, uLiftA, uLiftB, uSize, uDpr, uScale;
+  uniform float uMix, uBulge, uOpA, uOpB, uTime, uSpinA, uSpinB, uSwayA, uSwayB, uTiltA, uTiltB, uLiftA, uLiftB, uSize, uDpr, uScale;
   varying float vTone;
   varying float vAlpha;
 
@@ -28,7 +28,7 @@ const vertex = /* glsl */ `
     vec3 b = place(aTarget, uTime * uSpinB + sin(uTime * 0.45) * uSwayB, uTiltB, uLiftB);
     vec3 p = mix(a, b, t);
     // Cells loosen while travelling, then settle.
-    p += (aRand - 0.5) * 0.9 * sin(t * 3.14159);
+    p += (aRand - 0.5) * uBulge * sin(t * 3.14159);
     // A slow individual drift so a still formation still breathes.
     float ph = aRand.z * 40.0;
     p += 0.022 * vec3(sin(uTime * 0.7 + ph), cos(uTime * 0.9 + ph * 1.3), sin(uTime * 0.6 + ph * 0.7));
@@ -120,9 +120,9 @@ const solidFragment = /* glsl */ `
 `;
 
 /** Parts of the last morph: the cells fuse into a light purple logo, which then takes on the brand colours. */
-const SOLID_FROM = 0.45;
-const SOLID_TO = 0.72;
-const BRAND_FROM = 0.74;
+const SOLID_FROM = 0.05;
+const SOLID_TO = 0.55;
+const BRAND_FROM = 0.5;
 const smooth01 = (e0: number, e1: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
   return t * t * (3 - 2 * t);
@@ -152,7 +152,7 @@ export class CellsScene {
       transparent: true,
       depthWrite: false,
       uniforms: {
-        uMix: { value: 0 }, uOpA: { value: 1 }, uOpB: { value: 1 }, uTime: { value: 0 },
+        uMix: { value: 0 }, uBulge: { value: 0.9 }, uOpA: { value: 1 }, uOpB: { value: 1 }, uTime: { value: 0 },
         uSpinA: { value: 0 }, uSpinB: { value: 0 }, uSwayA: { value: 0 }, uSwayB: { value: 0 }, uTiltA: { value: 0 }, uTiltB: { value: 0 },
         uLiftA: { value: 0 }, uLiftB: { value: 0 },
         uSize: { value: 1 }, uDpr: { value: 1 }, uScale: { value: 1 }, uOpacity: { value: 0.9 },
@@ -224,7 +224,7 @@ export class CellsScene {
 
   private build(n: number): void {
     this.count = n;
-    this.shapes = formations.map((f, i) => f.make(n, seeded(101 + i * 7919)));
+    this.shapes = formations.map((f, i) => f.make(n, seeded(f.seed ?? 101 + i * 7919)));
     const rand = seeded(7);
     const r = new Float32Array(n * 3);
     for (let i = 0; i < r.length; i++) r[i] = rand();
@@ -291,6 +291,7 @@ export class CellsScene {
     u.uTiltA.value = a.tilt; u.uTiltB.value = b.tilt;
     u.uLiftA.value = a.lift; u.uLiftB.value = b.lift;
     u.uOpA.value = a.opacity ?? 1; u.uOpB.value = b.opacity ?? 1;
+    u.uBulge.value = b.calm ? 0 : 0.9;
     this.renderer.render(this.scene, this.camera);
   }
 
