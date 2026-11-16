@@ -8,7 +8,7 @@ import type { CellSettings } from './settings';
 const vertex = /* glsl */ `
   attribute vec3 aTarget;
   attribute vec3 aRand;
-  uniform float uMix, uBulge, uOpA, uOpB, uTime, uSpinA, uSpinB, uSwayA, uSwayB, uTiltA, uTiltB, uLiftA, uLiftB, uSize, uDpr, uScale;
+  uniform float uMix, uShiftA, uShiftB, uBulge, uOpA, uOpB, uTime, uSpinA, uSpinB, uSwayA, uSwayB, uTiltA, uTiltB, uLiftA, uLiftB, uSize, uDpr, uScale;
   varying float vTone;
   varying float vAlpha;
 
@@ -33,6 +33,7 @@ const vertex = /* glsl */ `
     float ph = aRand.z * 40.0;
     p += 0.022 * vec3(sin(uTime * 0.7 + ph), cos(uTime * 0.9 + ph * 1.3), sin(uTime * 0.6 + ph * 0.7));
     p *= uScale;
+    p.x += mix(uShiftA, uShiftB, t);
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     gl_Position = projectionMatrix * mv;
     gl_PointSize = uSize * uDpr * (0.55 + aRand.x * 1.0) * 26.0 / -mv.z;
@@ -89,7 +90,7 @@ const waveFragment = /* glsl */ `
 // and lift) and appears through a fine-grained dissolve, so it reads as the cells fusing into one shape: first as a
 // light purple, then warming into the brand logo's own colours.
 const solidVertex = /* glsl */ `
-  uniform float uTime, uSway, uLift, uScale;
+  uniform float uTime, uSway, uLift, uScale, uShift;
   varying vec2 vUv;
   void main() {
     vUv = uv;
@@ -99,6 +100,7 @@ const solidVertex = /* glsl */ `
     p = vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z);
     p.y += uLift;
     p *= uScale;
+    p.x += uShift;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
   }
 `;
@@ -138,6 +140,7 @@ export class CellsScene {
   private solidMaterial: THREE.ShaderMaterial;
   private solid: THREE.Mesh;
   private cellOpacity = 0.85;
+  private sideShift = 0;
   private shapes: Float32Array[] = [];
   private segment = -1;
   private count = 0;
@@ -152,7 +155,7 @@ export class CellsScene {
       transparent: true,
       depthWrite: false,
       uniforms: {
-        uMix: { value: 0 }, uBulge: { value: 0.9 }, uOpA: { value: 1 }, uOpB: { value: 1 }, uTime: { value: 0 },
+        uMix: { value: 0 }, uShiftA: { value: 0 }, uShiftB: { value: 0 }, uBulge: { value: 0.9 }, uOpA: { value: 1 }, uOpB: { value: 1 }, uTime: { value: 0 },
         uSpinA: { value: 0 }, uSpinB: { value: 0 }, uSwayA: { value: 0 }, uSwayB: { value: 0 }, uTiltA: { value: 0 }, uTiltB: { value: 0 },
         uLiftA: { value: 0 }, uLiftB: { value: 0 },
         uSize: { value: 1 }, uDpr: { value: 1 }, uScale: { value: 1 }, uOpacity: { value: 0.9 },
@@ -188,7 +191,7 @@ export class CellsScene {
       depthTest: false,
       uniforms: {
         uMap: { value: map }, uColor: { value: new THREE.Color() }, uSolid: { value: 0 }, uBrand: { value: 0 },
-        uTime: { value: 0 }, uSway: { value: 0 }, uLift: { value: 0 }, uScale: { value: 1 },
+        uTime: { value: 0 }, uSway: { value: 0 }, uLift: { value: 0 }, uScale: { value: 1 }, uShift: { value: 0 },
       },
     });
     this.solid = new THREE.Mesh(new THREE.PlaneGeometry(logoW, logoH), this.solidMaterial);
@@ -252,6 +255,9 @@ export class CellsScene {
     const halfH = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * this.camera.position.z;
     const halfW = halfH * this.camera.aspect;
     this.material.uniforms.uScale.value = Math.min(1.15, Math.max(0.7, halfW / 1.05));
+    // Wide screens: formations marked `side` move into the right half (centred around 70% across).
+    const aspect = width / height;
+    this.sideShift = aspect > 1.15 ? halfW * 0.42 : 0;
   }
 
   /** progress runs from 0 (first formation) to formations.length - 1 (last). */
@@ -287,6 +293,7 @@ export class CellsScene {
     s.uTime.value = time;
     s.uSway.value = b.sway ?? 0;
     s.uLift.value = b.lift;
+    s.uShift.value = b.side ? this.sideShift : 0;
     s.uScale.value = u.uScale.value;
     u.uOpacity.value = this.cellOpacity * (1 - fused);
     u.uTime.value = time;
@@ -294,6 +301,7 @@ export class CellsScene {
     u.uSwayA.value = a.sway ?? 0; u.uSwayB.value = b.sway ?? 0;
     u.uTiltA.value = a.tilt; u.uTiltB.value = b.tilt;
     u.uLiftA.value = a.lift; u.uLiftB.value = b.lift;
+    u.uShiftA.value = a.side ? this.sideShift : 0; u.uShiftB.value = b.side ? this.sideShift : 0;
     u.uOpA.value = a.opacity ?? 1; u.uOpB.value = b.opacity ?? 1;
     u.uBulge.value = b.calm ? 0 : 0.9;
     this.renderer.render(this.scene, this.camera);

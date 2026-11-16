@@ -138,9 +138,24 @@
 .cells-tune-actions button { flex: 1; min-height: 42px; border-radius: 12px; border: 0; background: #1d1638; color: #fff; font: 600 .88rem var(--cells-font); cursor: pointer; }
 .cells-tune-actions .cells-ghost { flex: 0 0 auto; padding: 0 16px; background: rgba(29, 22, 56, .07); color: #1d1638; }
 
-/* Wider screens get a first pass only; the desktop layout is the next step. */
+/* Wide screens: copy on the left, the formation on the right (the scene moves it there). The hero stays centred. */
 @media (min-width: 900px) {
   .cells-ch { padding-left: 8vw; padding-right: 8vw; }
-  .cells-ch-low, .cells-ch-mid, .cells-ch-top { align-items: flex-start; }
+  .cells h1 { font-size: clamp(3.4rem, 5.2vw, 5rem); }
+  .cells h2 { font-size: clamp(2.6rem, 3.6vw, 3.6rem); }
+  .cells-ch-hero .cells-copy { max-width: 52rem; }
+  .cells-lede { font-size: 1.25rem; max-width: 34rem; }
+
+  .cells-ch-low, .cells-ch-mid { justify-content: center; align-items: flex-start; }
+  .cells-ch-top { align-items: flex-start; }
+  .cells-stat { max-width: 30rem; padding: 22px 26px; margin-left: -26px; gap: 10px; }
+  .cells-big { font-size: 8.5rem; }
+  .cells-stat p:last-child { font-size: 1.5rem; line-height: 1.4; }
+  .cells-label { font-size: 1.2rem; }
+
+  .cells-ch-split { justify-content: center; align-items: flex-start; text-align: left; gap: 22px; }
+  .cells-ch-split .cells-copy { margin: 0; max-width: 34rem; justify-items: start; }
+  .cells-ch-split .cells-copy-low { margin-left: -16px; }
+  .cells-copy-low p { font-size: 1.3rem; max-width: 30rem; }
 }
 @media (prefers-reduced-motion: reduce) { .cells { transition: none; } }

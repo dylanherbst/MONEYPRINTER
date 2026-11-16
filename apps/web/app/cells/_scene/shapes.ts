@@ -19,6 +19,8 @@ export interface Formation {
   seed?: number;
   /** Arriving at this formation, cells travel straight without loosening first. */
   calm?: boolean;
+  /** On wide screens, move this formation into the right-hand half so the copy can sit on the left. */
+  side?: boolean;
   make: (n: number, rand: () => number) => Float32Array;
 }
 
@@ -57,7 +59,7 @@ const field: Formation = {
 
 /** A tall column that pinches and swells, like a slow vortex. */
 const vortex: Formation = {
-  id: 'vortex', spin: 0.55, tilt: 0, lift: 0,
+  id: 'vortex', spin: 0.55, tilt: 0, lift: 0, side: true,
   make(n, rand) {
     const out = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) {
@@ -75,7 +77,7 @@ const vortex: Formation = {
 
 /** A double helix: two strands and the rungs between them. */
 const helix: Formation = {
-  id: 'helix', spin: 0.45, tilt: 0, lift: 0,
+  id: 'helix', spin: 0.45, tilt: 0, lift: 0, side: true,
   make(n, rand) {
     const out = new Float32Array(n * 3);
     const R = 0.5;
@@ -212,7 +214,7 @@ function logoPoints(n: number, rand: () => number, loose: number): Float32Array 
 
 /** The logo in cells. Formed by the time you reach the Getting paid chapter. */
 const logo: Formation = {
-  id: 'logo', spin: 0, sway: 0.3, tilt: 0, lift: 0.1, seed: 4242,
+  id: 'logo', spin: 0, sway: 0.3, tilt: 0, lift: 0.1, seed: 4242, side: true,
   make: (n, rand) => logoPoints(n, rand, 0.012),
 };
 
