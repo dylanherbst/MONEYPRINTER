@@ -1,6 +1,7 @@
 // The cell formations the page morphs through as you scroll. Each returns local positions (x, y, z) for `n` cells;
 // the scene then spins each formation around its local y axis and tilts it towards the camera.
 // Sizes are authored for a phone screen: about 2 units wide and 5 tall is what fits.
+import { logoMask } from './logo-mask';
 
 export interface Formation {
   id: string;
@@ -12,6 +13,8 @@ export interface Formation {
   lift: number;
   /** 0 hides the cells in this formation; they fade in as they travel to the next one. Default 1. */
   opacity?: number;
+  /** Gentle side-to-side turn, radians, for flat shapes that should not spin all the way round. */
+  sway?: number;
   make: (n: number, rand: () => number) => Float32Array;
 }
 
@@ -161,4 +164,62 @@ const galaxy: Formation = {
   },
 };
 
-export const formations: Formation[] = [field, vortex, helix, horizon, ring, galaxy];
+/** Cells of the logo mask, plus which of them lie on its outline (for a crisp silhouette). */
+let logoCells: { inside: number[]; edge: number[] } | null = null;
+function readLogo() {
+  if (logoCells) return logoCells;
+  const { width: w, height: h, bits } = logoMask;
+  const bin = atob(bits);
+  const at = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return false;
+    const i = y * w + x;
+    return ((bin.charCodeAt(i >> 3) >> (7 - (i & 7))) & 1) === 1;
+  };
+  const inside: number[] = [];
+  const edge: number[] = [];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!at(x, y)) continue;
+      inside.push(y * w + x);
+      if (!at(x - 1, y) || !at(x + 1, y) || !at(x, y - 1) || !at(x, y + 1)) edge.push(y * w + x);
+    }
+  }
+  logoCells = { inside, edge };
+  return logoCells;
+}
+
+/** Positions on the logo, about 1.95 units tall, with a little depth so it reads as a solid ribbon. */
+function logoPoints(n: number, rand: () => number, loose: number): Float32Array {
+  const { inside, edge } = readLogo();
+  const { width: w, height: h } = logoMask;
+  const unit = 1.95 / h;
+  const out = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const pool = rand() < 0.28 ? edge : inside;
+    const c = pool[Math.floor(rand() * pool.length)];
+    const px = (c % w) + rand();
+    const py = Math.floor(c / w) + rand();
+    out[i * 3] = (px - w / 2) * unit + gauss(rand) * loose;
+    out[i * 3 + 1] = (h / 2 - py) * unit + gauss(rand) * loose;
+    out[i * 3 + 2] = gauss(rand) * (0.05 + loose * 1.6);
+  }
+  return out;
+}
+
+/** The logo starting to form: the cells have found its shape but are still loose around it. */
+const logoForming: Formation = {
+  id: 'logo-forming', spin: 0, sway: 0.25, tilt: 0, lift: 0.15,
+  make: (n, rand) => logoPoints(n, rand, 0.065),
+};
+
+/** The logo, formed. */
+const logo: Formation = {
+  id: 'logo', spin: 0, sway: 0.3, tilt: 0, lift: 0.1,
+  make: (n, rand) => logoPoints(n, rand, 0.012),
+};
+
+/** Formations not in the sequence right now, kept so they can come back: ring, galaxy. */
+export const spareFormations: Formation[] = [ring, galaxy];
+
+// After step 3 the cells slowly gather into the logo over the last two chapters.
+export const formations: Formation[] = [field, vortex, helix, horizon, logoForming, logo];

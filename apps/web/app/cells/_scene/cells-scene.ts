@@ -8,7 +8,7 @@ import type { CellSettings } from './settings';
 const vertex = /* glsl */ `
   attribute vec3 aTarget;
   attribute vec3 aRand;
-  uniform float uMix, uOpA, uOpB, uTime, uSpinA, uSpinB, uTiltA, uTiltB, uLiftA, uLiftB, uSize, uDpr, uScale;
+  uniform float uMix, uOpA, uOpB, uTime, uSpinA, uSpinB, uSwayA, uSwayB, uTiltA, uTiltB, uLiftA, uLiftB, uSize, uDpr, uScale;
   varying float vTone;
   varying float vAlpha;
 
@@ -24,8 +24,8 @@ const vertex = /* glsl */ `
   void main() {
     float t = clamp((uMix - aRand.z * 0.35) / 0.65, 0.0, 1.0);
     t = t * t * (3.0 - 2.0 * t);
-    vec3 a = place(position, uTime * uSpinA, uTiltA, uLiftA);
-    vec3 b = place(aTarget, uTime * uSpinB, uTiltB, uLiftB);
+    vec3 a = place(position, uTime * uSpinA + sin(uTime * 0.45) * uSwayA, uTiltA, uLiftA);
+    vec3 b = place(aTarget, uTime * uSpinB + sin(uTime * 0.45) * uSwayB, uTiltB, uLiftB);
     vec3 p = mix(a, b, t);
     // Cells loosen while travelling, then settle.
     p += (aRand - 0.5) * 0.9 * sin(t * 3.14159);
@@ -107,7 +107,7 @@ export class CellsScene {
       depthWrite: false,
       uniforms: {
         uMix: { value: 0 }, uOpA: { value: 1 }, uOpB: { value: 1 }, uTime: { value: 0 },
-        uSpinA: { value: 0 }, uSpinB: { value: 0 }, uTiltA: { value: 0 }, uTiltB: { value: 0 },
+        uSpinA: { value: 0 }, uSpinB: { value: 0 }, uSwayA: { value: 0 }, uSwayB: { value: 0 }, uTiltA: { value: 0 }, uTiltB: { value: 0 },
         uLiftA: { value: 0 }, uLiftB: { value: 0 },
         uSize: { value: 1 }, uDpr: { value: 1 }, uScale: { value: 1 }, uOpacity: { value: 0.9 },
         uC1: { value: new THREE.Color() }, uC2: { value: new THREE.Color() },
@@ -201,6 +201,7 @@ export class CellsScene {
     this.waveMaterial.uniforms.uProg.value = p;
     u.uTime.value = time;
     u.uSpinA.value = a.spin; u.uSpinB.value = b.spin;
+    u.uSwayA.value = a.sway ?? 0; u.uSwayB.value = b.sway ?? 0;
     u.uTiltA.value = a.tilt; u.uTiltB.value = b.tilt;
     u.uLiftA.value = a.lift; u.uLiftB.value = b.lift;
     u.uOpA.value = a.opacity ?? 1; u.uOpB.value = b.opacity ?? 1;
