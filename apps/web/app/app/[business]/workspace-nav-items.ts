@@ -35,7 +35,7 @@ export type TabId = (typeof appTabs)[number]['id'] | 'settings';
 
 /** Where each tab goes, and which first path segments keep it lit. */
 export const tabRoutes: Record<TabId, { segment: string; segments: readonly string[] }> = {
-  home: { segment: '', segments: ['', 'dashboard'] },
+  home: { segment: 'home', segments: ['', 'home', 'dashboard'] },
   shop: { segment: 'products', segments: ['products', 'orders', 'website', 'brand', 'domains', 'payments'] },
   growth: { segment: 'marketing', segments: ['marketing'] },
   inbox: { segment: 'inbox', segments: ['inbox'] },

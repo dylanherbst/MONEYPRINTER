@@ -53,7 +53,7 @@ test('the highlighted item follows the first path segment, so the product editor
 
 test('phone layout: four bottom tabs in the brief\'s order, Settings behind the profile icon, each with the right address', () => {
   assert.deepEqual(appTabs.map((t) => t.label), ['Home', 'My Shop', 'Growth', 'Inbox']);
-  assert.equal(tabHref('biz-a', 'home'), '/app/biz-a');
+  assert.equal(tabHref('biz-a', 'home'), '/app/biz-a/home');
   assert.equal(tabHref('biz-a', 'shop'), '/app/biz-a/products');
   assert.equal(tabHref('biz-a', 'growth'), '/app/biz-a/marketing');
   assert.equal(tabHref('biz-a', 'inbox'), '/app/biz-a/inbox');
