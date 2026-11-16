@@ -64,6 +64,9 @@ export function CellsStage() {
     // re-sized when the width changes or the screen gets taller; it never shrinks and leaves a gap.
     let sizedW = 0;
     let sizedH = 0;
+    const paid = document.getElementById('cells-h-paid');
+    const logoChapter = chapters.findIndex((c) => c.dataset.chapter === 'horizon');
+    let paidCentreY = Number.NaN;
     const measure = () => {
       const w = window.innerWidth;
       const tallest = Math.max(
@@ -80,6 +83,11 @@ export function CellsStage() {
         scene.resize(w, sizedH);
       }
       tops = chapters.map((c) => c.getBoundingClientRect().top + window.scrollY);
+      if (paid) {
+        const r = paid.getBoundingClientRect();
+        // Scroll position at which the Getting paid heading sits in the middle of the screen.
+        paidCentreY = r.top + window.scrollY + r.height / 2 - window.innerHeight / 2;
+      }
     };
     measure();
 
@@ -91,21 +99,25 @@ export function CellsStage() {
       let i = 0;
       while (i < tops.length - 1 && y >= tops[i + 1]) i++;
       if (i >= scene.formationCount - 1) return scene.formationCount - 1;
-      const span = (tops[i + 1] ?? tops[i] + window.innerHeight) - tops[i];
+      const vh = window.innerHeight;
+      // The cells finish forming the logo exactly as the Getting paid heading reaches the middle of the screen.
+      if (i === logoChapter && Number.isFinite(paidCentreY)) {
+        return i + smooth(0, 1, (y - (paidCentreY - 0.55 * vh)) / (0.55 * vh));
+      }
+      const span = (tops[i + 1] ?? tops[i] + vh) - tops[i];
       const u = span > 0 ? (y - tops[i]) / span : 0;
       // A chapter can morph earlier than the default with data-morph="from,to" (fractions of its scroll).
       const [from, to] = morphs[i] ?? [0.3, 0.92];
       return i + smooth(from, to, u);
     };
 
-    // The solid logo is timed to the Getting paid heading: the cells start fusing into it as the heading reaches the
-    // middle of the screen, and the brand colours come in as the heading leaves the top.
-    const paid = document.getElementById('cells-h-paid');
+    // From that same moment the logo turns solid purple straight away, over a quarter of a screen of scrolling,
+    // then takes on the brand colours over the next half screen.
     const ending = () => {
-      if (!paid || pinned !== null) return undefined;
-      const r = paid.getBoundingClientRect();
-      const c = (r.top + r.height / 2) / window.innerHeight;
-      return { fuse: smooth(0, 1, (0.5 - c) / 0.36), brand: smooth(0, 1, (-0.02 - c) / 0.6) };
+      if (!Number.isFinite(paidCentreY) || pinned !== null) return undefined;
+      const vh = window.innerHeight;
+      const d = window.scrollY - paidCentreY;
+      return { fuse: smooth(0, 1, d / (0.25 * vh)), brand: smooth(0, 1, (d - 0.35 * vh) / (0.45 * vh)) };
     };
 
     let raf = 0;
