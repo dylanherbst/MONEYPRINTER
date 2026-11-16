@@ -11,6 +11,9 @@ import { NO_ORDER, guardOrderAction } from '../app/app/[business]/orders/_server
 import { buildDetail, buildList } from '../app/app/[business]/orders/view-model.ts';
 import { DOWNLOAD_PATH, MAX_SAMPLE_ORDERS, SAMPLE_SELLER_PREFIX, createSampleOrders, createStartOrders, runTestPurchase } from '../app/start/_server/orders-runtime.ts';
 import type { SampleSource, StartOrders } from '../app/start/_server/orders-runtime.ts';
+import { orderFacts, shopFacts } from '../app/start/_server/inbox-runtime.ts';
+import type { InboxRuntime } from '../app/start/_server/inbox-runtime.ts';
+import { createInbox } from '../lib/aimp/storeops/inbox.ts';
 import { blueprintRegistry } from '../lib/aimp/blueprints/index.ts';
 import { approveBrand, createBrandDraft } from '../lib/aimp/branding/service.ts';
 import { createMemoryBrandStore } from '../lib/aimp/branding/store.ts';
@@ -252,4 +255,41 @@ test('test purchase: a business with no approved listing is refused and nothing 
   const r = await runTestPurchase(orderDemo, src, 'biz-empty', 'a@example.com');
   assert.equal(r.ok, false);
   assert.equal(orderDemo.email.outbox().length, 0);
+});
+
+test('inbox: a buyer who really bought gets a verified reply from the real order and delivery state; strangers get nothing about orders', async () => {
+  const { orderDemo, src, business, catalogue, rt } = await setup();
+  await business('biz-i', 'Meal planning');
+  const bought = await runTestPurchase(orderDemo, src, 'biz-i', 'buyer@example.com');
+  assert.ok(bought.ok);
+  const irt = { slugs: rt.slugs, catalogue, orderDemo } as unknown as InboxRuntime;
+  const facts = await orderFacts(irt, 'biz-i');
+  assert.equal(facts.length, 1);
+  assert.equal(facts[0]!.payment, 'paid');
+  assert.equal(facts[0]!.delivery, 'delivered');
+  assert.equal((await orderFacts(irt, 'biz-other')).length, 0);
+  const shop = await shopFacts(irt, 'biz-i');
+  assert.equal(shop.products.length, 1);
+  assert.equal(shop.products[0]!.priceLabel, '$14');
+
+  let n = 0;
+  const outboxBefore = orderDemo.email.outbox().length;
+  const inbox = createInbox({
+    now: () => 1000 + n, newId: () => `t${++n}`, model: null,
+    orders: (b) => orderFacts(irt, b), shop: (b) => shopFacts(irt, b),
+    send: (m) => orderDemo.email.send({ to: m.to, subject: m.subject, text: m.text, idempotencyKey: m.idempotencyKey }),
+  });
+  const mine = await inbox.add('biz-i', { fromEmail: 'buyer@example.com', message: 'I cannot find my download' });
+  assert.ok(mine.ok);
+  if (!mine.ok) return;
+  assert.equal(mine.thread.kind, 'order');
+  assert.match(mine.thread.body, /emailed to buyer@example.com/);
+  const stranger = await inbox.add('biz-i', { fromEmail: 'stranger@example.com', message: 'where is my order' });
+  if (!stranger.ok) throw new Error('add');
+  assert.doesNotMatch(stranger.thread.body, /Meal/i);
+  assert.equal(orderDemo.email.outbox().length, outboxBefore, 'drafting sends nothing');
+  const sent = await inbox.decide('biz-i', mine.thread.id, 'approve');
+  assert.ok(sent.ok);
+  await inbox.decide('biz-i', mine.thread.id, 'approve');
+  assert.equal(orderDemo.email.outbox().length, outboxBefore + 1, 'approved once, sent once');
 });

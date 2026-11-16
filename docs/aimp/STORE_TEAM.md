@@ -31,3 +31,7 @@ All 44 plugin skills and commands are mapped in `lib/aimp/storeops/plugin.ts` (b
 - **later** (documented): lead finder/triage, call list, grow pipeline, CRM autopilot, win-back, ad manager, proposals, grants, invoice chase, cash snapshot, reports, contract review, build-agent, build-connector.
 - **outside_brief** (catalogued, switched off): payroll, hiring, inventory/restock, supplier bills, bookkeeping/month-end, tax. The rework brief keeps these out of the default journey; the owner can lift that later.
 What is NOT done: no plugin code runs in the app. Each launch feature still needs its spec on the runner (`agent.ts`) plus real data and the Anthropic key.
+
+## Inbox approve flow (built 16 Nov 2026)
+`/app/<business>/inbox`: add a buyer message (test form), get a drafted reply, edit it, then "Approve and send" or "I will handle it". Order questions are answered from the shop's real order and delivery state, only when the sender's email matches. Other enquiries go through the receptionist (standard hand-off reply until an AI key is connected). Approving twice sends once; one shop never sees another's messages; replies go to the fixture outbox. Code: `lib/aimp/storeops/inbox.ts`, `app/start/_server/inbox-runtime.ts`, `app/app/[business]/inbox/*`. Tests: `aimp-storeops-inbox`, plus a real-services test in `aimp-start-runtime-orders`.
+Not yet: threads are in memory (lost on restart); real buyer messages do not arrive automatically; "resend download" is still done from Orders.
