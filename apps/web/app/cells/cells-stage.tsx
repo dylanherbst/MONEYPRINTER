@@ -55,8 +55,26 @@ export function CellsStage() {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const chapters = Array.from(document.querySelectorAll<HTMLElement>('[data-chapter]'));
     let tops: number[] = [];
+    // Phones change the visible height as their address bar shows and hides, and some browsers size fixed
+    // elements to the smaller height. So the canvas is sized in pixels to the tallest the screen can be, and only
+    // re-sized when the width changes or the screen gets taller; it never shrinks and leaves a gap.
+    let sizedW = 0;
+    let sizedH = 0;
     const measure = () => {
-      scene.resize(window.innerWidth, window.innerHeight);
+      const w = window.innerWidth;
+      const tallest = Math.max(
+        window.innerHeight,
+        document.documentElement.clientHeight,
+        window.visualViewport?.height ?? 0,
+        w < 900 ? window.screen.height : 0,
+      );
+      if (w !== sizedW || tallest > sizedH) {
+        sizedH = w !== sizedW ? tallest : Math.max(sizedH, tallest);
+        sizedW = w;
+        canvas.style.width = `${w}px`;
+        canvas.style.height = `${sizedH}px`;
+        scene.resize(w, sizedH);
+      }
       tops = chapters.map((c) => c.getBoundingClientRect().top + window.scrollY);
     };
     measure();
@@ -91,11 +109,13 @@ export function CellsStage() {
       if (!document.hidden) { last = performance.now(); raf = requestAnimationFrame(frame); }
     };
     window.addEventListener('resize', measure);
+    window.visualViewport?.addEventListener('resize', measure);
     document.addEventListener('visibilitychange', onVisibility);
     canvas.dataset.ready = '1';
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', measure);
+      window.visualViewport?.removeEventListener('resize', measure);
       document.removeEventListener('visibilitychange', onVisibility);
       scene.dispose();
       sceneRef.current = null;

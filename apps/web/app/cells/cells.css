@@ -19,7 +19,7 @@
 .cells[data-tone='dark'] { --cells-ink: #f5f1ff; --cells-ink-2: #c9c1e4; --cells-line: rgba(245, 241, 255, 0.16); }
 .cells *, .cells *::before, .cells *::after { box-sizing: border-box; }
 
-.cells-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100lvh; display: block; pointer-events: none; z-index: 0; }
+.cells-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; height: 100lvh; display: block; pointer-events: none; z-index: 0; }
 
 /* Header: the mark on the left, sign in on the right. */
 .cells-top {
