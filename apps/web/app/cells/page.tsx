@@ -59,7 +59,7 @@ export default function CellsPage() {
           </div>
         </section>
 
-        <section className="cells-ch cells-ch-split" data-chapter="horizon" aria-labelledby="cells-h-launch">
+        <section className="cells-ch cells-ch-split cells-step" data-chapter="horizon" aria-labelledby="cells-h-launch">
           <div className="cells-copy">
             <p className="cells-label">Step 3 of 3</p>
             <h2 id="cells-h-launch">Everything points at one thing: your first sale.</h2>

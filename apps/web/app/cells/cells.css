@@ -48,15 +48,16 @@
 .cells-copy { max-width: 26rem; margin: 0 auto; display: grid; gap: 14px; justify-items: center; }
 .cells-lede { font-size: 1.06rem; line-height: 1.5; color: var(--cells-ink-2); max-width: 22rem; }
 .cells-copy-low p { font-size: 1.02rem; line-height: 1.5; color: var(--cells-ink-2); max-width: 21rem; }
+.cells-step .cells-copy-low p { font-size: 1.33rem; line-height: 1.4; max-width: 24rem; }
 
 .cells-kicker { display: inline-flex; align-items: center; gap: 8px; font-size: .86rem; font-weight: 600; color: var(--cells-ink-2); }
 .cells-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cells-accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--cells-accent) 18%, transparent); }
-.cells-label { font-size: .86rem; font-weight: 600; color: var(--cells-accent); }
+.cells-label { font-size: 1.12rem; font-weight: 600; color: var(--cells-accent); }
 
 /* A big number with its sentence, set like a figure caption beside the formation. */
-.cells-stat { max-width: 15.5rem; display: grid; gap: 6px; }
-.cells-stat p:last-child { font-size: 1.02rem; line-height: 1.45; color: var(--cells-ink-2); }
-.cells-big { font-family: var(--cells-head); font-size: 5.2rem; line-height: .9; font-weight: 500; letter-spacing: -0.05em; color: var(--cells-ink); }
+.cells-stat { max-width: 20rem; display: grid; gap: 6px; }
+.cells-stat p:last-child { font-size: 1.33rem; line-height: 1.4; color: var(--cells-ink-2); }
+.cells-big { font-family: var(--cells-head); font-size: 6.75rem; line-height: .9; font-weight: 500; letter-spacing: -0.05em; color: var(--cells-ink); }
 
 .cells-actions { display: grid; gap: 6px; justify-items: center; margin-top: 10px; }
 .cells-btn {
