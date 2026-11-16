@@ -67,7 +67,7 @@ export default function CellsPage() {
           </div>
         </section>
 
-        <section className="cells-ch cells-ch-top" data-chapter="horizon" aria-label="Launch">
+        <section className="cells-ch cells-ch-top" data-chapter="horizon" data-morph="0.05,0.55" aria-label="Launch">
           <div className="cells-stat">
             <p className="cells-label">Step 3 of 3</p>
             <p className="cells-big">1st</p>

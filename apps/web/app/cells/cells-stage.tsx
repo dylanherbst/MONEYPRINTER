@@ -54,6 +54,10 @@ export function CellsStage() {
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const chapters = Array.from(document.querySelectorAll<HTMLElement>('[data-chapter]'));
+    const morphs = chapters.map((c) => {
+      const m = (c.dataset.morph ?? '').split(',').map(Number);
+      return m.length === 2 && m.every(Number.isFinite) ? (m as [number, number]) : undefined;
+    });
     let tops: number[] = [];
     // Phones change the visible height as their address bar shows and hides, and some browsers size fixed
     // elements to the smaller height. So the canvas is sized in pixels to the tallest the screen can be, and only
@@ -89,7 +93,19 @@ export function CellsStage() {
       if (i >= scene.formationCount - 1) return scene.formationCount - 1;
       const span = (tops[i + 1] ?? tops[i] + window.innerHeight) - tops[i];
       const u = span > 0 ? (y - tops[i]) / span : 0;
-      return i + smooth(0.3, 0.92, u);
+      // A chapter can morph earlier than the default with data-morph="from,to" (fractions of its scroll).
+      const [from, to] = morphs[i] ?? [0.3, 0.92];
+      return i + smooth(from, to, u);
+    };
+
+    // The solid logo is timed to the Getting paid heading: the cells start fusing into it as the heading reaches the
+    // middle of the screen, and the brand colours come in as the heading leaves the top.
+    const paid = document.getElementById('cells-h-paid');
+    const ending = () => {
+      if (!paid || pinned !== null) return undefined;
+      const r = paid.getBoundingClientRect();
+      const c = (r.top + r.height / 2) / window.innerHeight;
+      return { fuse: smooth(0, 1, (0.5 - c) / 0.36), brand: smooth(0, 1, (-0.02 - c) / 0.6) };
     };
 
     let raf = 0;
@@ -99,7 +115,7 @@ export function CellsStage() {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       if (!reduced) clock += dt * settingsRef.current.speed;
-      scene.render(progress(), clock);
+      scene.render(progress(), clock, ending());
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);

@@ -256,7 +256,11 @@ export class CellsScene {
 
   /** progress runs from 0 (first formation) to formations.length - 1 (last). */
   /** time is the cells' own clock, already scaled by the speed setting. */
-  render(progress: number, time: number): void {
+  /**
+   * ending, when given, sets how far the cells have fused into the solid logo (fuse) and how far that logo has taken
+   * on the brand colours (brand), each 0..1. Without it both follow the last morph.
+   */
+  render(progress: number, time: number, ending?: { fuse: number; brand: number }): void {
     if (!this.points) return;
     const last = formations.length - 1;
     const p = Math.min(last, Math.max(0, progress));
@@ -275,11 +279,11 @@ export class CellsScene {
 
     // At the end of the last morph the cells fuse into the solid logo and fade out underneath it.
     const end = seg === last - 1 ? p - seg : 0;
-    const fused = smooth01(SOLID_FROM, SOLID_TO, end);
-    this.solid.visible = fused > 0.001;
+    const fused = ending ? ending.fuse : smooth01(SOLID_FROM, SOLID_TO, end);
+    this.solid.visible = fused > 0.001 && seg >= last - 2;
     const s = this.solidMaterial.uniforms;
     s.uSolid.value = fused;
-    s.uBrand.value = smooth01(BRAND_FROM, 1, end);
+    s.uBrand.value = ending ? ending.brand : smooth01(BRAND_FROM, 1, end);
     s.uTime.value = time;
     s.uSway.value = b.sway ?? 0;
     s.uLift.value = b.lift;
