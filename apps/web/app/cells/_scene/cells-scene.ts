@@ -111,7 +111,7 @@ const solidFragment = /* glsl */ `
   void main() {
     vec4 logo = texture2D(uMap, vUv);
     float mask = logo.a;
-    float grain = hash(floor(vUv * 90.0));
+    float grain = hash(floor(vUv * 240.0));
     float shown = smoothstep(grain - 0.12, grain + 0.12, uSolid * 1.24 - 0.12);
     float a = mask * shown;
     if (a < 0.003) discard;
@@ -176,7 +176,7 @@ export class CellsScene {
 
     // Same proportions and height as the logo formation (1.95 units tall).
     const logoH = 1.95;
-    const logoW = logoH * (574 / 640);
+    const logoW = logoH * (918 / 1024);
     const map = new THREE.TextureLoader().load('/brand/aimp-logo-solid.webp');
     map.colorSpace = THREE.NoColorSpace;
     map.anisotropy = 4;
@@ -284,7 +284,7 @@ export class CellsScene {
     s.uSway.value = b.sway ?? 0;
     s.uLift.value = b.lift;
     s.uScale.value = u.uScale.value;
-    u.uOpacity.value = this.cellOpacity * (1 - 0.92 * fused);
+    u.uOpacity.value = this.cellOpacity * (1 - fused);
     u.uTime.value = time;
     u.uSpinA.value = a.spin; u.uSpinB.value = b.spin;
     u.uSwayA.value = a.sway ?? 0; u.uSwayB.value = b.sway ?? 0;
