@@ -40,7 +40,15 @@ export default function CellsPage() {
               <a className="cells-link" href="#how">See how it works</a>
             </div>
           </div>
-          <p className="cells-scroll" aria-hidden="true">Scroll</p>
+          <div className="cells-points" aria-labelledby="cells-points-h">
+            <p className="cells-label" id="cells-points-h">The next wave of online business</p>
+            <ul>
+              <li><b>40%</b><span>of people with a side business want to turn it into a full-time business</span></li>
+              <li><b>US$59,000+</b><span>a month in revenue for the top 25% of established online stores</span></li>
+              <li><b>US$258,000</b><span>a year in revenue for the average established online store</span></li>
+            </ul>
+            <p className="cells-source">Full-time goal: QuickBooks 2026 Entrepreneurship Study, 3,000 US adults, December 2025. Store revenue: profitable online stores 3+ years old listed for sale on Flippa, 2022–2024 (revenue, not profit). These are market figures, not {site.name} customer results or a promise of earnings.</p>
+          </div>
         </section>
 
         <section className="cells-ch cells-ch-low" data-chapter="vortex" id="how" aria-label="Ideas">

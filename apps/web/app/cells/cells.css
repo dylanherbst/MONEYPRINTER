@@ -34,7 +34,7 @@
 .cells main { position: relative; z-index: 1; }
 .cells-ch { min-height: 100svh; padding: 96px 22px 40px; display: flex; flex-direction: column; position: relative; }
 .cells-ch :where(h1, h2, p) { text-shadow: 0 0 22px var(--cells-bg), 0 0 8px var(--cells-bg), 0 0 2px var(--cells-bg); }
-.cells-ch-hero { justify-content: center; text-align: center; padding-bottom: 96px; }
+.cells-ch-hero { justify-content: center; text-align: center; padding-bottom: 48px; }
 .cells-ch-low { justify-content: flex-end; padding-bottom: 72px; }
 .cells-ch-mid { justify-content: center; }
 .cells-ch-split { justify-content: space-between; text-align: center; padding-bottom: 56px; }
@@ -79,7 +79,26 @@
   outline: 2px solid var(--cells-accent); outline-offset: 3px;
 }
 .cells-note { font-size: .86rem !important; }
-.cells-scroll { position: absolute; left: 0; right: 0; bottom: 28px; font-size: .8rem; font-weight: 600; color: var(--cells-ink-2); }
+/* Market points under the hero: three figures with their sources, in one frosted strip. */
+.cells-points {
+  width: 100%; max-width: 62rem; margin: 40px auto 0; padding: 18px 18px 16px; border-radius: 24px; text-align: left;
+  background: color-mix(in srgb, var(--cells-bg) 62%, transparent);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  border: 1px solid var(--cells-line); display: grid; gap: 12px;
+}
+.cells-points ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.cells-points li { display: grid; gap: 2px; padding-top: 12px; border-top: 1px solid var(--cells-line); }
+.cells-points li:first-child { border-top: 0; padding-top: 0; }
+.cells-points b { font-family: var(--cells-head); font-size: 1.9rem; line-height: 1.05; font-weight: 560; letter-spacing: -0.03em; color: var(--cells-ink); }
+.cells-points span { font-size: 1rem; line-height: 1.4; color: var(--cells-ink-2); }
+.cells-source { font-size: .74rem !important; line-height: 1.45; color: var(--cells-ink-2); opacity: .85; }
+@media (min-width: 720px) {
+  .cells-points { padding: 22px 26px 18px; }
+  .cells-points ul { grid-template-columns: repeat(3, 1fr); gap: 28px; }
+  .cells-points li { border-top: 0; padding-top: 0; padding-left: 20px; border-left: 1px solid var(--cells-line); }
+  .cells-points li:first-child { border-left: 0; padding-left: 0; }
+  .cells-points b { font-size: 2.3rem; }
+}
 
 /* Tune panel: a small button bottom right that opens a sheet of colour and motion controls. */
 .cells-tune { position: fixed; right: 14px; bottom: max(14px, env(safe-area-inset-bottom)); z-index: 30; display: grid; justify-items: end; gap: 10px; }
