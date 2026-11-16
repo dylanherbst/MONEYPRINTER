@@ -85,6 +85,41 @@ const waveFragment = /* glsl */ `
   }
 `;
 
+// The solid logo the cells turn into at the very end. It sits exactly where the logo formation is (same size, sway
+// and lift) and appears through a fine-grained dissolve, so it reads as the cells fusing into one shape.
+const solidVertex = /* glsl */ `
+  uniform float uTime, uSway, uLift, uScale;
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    vec3 p = position;
+    float a = sin(uTime * 0.45) * uSway;
+    float c = cos(a), s = sin(a);
+    p = vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z);
+    p.y += uLift;
+    p *= uScale;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+  }
+`;
+const solidFragment = /* glsl */ `
+  uniform sampler2D uMap;
+  uniform vec3 uColor;
+  uniform float uSolid;
+  varying vec2 vUv;
+  float hash(vec2 p) { return fract(sin(dot(p, vec2(41.31, 289.17))) * 15731.743); }
+  void main() {
+    float mask = texture2D(uMap, vUv).a;
+    float grain = hash(floor(vUv * 90.0));
+    float shown = smoothstep(grain - 0.12, grain + 0.12, uSolid * 1.24 - 0.12);
+    float a = mask * shown;
+    if (a < 0.003) discard;
+    gl_FragColor = vec4(uColor, a);
+  }
+`;
+
+/** Scroll progress over which the cells fuse into the solid logo: the end of the last morph. */
+const SOLID_FROM = 0.55;
+
 export class CellsScene {
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
@@ -92,6 +127,9 @@ export class CellsScene {
   private points: THREE.Points | null = null;
   private material: THREE.ShaderMaterial;
   private waveMaterial: THREE.ShaderMaterial;
+  private solidMaterial: THREE.ShaderMaterial;
+  private solid: THREE.Mesh;
+  private cellOpacity = 0.85;
   private shapes: Float32Array[] = [];
   private segment = -1;
   private count = 0;
@@ -127,6 +165,29 @@ export class CellsScene {
     backdrop.frustumCulled = false;
     backdrop.renderOrder = -1;
     this.scene.add(backdrop);
+
+    // Same proportions and height as the logo formation (1.95 units tall).
+    const logoH = 1.95;
+    const logoW = logoH * (574 / 640);
+    const map = new THREE.TextureLoader().load('/brand/aimp-logo-mask.png');
+    map.colorSpace = THREE.NoColorSpace;
+    map.anisotropy = 4;
+    this.solidMaterial = new THREE.ShaderMaterial({
+      vertexShader: solidVertex,
+      fragmentShader: solidFragment,
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+      uniforms: {
+        uMap: { value: map }, uColor: { value: new THREE.Color() }, uSolid: { value: 0 },
+        uTime: { value: 0 }, uSway: { value: 0 }, uLift: { value: 0 }, uScale: { value: 1 },
+      },
+    });
+    this.solid = new THREE.Mesh(new THREE.PlaneGeometry(logoW, logoH), this.solidMaterial);
+    this.solid.frustumCulled = false;
+    this.solid.renderOrder = 2;
+    this.solid.visible = false;
+    this.scene.add(this.solid);
   }
 
   get formationCount(): number { return formations.length; }
@@ -144,7 +205,9 @@ export class CellsScene {
     // On a light page cells are drawn as solid dots; on a dark page they add up to a glow.
     const blending = darkBackground ? THREE.AdditiveBlending : THREE.NormalBlending;
     if (this.material.blending !== blending) { this.material.blending = blending; this.material.needsUpdate = true; }
-    u.uOpacity.value = darkBackground ? 0.75 : 0.85;
+    this.cellOpacity = darkBackground ? 0.75 : 0.85;
+    u.uOpacity.value = this.cellOpacity;
+    this.solidMaterial.uniforms.uColor.value.set(`#${s.c1}`);
     const n = Math.round(s.count * 1000);
     if (n !== this.count) this.build(n);
   }
@@ -199,6 +262,18 @@ export class CellsScene {
     u.uMix.value = p - seg;
     this.waveMaterial.uniforms.uTime.value = time;
     this.waveMaterial.uniforms.uProg.value = p;
+
+    // At the end of the last morph the cells fuse into the solid logo and fade out underneath it.
+    const fuse = seg === last - 1 ? Math.min(1, Math.max(0, (p - seg - SOLID_FROM) / (1 - SOLID_FROM))) : 0;
+    const fused = fuse * fuse * (3 - 2 * fuse);
+    this.solid.visible = fused > 0.001;
+    const s = this.solidMaterial.uniforms;
+    s.uSolid.value = fused;
+    s.uTime.value = time;
+    s.uSway.value = b.sway ?? 0;
+    s.uLift.value = b.lift;
+    s.uScale.value = u.uScale.value;
+    u.uOpacity.value = this.cellOpacity * (1 - 0.92 * fused);
     u.uTime.value = time;
     u.uSpinA.value = a.spin; u.uSpinB.value = b.spin;
     u.uSwayA.value = a.sway ?? 0; u.uSwayB.value = b.sway ?? 0;
@@ -212,6 +287,9 @@ export class CellsScene {
     this.points?.geometry.dispose();
     this.material.dispose();
     this.waveMaterial.dispose();
+    this.solid.geometry.dispose();
+    (this.solidMaterial.uniforms.uMap.value as THREE.Texture).dispose();
+    this.solidMaterial.dispose();
     this.renderer.dispose();
   }
 }
