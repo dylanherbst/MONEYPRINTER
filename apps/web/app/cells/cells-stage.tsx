@@ -12,13 +12,13 @@ const smooth = (e0: number, e1: number, x: number) => {
  * The fixed cell canvas behind the page plus the Tune panel. Scroll position picks the formation: each chapter holds
  * its formation while you read, then morphs into the next one in the last part of the chapter.
  */
-export function CellsStage() {
+export function CellsStage({ tuneByDefault = true }: { tuneByDefault?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<CellsScene | null>(null);
   const settingsRef = useRef<CellSettings>(defaults);
   const [settings, setSettings] = useState<CellSettings>(defaults);
   const [open, setOpen] = useState(false);
-  const [showTune, setShowTune] = useState(true);
+  const [showTune, setShowTune] = useState(false);
   const [copied, setCopied] = useState(false);
   const [fallback, setFallback] = useState(false);
 
@@ -38,7 +38,7 @@ export function CellsStage() {
   useEffect(() => {
     const initial = readSettings(window.location.search);
     const params = new URLSearchParams(window.location.search);
-    setShowTune(params.get('tune') !== '0');
+    setShowTune(params.has('tune') ? params.get('tune') !== '0' : tuneByDefault);
     setSettings(initial);
     applyLook(initial);
 
@@ -149,7 +149,7 @@ export function CellsStage() {
       scene.dispose();
       sceneRef.current = null;
     };
-  }, [applyLook]);
+  }, [applyLook, tuneByDefault]);
 
   const update = (patch: Partial<CellSettings>) => {
     const next = { ...settingsRef.current, ...patch };

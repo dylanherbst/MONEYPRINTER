@@ -1,26 +1,33 @@
 import type { Metadata, Viewport } from 'next';
 import { site } from '../../lib/aimp/site-config';
-import { primaryEntry } from '../../lib/aimp/entry';
 import { startRoutes } from '../start/flow';
 import { fontVars } from '../plant-lab/fonts';
 import { CellsStage } from './cells-stage';
 import './cells.css';
 
-// UI test (ui/new-ui, 16 Nov 2026): the homepage story told with a cloud of cells that morphs as you scroll.
-// Mobile first. Not linked from anywhere and not indexed while it is a test.
+// The public home page (owner approved for production, 16 Nov 2026): the homepage story told with a cloud of cells
+// that morphs as you scroll. aimoneyprinter.com serves it at / (next.config.mjs).
 export const metadata: Metadata = {
-  title: `${site.name}: ${site.descriptor} · new look test`,
-  description: `${site.tagline}. Test of a new look.`,
-  robots: { index: false, follow: false },
+  title: `${site.name}: ${site.descriptor} · ${site.tagline}`,
+  description: `${site.tagline}. Pick an idea and AI drafts your first digital product, shop and launch content. You approve everything before it goes live. No promise of earnings.`,
+  openGraph: {
+    type: 'website', url: `https://${site.domain}/`, siteName: `${site.name}: ${site.descriptor}`,
+    title: 'Start a side business without spending weeks building it',
+    description: 'Pick an idea. AI drafts your first product, shop and launch content. You approve everything. Free to start.',
+  },
+  alternates: { canonical: `https://${site.domain}/` },
 };
 export const viewport: Viewport = { themeColor: '#ffffff', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
 const START = startRoutes.welcome;
+const CTA = 'Find my side business';
+// The Tune panel is a design tool: shown on test versions, hidden on the live site unless the address has ?tune=1.
+const TUNE_BY_DEFAULT = process.env.VERCEL_ENV !== 'production';
 
 export default function CellsPage() {
   return (
     <div className={`cells ${fontVars}`} data-tone="light">
-      <CellsStage />
+      <CellsStage tuneByDefault={TUNE_BY_DEFAULT} />
 
       <header className="cells-top">
         <a href="/" className="cells-logo" aria-label={site.name}>
@@ -36,7 +43,7 @@ export default function CellsPage() {
             <h1 id="cells-h1">Start a side business without spending weeks building it.</h1>
             <p className="cells-lede">AI researches the idea, makes the product and opens your shop. You approve every step before anything goes live.</p>
             <div className="cells-actions">
-              <a className="cells-btn" href={START}>{primaryEntry.label}<span className="cells-go" aria-hidden="true">→</span></a>
+              <a className="cells-btn" href={START}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
               <a className="cells-link" href="#how">See how it works</a>
             </div>
           </div>
@@ -90,7 +97,7 @@ export default function CellsPage() {
             <h2 id="cells-h-final">A whole side business, already in motion.</h2>
           </div>
           <div className="cells-copy cells-copy-low">
-            <a className="cells-btn" href={START}>{primaryEntry.label}<span className="cells-go" aria-hidden="true">→</span></a>
+            <a className="cells-btn" href={START}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
             <p className="cells-note">Free to start. We help you build and launch; we don&apos;t promise sales or income.</p>
           </div>
         </section>
