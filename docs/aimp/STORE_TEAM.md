@@ -24,3 +24,10 @@ Every AI workflow (order status, receptionist, review replies, later Setter) goe
 - The model sees only verified facts plus the buyer's text wrapped as untrusted data, and has no tools that change anything.
 - Its answer must parse to the expected shape and pass the spec's guard (own links only, no promises). Otherwise: standard reply or hand-off to the owner, with the reason recorded.
 - Provider seam `AgentModel`: tests use a fake; with no `ANTHROPIC_API_KEY` the shop runs on templates. First spec: `receptionist.ts`. To add a workflow: define the spec, add its catalogue entry, add tests with a fake model.
+
+## Claude Small Business plugin: feature map (16 Nov 2026)
+All 44 plugin skills and commands are mapped in `lib/aimp/storeops/plugin.ts` (bucket, summary, carrying workflow, highest action, phase, connector categories, no-connector fallback). The plugin's concierge is reproduced as a deterministic router, `router.ts` (ordered by urgency, one best match, honest about availability).
+- **launch** (first release): Monday brief, business pulse, inbox manager, content engine, design creator, Marketing Monday, content strategy, growth pulse, be-found/SEO, outreach composer, speed to lead, order questions, reviews, set-up interview, brand style, concierge.
+- **later** (documented): lead finder/triage, call list, grow pipeline, CRM autopilot, win-back, ad manager, proposals, grants, invoice chase, cash snapshot, reports, contract review, build-agent, build-connector.
+- **outside_brief** (catalogued, switched off): payroll, hiring, inventory/restock, supplier bills, bookkeeping/month-end, tax. The rework brief keeps these out of the default journey; the owner can lift that later.
+What is NOT done: no plugin code runs in the app. Each launch feature still needs its spec on the runner (`agent.ts`) plus real data and the Anthropic key.
