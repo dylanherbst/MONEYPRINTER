@@ -37,7 +37,7 @@ export type TabId = (typeof appTabs)[number]['id'] | 'settings';
 export const tabRoutes: Record<TabId, { segment: string; segments: readonly string[] }> = {
   home: { segment: 'home', segments: ['', 'home', 'dashboard'] },
   shop: { segment: 'products', segments: ['products', 'orders', 'website', 'brand', 'domains', 'payments'] },
-  growth: { segment: 'marketing', segments: ['marketing'] },
+  growth: { segment: 'marketing', segments: ['marketing', 'gaps'] },
   inbox: { segment: 'inbox', segments: ['inbox'] },
   settings: { segment: 'settings', segments: ['settings', 'integrations', 'approvals', 'operator'] },
 };

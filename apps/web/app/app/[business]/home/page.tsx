@@ -52,6 +52,7 @@ export default async function HomePage({ params }: { params: Promise<{ business:
       <GlassCard title="Quick actions" data-testid="home-actions">
         <GlassButton href={`/app/${business}/marketing`}>Draft a launch campaign</GlassButton>
         <GlassButton variant="secondary" href={`/app/${business}/inbox`}>Review replies</GlassButton>
+        <GlassButton variant="secondary" href={`/app/${business}/gaps`}>Find competitor gaps</GlassButton>
       </GlassCard>
 
       <GlassCard title={home.weeklyBrief.title} data-testid="home-brief">
