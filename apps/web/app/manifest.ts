@@ -4,14 +4,14 @@ import type { MetadataRoute } from 'next';
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: '/app',
-    name: 'VENTRA',
-    short_name: 'VENTRA',
-    description: 'Your AI front office: replies, books and follows up, so you can run the business.',
+    name: 'AIMoneyPrinter',
+    short_name: 'AIMoneyPrinter',
+    description: 'Find a side hustle, build it, and get your first customers. By Ventra.',
     start_url: '/app',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#15121c',
+    background_color: '#ffffff',
     theme_color: '#c3b4bb',
     categories: ['business', 'productivity'],
     icons: [
