@@ -8,6 +8,7 @@ export const metadata: Metadata = { title: 'Test Lab' };
 export const dynamic = 'force-dynamic';
 
 const pages = (b: string, shop: string | null): { name: string; href: string; test: string }[] => [
+  { name: 'Template gallery', href: '/test-lab/templates', test: 'All 15 store templates side by side. Then Website, Pick a template, to apply one to the mock shop.' },
   { name: 'Home', href: `/app/${b}/home`, test: 'Needs-me, ready and happened lists. Press "Send my weekly brief" with any email (test outbox only).' },
   { name: 'Inbox', href: `/app/${b}/inbox`, test: 'Three waiting drafts. Approve and send one, press "I will handle it" on another, add your own test message.' },
   { name: 'Orders', href: `/app/${b}/orders`, test: 'Two paid, delivered orders. Open one and check the delivery shows once.' },
