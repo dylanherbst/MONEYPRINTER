@@ -1,5 +1,6 @@
 // AiMoneyPrinter storefront config (plan §D01/§D02). AI produces a validated config like this, never executable code.
 // The renderer only reads fields that pass validateStoreConfig; anything else is rejected before it reaches a page.
+import { templateIds, templateById, resolvePalette, checkLogo } from './templates.ts';
 
 export const storeThemes = {
   pearl: { bg: '#fbfaf8', surface: '#ffffff', ink: '#1d1b26', muted: '#6b6878', line: '#e9e6ef', accent: '#6d4fd8', accentInk: '#ffffff', soft: '#efeafc' },
@@ -40,7 +41,7 @@ export interface StoreConfig {
   status: 'draft' | 'published';
   /** True for sample stores. Rendered with a visible DEMO banner and never indexed. */
   demo: boolean;
-  brand: { name: string; tagline: string; theme: StoreThemeName; font: StoreFont };
+  brand: { name: string; tagline: string; theme: StoreThemeName; font: StoreFont; /** Optional look from templates.ts. Unset = the plain theme. */ template?: string; /** Optional #rrggbb accent that replaces the template's. */ accent?: string; /** Optional small PNG/JPEG/WebP data URL. */ logo?: string };
   hero: { eyebrow: string; heading: string; subheading: string; ctaLabel: string };
   sections: StoreSection[];
   products: StoreProduct[];
@@ -100,6 +101,9 @@ export function validateStoreConfig(input: unknown): ValidationResult {
     oneOf(c.brand.theme, 'brand.theme', Object.keys(storeThemes) as StoreThemeName[]); oneOf(c.brand.font, 'brand.font', storeFonts);
   }
   if (!isObj(c.hero)) errors.push('hero: object'); else {
+    if (c.brand.template !== undefined) oneOf(c.brand.template, 'brand.template', templateIds);
+    if (c.brand.accent !== undefined) { const t = templateById(c.brand.template ?? 'clean-launch')!; const r = resolvePalette(t, String(c.brand.accent)); if (!r.ok) errors.push(`brand.accent: ${r.message}`); }
+    if (c.brand.logo !== undefined) { const r = checkLogo(c.brand.logo); if (!r.ok) errors.push(`brand.logo: ${r.message}`); }
     text(c.hero.eyebrow, 'hero.eyebrow', 60); text(c.hero.heading, 'hero.heading', 90);
     text(c.hero.subheading, 'hero.subheading', 220); text(c.hero.ctaLabel, 'hero.ctaLabel', 30);
   }

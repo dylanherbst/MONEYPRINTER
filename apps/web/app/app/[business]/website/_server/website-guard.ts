@@ -20,6 +20,7 @@ export const alreadyLive = (version: number): string => `Version ${version} is a
 export type WebsiteOp =
   | { kind: 'save'; heading: string; subheading: string; tagline: string; expectedRevision: number }
   | { kind: 'preview' }
+  | { kind: 'look'; template: string; accent: string; logo?: string; expectedRevision: number }
   | { kind: 'publish'; note: string; expectedRevision: number; confirmed: boolean }
   | { kind: 'rollback'; version: number; confirmed: boolean };
 
@@ -48,6 +49,11 @@ export function readOp(raw: unknown): WebsiteOp | null {
       return text(raw.heading) && text(raw.subheading) && text(raw.tagline) && whole(raw.expectedRevision)
         ? { kind: 'save', heading: raw.heading.trim(), subheading: raw.subheading.trim(), tagline: raw.tagline.trim(), expectedRevision: raw.expectedRevision }
         : null;
+    case 'look':
+      return typeof raw.template === 'string' && raw.template.length <= 40 && typeof raw.accent === 'string' && raw.accent.length <= 7
+        && (raw.logo === undefined || (typeof raw.logo === 'string' && raw.logo.length <= 210_000)) && whole(raw.expectedRevision)
+        ? { kind: 'look', template: raw.template, accent: raw.accent, ...(raw.logo !== undefined ? { logo: raw.logo as string } : {}), expectedRevision: raw.expectedRevision }
+        : null;
     case 'publish':
       return typeof raw.note === 'string' && raw.note.length <= NOTE_MAX && whole(raw.expectedRevision)
         ? { kind: 'publish', note: raw.note, expectedRevision: raw.expectedRevision, confirmed: raw.confirmed === true }
@@ -70,6 +76,7 @@ export async function guardWebsiteOp(g: WebsiteGuardInput, businessId: unknown, 
   switch (op.kind) {
     case 'preview': return { ok: true, op: { kind: 'preview' } };
     case 'save': return { ok: true, op: { kind: 'save', heading: op.heading, subheading: op.subheading, tagline: op.tagline, expectedRevision: op.expectedRevision } };
+    case 'look': return { ok: true, op: { kind: 'look', template: op.template, accent: op.accent, ...(op.logo !== undefined ? { logo: op.logo } : {}), expectedRevision: op.expectedRevision } };
     case 'publish': {
       if (!op.confirmed) return { ok: false, message: NOT_CONFIRMED };
       const d = await rt.sites.getDraft(g.actor, slug);

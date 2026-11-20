@@ -7,12 +7,14 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { AppIntro, AppLayout, GlassBadge, GlassButton, GlassCard, GlassField, GlassKeyValue, GlassNotice, GlassState, GlassTextArea } from '../../../design-system/aimp-glass';
 import { websiteAction } from './actions';
+import { TemplatePicker } from './template-picker';
+import type { LookChoice } from './template-picker';
 import { FIELD_LABELS, FIELD_LIMITS, NOTE_MAX, checkDraftForm, isDirty, publishConfirm, rollbackConfirm } from './view-model';
 import type { DraftField, DraftForm, PreviewModel, WebsiteModel } from './view-model';
 
 const UNREACHABLE = 'We could not reach the server, so we do not know if that went through. Reload the page to see the current state.';
 const statusTone = { live: 'success', paused: 'warn', draft: 'neutral' } as const;
-type Busy = null | 'save' | 'preview' | 'publish' | 'rollback';
+type Busy = null | 'save' | 'look' | 'preview' | 'publish' | 'rollback';
 type Confirm = null | { kind: 'publish' } | { kind: 'rollback'; version: number };
 
 function ConfirmBox({ title, text, yes, busy, busyLabel, onYes, onNo, testId }: { title: string; text: string; yes: string; busy: boolean; busyLabel: string; onYes: () => void; onNo: () => void; testId: string }) {
@@ -68,6 +70,7 @@ export function WebsiteView({ businessId, model }: { businessId: string; model: 
     void run('save', { kind: 'save', ...form, expectedRevision: model.draft.revision }, 'Draft saved. Nothing was published.');
   }
 
+  const applyLook = (c: LookChoice) => { void run('look', { kind: 'look', ...c, expectedRevision: model.draft.revision }, 'New look saved to your draft. Nothing was published.'); };
   const pc = publishConfirm(model);
   const publishBlocked = dirty ? 'Save your changes before you publish.' : model.publish.reason;
 
@@ -112,6 +115,8 @@ export function WebsiteView({ businessId, model }: { businessId: string; model: 
         {dirty ? <p className="plg-note" data-testid="unsaved">You have changes that are not saved. Save the draft before you preview or publish it.</p> : null}
         <p className="plg-note">Products, prices and colours come from your approved listings and brand. <Link href="/start/store" className="plg-link">Update them in guided set-up</Link>.</p>
       </GlassCard>
+
+      <TemplatePicker key={`${model.look.template}-${model.look.accent}-${model.draft.revision}`} current={model.look} hasLogo={model.look.hasLogo} busy={busy === 'look'} disabled={dirty || isBusy} onApply={applyLook} />
 
       {preview ? (
         <GlassCard heading="h2" eyebrow="Preview of your draft" title="How your store would look" data-testid="preview-box" badges={<GlassBadge>Not public</GlassBadge>}>

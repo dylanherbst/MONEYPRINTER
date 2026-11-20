@@ -28,15 +28,16 @@ export default async function StoreLayout({ children, params }: Props) {
   const store = await loadPublishedStore((await params).store);
   if (!store) notFound();
   const base = await storeBase(store.slug);
-  const vars = renderConfig(store).cssVars as CSSProperties;
+  const rc = renderConfig(store);
+  const vars = rc.cssVars as CSSProperties;
   const year = new Date().getUTCFullYear();
   return (
-    <div className="st" style={vars}>
+    <div className="st" style={vars} {...rc.attrs}>
       <a className="st-skip" href="#st-main">Skip to content</a>
       {store.demo ? <p className="st-demo" role="note"><strong>DEMO STORE</strong> Sample products and policies. Checkout is turned off.</p> : null}
       <header className="st-header">
         <div className="st-wrap st-header-inner">
-          <a className="st-logo" href={base || '/'}>{store.brand.name}</a>
+          <a className="st-logo" href={base || '/'}>{rc.logo ? <img className="st-logo-img" src={rc.logo} alt="" width={36} height={36} /> : null}<span>{store.brand.name}</span></a>
           <nav aria-label="Store">
             <a href={`${base}/#catalogue`}>Shop</a>
             <a href={`${base}/#faq`}>FAQ</a>

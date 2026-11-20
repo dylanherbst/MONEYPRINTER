@@ -2,6 +2,7 @@
 // Server actions for the guided-setup journey. Each one is a thin call into the same lib/aimp functions the test pages
 // under app/tools use (named beside each action); no business rule lives here. Stateful steps run on the shared DEMO
 // runtime in _server/runtime.ts and answer with the fresh state, so the page always shows what the server holds.
+import { applyTemplate } from '../../lib/aimp/storefront/templates';
 import { blueprintRegistry } from '../../lib/aimp/blueprints/index';
 import { approveBrand, createBrandDraft, editBrand, getApprovedBrand, getApprovedBrandOutputs, listBrandVersions } from '../../lib/aimp/branding/service';
 import type { BrandEdits, BrandInput, BrandIssue } from '../../lib/aimp/branding/types';
@@ -340,6 +341,13 @@ export async function storeAction(businessId: string, op: StoreOp): Promise<Acti
   switch (op.kind) {
     case 'save':
       return from('Save draft', await rt.sites.editDraft(siteActor, slug, (d) => { d.hero.heading = op.heading; d.hero.subheading = op.subheading; d.brand.tagline = op.tagline; }, { expectedRevision: op.expectedRevision }), 'Draft saved. Nothing was published.');
+    case 'look': {
+      const cur = await rt.sites.getDraft(siteActor, slug);
+      if (!cur.ok) return done(false, 'We could not open your store draft, so nothing changed.', cur.errors);
+      const look = applyTemplate(cur.value.config, op.template, { accent: op.accent, ...(op.logo !== undefined ? { logo: op.logo } : {}) });
+      if (!look.ok) return done(false, look.message);
+      return from('Change look', await rt.sites.editDraft(siteActor, slug, () => look.config, { expectedRevision: op.expectedRevision }), 'New look saved to your draft. Nothing was published.');
+    }
     case 'sync': {
       const { products } = await storeProducts(rt, businessId);
       if (products.length === 0) return done(false, 'There are no approved listings to bring in.');

@@ -83,6 +83,8 @@ export type StoreOp =
   | { kind: 'save'; heading: string; subheading: string; tagline: string; expectedRevision: number }
   | { kind: 'sync'; expectedRevision: number }
   | { kind: 'preview' }
+  /** Put a store template, an optional accent colour and an optional logo on the draft. `logo`: unset keeps it, '' removes it. */
+  | { kind: 'look'; template: string; accent: string; logo?: string; expectedRevision: number }
   | { kind: 'publish'; note: string; expectedRevision: number }
   | { kind: 'pause' }
   | { kind: 'unpause' }

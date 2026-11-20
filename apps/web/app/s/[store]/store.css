@@ -116,3 +116,24 @@
   .st-bundle { grid-template-columns: .9fr 1.1fr; align-items: center; padding: 1.5rem; }
 }
 @media (prefers-reduced-motion: reduce) { .st-card { transition: none; } .st-card:hover { transform: none; } }
+
+/* Templates (templates.ts): palette comes in through the variables above; these switches change the shape. */
+.st-logo { display: inline-flex; align-items: center; gap: .55rem; }
+.st-logo-img { height: 36px; width: auto; max-width: 140px; object-fit: contain; border-radius: 6px; }
+.st[data-radius='sharp'] { --st-r: 3px; --st-r-lg: 4px; --st-pill: 3px; }
+.st[data-radius='soft'] { --st-r: 12px; --st-r-lg: 16px; --st-pill: 999px; }
+.st[data-radius='round'] { --st-r: 20px; --st-r-lg: 26px; --st-pill: 999px; }
+.st[data-radius] .st-card, .st[data-radius] .st-trust > div, .st[data-radius] .st-bundle { border-radius: var(--st-r-lg); }
+.st[data-radius] .st-cover { border-radius: var(--st-r); }
+.st[data-radius] .st-btn { border-radius: var(--st-pill); }
+.st[data-cards='outline'] .st-card, .st[data-cards='outline'] .st-trust > div { background: transparent; border-width: 2px; }
+.st[data-cards='flat'] .st-card, .st[data-cards='flat'] .st-trust > div { background: var(--st-soft); border-color: transparent; }
+.st[data-cards='raised'] .st-card, .st[data-cards='raised'] .st-trust > div { box-shadow: 0 14px 30px -20px color-mix(in srgb, var(--st-ink) 45%, transparent); }
+.st[data-hero='center'] .st-hero-inner, .st[data-hero='stack'] .st-hero-inner { text-align: center; justify-items: center; }
+.st[data-hero='center'] .st-hero-art { display: none; }
+.st[data-hero='center'] .st-lead, .st[data-hero='stack'] .st-lead { margin-left: auto; margin-right: auto; }
+.st[data-hero='left'] .st-hero-art { display: none; }
+.st[data-hero='left'] .st-hero-copy { max-width: 44rem; }
+@media (min-width: 820px) {
+  .st[data-hero='split'] .st-hero-inner { grid-template-columns: 1.15fr .85fr; }
+}

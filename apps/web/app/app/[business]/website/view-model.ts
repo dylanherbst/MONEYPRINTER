@@ -32,6 +32,8 @@ export interface WebsiteModel {
   liveVersion: number | null;
   draft: DraftForm & { revision: number; productCount: number; hasUnpublishedChanges: boolean; updatedLabel: string; stateLabel: string };
   publish: { allowed: boolean; reason: string };
+  /** The look now on the draft: template id, custom accent (or null), whether a logo is set. */
+  look: { template: string | null; accent: string | null; hasLogo: boolean };
   versions: VersionRow[];
   /** Why there is nothing to go back to, or '' when at least one earlier version can be restored. */
   rollbackNote: string;
@@ -93,6 +95,7 @@ export function buildWebsiteModel(input: { slug: string; draft: DraftView; histo
       updatedLabel: whenLabel(draft.updatedAt),
       stateLabel: history.liveVersion === null ? 'Not published yet' : draft.hasUnpublishedChanges ? 'Has changes that are not published' : 'Same as the live version',
     },
+    look: { template: draft.config.brand.template ?? null, accent: draft.config.brand.accent ?? null, hasLogo: Boolean(draft.config.brand.logo) },
     publish: { allowed: canPublish, reason: canPublish ? '' : NOTHING_NEW },
     versions,
     rollbackNote: versions.length === 0 ? NOTHING_PUBLISHED : versions.length === 1 ? NOTHING_EARLIER : '',
