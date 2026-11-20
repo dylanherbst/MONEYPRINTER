@@ -105,6 +105,7 @@ export function attentionLink(href: string, businessId: string): { href: string 
   const none = { href: null, linkLabel: COMING_SOON };
   if (href !== base && !href.startsWith(`${base}/`)) return none;
   const segment = href.slice(base.length).replace(/^\//, '').split(/[/?#]/)[0] ?? '';
+  if (segment === '') return { href: base, linkLabel: 'Open Overview' }; // the overview page still exists; it just left the bar
   const page = workspaceNavItems.find((i) => i.ready && i.segment === segment);
   if (!page) return none;
   return { href: page.segment ? `${base}/${page.segment}` : base, linkLabel: `Open ${page.label}` };
