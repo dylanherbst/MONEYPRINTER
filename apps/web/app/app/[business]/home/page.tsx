@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { AppIntro, AppLayout, GlassButton, GlassCard, GlassNotice, GlassState } from '../../../design-system/aimp-glass';
 import { availability, checkBusiness } from '../../../start/_server/runtime';
 import { UnknownBusiness } from '../overview-view';
-import { BriefForm } from './brief-form';
 import { loadHome } from './_server/load-home';
 
 export const metadata: Metadata = { title: 'Home' };
@@ -39,26 +38,23 @@ export default async function HomePage({ params }: { params: Promise<{ business:
       <AppIntro title={home.headline}><p>Next: {home.next.title}</p></AppIntro>
       {home.next.href ? <GlassButton href={home.next.href}>{home.next.action}</GlassButton> : null}
 
-      <GlassCard title="What needs me" data-testid="home-needs">
-        {home.needsMe.length ? <ul>{home.needsMe.map(row)}</ul> : <p>Nothing needs you right now.</p>}
+      <GlassCard title={`Your launch: ${home.checklist.done} of ${home.checklist.total} done`} data-testid="home-checklist">
+        <ol>
+          {home.checklist.steps.map((st) => (
+            <li key={st.label} data-done={st.done ? 'yes' : 'no'} data-current={st.current ? 'yes' : 'no'}>
+              {st.done ? '✓ ' : st.current ? '→ ' : '○ '}
+              {st.href && !st.done ? <a href={st.href}>{st.label}</a> : st.label}
+              {st.current ? ' (do this next)' : ''}
+            </li>
+          ))}
+        </ol>
       </GlassCard>
-      <GlassCard title="What is ready" data-testid="home-ready">
-        {home.ready.length ? <ul>{home.ready.map(row)}</ul> : <p>Nothing is finished yet.</p>}
-      </GlassCard>
-      <GlassCard title="What happened" data-testid="home-happened">
-        {home.happened.length ? <ul>{home.happened.map(row)}</ul> : <p>No activity yet. When something happens, it shows here.</p>}
-      </GlassCard>
-
-      <GlassCard title="Quick actions" data-testid="home-actions">
-        <GlassButton href={`/app/${business}/marketing`}>Draft a launch campaign</GlassButton>
-        <GlassButton variant="secondary" href={`/app/${business}/inbox`}>Review replies</GlassButton>
-        <GlassButton variant="secondary" href={`/app/${business}/gaps`}>Find competitor gaps</GlassButton>
-      </GlassCard>
-
-      <GlassCard title={home.weeklyBrief.title} data-testid="home-brief">
-        <ul>{home.weeklyBrief.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>
-        <BriefForm business={business} />
-      </GlassCard>
+      {home.needsMe.length ? (
+        <GlassCard title="Needs you" data-testid="home-needs"><ul>{home.needsMe.map(row)}</ul></GlassCard>
+      ) : null}
+      {home.happened.length ? (
+        <GlassCard title="What happened" data-testid="home-happened"><ul>{home.happened.map(row)}</ul></GlassCard>
+      ) : null}
     </AppLayout>
   );
 }

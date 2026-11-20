@@ -12,7 +12,7 @@ test('the primary entry is Find my side hustle and goes to the real /start flow'
 
 test('setup steps and bottom tabs match the brief', () => {
   assert.deepEqual(setupSteps.map((s) => s.label), ['Find my side hustle', 'Build it for me', 'Review my launch']);
-  assert.deepEqual(appTabs.map((t) => t.label), ['Home', 'My Shop', 'Growth', 'Inbox']);
+  assert.deepEqual(appTabs.map((t) => t.label), ['Home', 'My Shop', 'Growth']);
 });
 
 test('the website and the /start welcome use the shared entry, and the old calls to action are gone', () => {

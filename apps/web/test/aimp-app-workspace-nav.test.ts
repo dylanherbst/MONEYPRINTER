@@ -12,23 +12,21 @@ const item = (label: string) => {
   return i;
 };
 
-test('Overview, Brand, Products and Orders are links with the right addresses for a business id', () => {
+test('Home, Products and Orders are links with the right addresses for a business id', () => {
   assert.equal(workspaceNavHref('biz-a', item('Orders')), '/app/biz-a/orders');
-  assert.equal(workspaceNavHref('biz-a', item('Overview')), '/app/biz-a');
-  assert.equal(workspaceNavHref('biz-a', item('Brand')), '/app/biz-a/brand');
+  assert.equal(workspaceNavHref('biz-a', item('Home')), '/app/biz-a/home');
   assert.equal(workspaceNavHref('biz-a', item('Products')), '/app/biz-a/products');
   assert.equal(workspaceNavHref('other_1', item('Products')), '/app/other_1/products');
 });
 
-test('Website, Domains and Payments are links now that their pages exist (AMP-087, AMP-088)', () => {
+test('Website and Payments are links now that their pages exist (AMP-087, AMP-088)', () => {
   assert.equal(workspaceNavHref('biz-a', item('Website')), '/app/biz-a/website');
-  assert.equal(workspaceNavHref('biz-a', item('Domains')), '/app/biz-a/domains');
   assert.equal(workspaceNavHref('biz-a', item('Payments')), '/app/biz-a/payments');
 });
 
-test('Dashboard is a link now that the merchant dashboard exists (AMP-062), and it is lit on its own page', () => {
-  assert.equal(workspaceNavHref('biz-a', item('Dashboard')), '/app/biz-a/dashboard');
-  assert.equal(item('Dashboard').ready, true);
+test('screens cut from the bar (20 Nov 2026) are still real pages, reached from Settings', () => {
+  for (const l of ['Dashboard', 'Brand', 'Domains', 'Approvals', 'Operator']) assert.ok(!workspaceNavItems.some((i) => i.label === l), `${l} is not in the bar`);
+  for (const seg of ['dashboard', 'brand', 'domains', 'approvals', 'operator', 'inbox', 'gaps']) assert.ok(existsSync(new URL(`../app/app/[business]/${seg}/page.tsx`, import.meta.url)), seg);
   assert.equal(currentSegment('/app/biz-a/dashboard', 'biz-a'), 'dashboard');
 });
 
@@ -37,7 +35,7 @@ test('a page that is not built is plain text, never a link', () => {
 });
 
 test('every item is either a link or plain text, never both, and the order is stable', () => {
-  assert.deepEqual(workspaceNavItems.map((i) => i.label), ['Overview', 'Dashboard', 'Brand', 'Products', 'Orders', 'Website', 'Domains', 'Payments', 'Marketing', 'Approvals', 'Operator']);
+  assert.deepEqual(workspaceNavItems.map((i) => i.label), ['Home', 'Products', 'Website', 'Payments', 'Marketing', 'Orders']);
   for (const i of workspaceNavItems) assert.equal(workspaceNavHref('b', i) === null, !i.ready, i.label);
   assert.equal(new Set(workspaceNavItems.map((i) => i.label)).size, workspaceNavItems.length);
 });
@@ -52,11 +50,10 @@ test('the highlighted item follows the first path segment, so the product editor
 });
 
 test('phone layout: four bottom tabs in the brief\'s order, Settings behind the profile icon, each with the right address', () => {
-  assert.deepEqual(appTabs.map((t) => t.label), ['Home', 'My Shop', 'Growth', 'Inbox']);
+  assert.deepEqual(appTabs.map((t) => t.label), ['Home', 'My Shop', 'Growth']);
   assert.equal(tabHref('biz-a', 'home'), '/app/biz-a/home');
   assert.equal(tabHref('biz-a', 'shop'), '/app/biz-a/products');
   assert.equal(tabHref('biz-a', 'growth'), '/app/biz-a/marketing');
-  assert.equal(tabHref('biz-a', 'inbox'), '/app/biz-a/inbox');
   assert.equal(tabHref('biz-a', 'settings'), '/app/biz-a/settings');
   assert.ok(!appTabs.some((t) => (t.id as string) === 'settings'), 'Settings is not one of the four tabs');
 });

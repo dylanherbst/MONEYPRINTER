@@ -17,8 +17,11 @@ export interface HomeInput {
 
 export interface HomeItem { text: string; href: string | null }
 export interface HomeNext { title: string; action: string; href: string | null }
+export interface ChecklistStep { label: string; done: boolean; current: boolean; href: string | null }
 export interface HomeView {
   headline: string;
+  /** The whole path from idea to first order, in order, with the step to do now marked. */
+  checklist: { steps: ChecklistStep[]; done: number; total: number };
   next: HomeNext;
   ready: HomeItem[];
   needsMe: HomeItem[];
@@ -70,7 +73,11 @@ export function buildHome(i: HomeInput): HomeView {
   const headline = o.flags.storePublished
     ? `${i.businessName} is live.`
     : `${i.businessName}: ${o.launchProgress.done} of ${o.launchProgress.total} launch steps done.`;
-  return { headline, next, ready, needsMe, happened, weeklyBrief: { title: `Weekly brief: ${i.businessName}`, lines } };
+  const checklist = {
+    steps: o.launchProgress.steps.map((st) => ({ label: st.label, done: st.done, current: st.id === o.launchProgress.nextStep?.id, href: link(st.href) })),
+    done: o.launchProgress.done, total: o.launchProgress.total,
+  };
+  return { headline, checklist, next, ready, needsMe, happened, weeklyBrief: { title: `Weekly brief: ${i.businessName}`, lines } };
 }
 
 /** The plain-text email for "Send my weekly brief". Only the brief lines; nothing private is added. */

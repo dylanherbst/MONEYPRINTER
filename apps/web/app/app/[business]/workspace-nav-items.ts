@@ -2,18 +2,15 @@
 // workspace-nav.tsx. Add a page here when its route exists; a page that is not built yet stays `ready: false` and is not a link.
 export interface NavItem { label: string; segment: string; ready: boolean }
 
+// Simplified (owner request, 20 Nov 2026): only the screens on the path from product to first sale. Everything else still exists and is
+// reached from Settings (settingsLinks below).
 export const workspaceNavItems: readonly NavItem[] = [
-  { label: 'Overview', segment: '', ready: true },
-  { label: 'Dashboard', segment: 'dashboard', ready: true },
-  { label: 'Brand', segment: 'brand', ready: true },
+  { label: 'Home', segment: 'home', ready: true },
   { label: 'Products', segment: 'products', ready: true },
-  { label: 'Orders', segment: 'orders', ready: true },
   { label: 'Website', segment: 'website', ready: true },
-  { label: 'Domains', segment: 'domains', ready: true },
   { label: 'Payments', segment: 'payments', ready: true },
   { label: 'Marketing', segment: 'marketing', ready: true },
-  { label: 'Approvals', segment: 'approvals', ready: true },
-  { label: 'Operator', segment: 'operator', ready: true },
+  { label: 'Orders', segment: 'orders', ready: true },
 ];
 
 /** Where a nav item goes for this business, or null while its page is not built (the bar then draws plain "Soon" text, never a link). */
@@ -37,9 +34,8 @@ export type TabId = (typeof appTabs)[number]['id'] | 'settings';
 export const tabRoutes: Record<TabId, { segment: string; segments: readonly string[] }> = {
   home: { segment: 'home', segments: ['', 'home', 'dashboard'] },
   shop: { segment: 'products', segments: ['products', 'orders', 'website', 'brand', 'domains', 'payments'] },
-  growth: { segment: 'marketing', segments: ['marketing', 'gaps'] },
-  inbox: { segment: 'inbox', segments: ['inbox'] },
-  settings: { segment: 'settings', segments: ['settings', 'integrations', 'approvals', 'operator'] },
+  growth: { segment: 'marketing', segments: ['marketing'] },
+  settings: { segment: 'settings', segments: ['settings', 'integrations', 'approvals', 'operator', 'inbox', 'gaps'] },
 };
 
 export const tabHref = (business: string, id: TabId): string => {
@@ -55,6 +51,8 @@ export function tabForSegment(segment: string): TabId | null {
 
 /** Everything in the bar that is not one of the four tabs, shown on the Settings page so no screen becomes unreachable on a phone. */
 export const settingsLinks: readonly { label: string; segment: string; detail: string }[] = [
+  { label: 'Inbox', segment: 'inbox', detail: 'Messages from customers.' },
+  { label: 'Competitor gaps', segment: 'gaps', detail: 'What other tools miss.' },
   { label: 'Brand', segment: 'brand', detail: 'Your name, look and wording.' },
   { label: 'Domains', segment: 'domains', detail: 'Your shop address.' },
   { label: 'Payments', segment: 'payments', detail: 'Get paid by card.' },

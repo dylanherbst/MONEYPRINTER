@@ -11,10 +11,9 @@ export const setupSteps = [
 ] as const;
 export type SetupStepId = (typeof setupSteps)[number]['id'];
 
-/** Bottom tabs once the shop is launched (Settings sits behind the profile icon, not in the tab bar). */
+/** Bottom tabs once the shop is launched (Settings sits behind the profile icon, not in the tab bar). Three tabs since the 20 Nov 2026 simplification; Inbox moved to Settings. */
 export const appTabs = [
   { id: 'home', label: 'Home' },
   { id: 'shop', label: 'My Shop' },
   { id: 'growth', label: 'Growth' },
-  { id: 'inbox', label: 'Inbox' },
 ] as const;
