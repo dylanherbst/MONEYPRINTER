@@ -18,7 +18,7 @@ export const PROVIDER_META: Readonly<Record<ProviderId, ProviderMeta>> = {
     credentialVars: ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'],
     missing: 'storage credentials',
   },
-  social: { name: 'Social posting (Ayrshare)', credentialVars: ['AYRSHARE_API_KEY'], missing: 'Ayrshare API key' },
+  social: { name: 'Social posting (Zernio)', credentialVars: ['ZERNIO_API_KEY'], missing: 'Zernio API key' },
   domains: { name: 'Domains and hosting', credentialVars: ['VERCEL_API_TOKEN'], missing: 'domain provider token' },
 };
 
