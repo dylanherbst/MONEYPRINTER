@@ -17,6 +17,7 @@ export NEXT_TELEMETRY_DISABLED=1
 
 IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null)
 NAME=$(scutil --get LocalHostName 2>/dev/null)
+export AIMP_DEV_ORIGINS="${IP:-127.0.0.1},${NAME:-localhost}.local"
 echo
 echo "=================================================================="
 echo "  AIMoneyPrinter TEST LAB (demo data only)"

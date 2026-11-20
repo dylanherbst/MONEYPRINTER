@@ -43,6 +43,8 @@ export interface OverviewRuntime {
   sellers?: Pick<SellerAccountStore, 'get'>;
   /** Optional (AMP-093). When the runtime has a fulfilment store, deliveries, refunds and disputes are read from it; otherwise none. */
   fulfilment?: Pick<FulfilmentStore, 'list' | 'listMoneyEvents'>;
+  /** Optional. The /start runtime's order store (the one the Orders page and test purchases use). Its orders are always included, whichever page built the shared cache first. */
+  orderDemo?: { orders: { list(workspaceId: string): Promise<Order[]> }; fulfilmentStore?: Pick<FulfilmentStore, 'list' | 'listMoneyEvents'> };
 }
 
 /** The contexts the /start runtime uses for the same reads (from `app/start/_server/runtime.ts`). */
@@ -176,8 +178,13 @@ export function createRuntimeOverviewDeps(
     }
   };
   return {
-    orders: { list: async (s) => { const orders = ex().orders; return orders ? (await orders(s.workspaceId)).map(toOverviewOrder) : []; } },
-    fulfilment: rt.fulfilment ? createFulfilmentSource(rt.fulfilment) : { list: async () => [], moneyEvents: async () => [] },
+    orders: { list: async (s) => {
+      const extra = ex().orders;
+      const [fromExtras, fromStart] = await Promise.all([extra ? extra(s.workspaceId) : [], rt.orderDemo ? rt.orderDemo.orders.list(s.workspaceId) : []]);
+      const seen = new Set<string>();
+      return [...fromExtras, ...fromStart].filter((o) => (seen.has(o.id) ? false : (seen.add(o.id), true))).map(toOverviewOrder);
+    } },
+    fulfilment: (rt.fulfilment ?? rt.orderDemo?.fulfilmentStore) ? createFulfilmentSource((rt.fulfilment ?? rt.orderDemo?.fulfilmentStore)!) : { list: async () => [], moneyEvents: async () => [] },
     seller: rt.sellers ? createSellerSource(rt.sellers) : { readiness: async () => deriveReadiness(null) },
     store: { get: async (s) => (await readStore(rt, s)).store },
     steps: { get: (s) => readBuildSteps(rt, ctx, s) },

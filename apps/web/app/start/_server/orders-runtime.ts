@@ -25,6 +25,7 @@ import { grantTokenSigner } from '../../../lib/aimp/fulfilment/link.ts';
 import { createFulfilmentService } from '../../../lib/aimp/fulfilment/service.ts';
 import type { FulfilmentService } from '../../../lib/aimp/fulfilment/service.ts';
 import { createMemoryFulfilmentStore } from '../../../lib/aimp/fulfilment/store.ts';
+import type { FulfilmentStore } from '../../../lib/aimp/fulfilment/types.ts';
 import { createMemoryOrderStore, createOrderBook, orderItemId } from '../../../lib/aimp/orders/index.ts';
 import type { OrderStore } from '../../../lib/aimp/orders/index.ts';
 import type { ProductService } from '../../../lib/aimp/products/service.ts';
@@ -56,6 +57,8 @@ export interface StartOrders {
   sellers: SellerAccountStore;
   checkout: CheckoutService;
   fulfilment: FulfilmentService;
+  /** The store behind `fulfilment`, so the Home and overview pages can read the same delivery records the Orders page shows. */
+  fulfilmentStore: FulfilmentStore;
   /** Fixture email: messages go to an in-memory outbox, never to a real address. */
   email: EmailAdapter;
   now: () => Date;
@@ -99,8 +102,9 @@ export function createStartOrders(opts: StartOrdersOptions): StartOrders {
     payments: () => ({ status: registry.payments.status, adapter: registry.payments.adapter }),
     returnUrls: () => ({ successUrl: '/app', cancelUrl: '/app' }),
   });
+  const fulfilmentStore = createMemoryFulfilmentStore();
   const fulfilment = createFulfilmentService({
-    orders, files, stores: directory, store: createMemoryFulfilmentStore(), webhookSecret: FIXTURE_WEBHOOK_SECRET, now,
+    orders, files, stores: directory, store: fulfilmentStore, webhookSecret: FIXTURE_WEBHOOK_SECRET, now,
     email: () => email,
     downloadUrl: ({ token }) => `${DOWNLOAD_PATH}/${token}`,
     grantToken: grantTokenSigner(filesSecret),
@@ -108,7 +112,7 @@ export function createStartOrders(opts: StartOrdersOptions): StartOrders {
   });
   fulfilment.attachToCheckout(checkout);
   return {
-    workspaceId: opts.workspaceId, actorId: opts.actorId, orders, files, productStore: opts.productStore, sellers, checkout, fulfilment, email, now, stores,
+    workspaceId: opts.workspaceId, actorId: opts.actorId, orders, files, productStore: opts.productStore, sellers, checkout, fulfilment, fulfilmentStore, email, now, stores,
     sampled: new Map(), inflight: new Map(), registry,
   };
 }
