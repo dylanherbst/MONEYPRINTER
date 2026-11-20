@@ -24,8 +24,8 @@ export interface VersionRow {
   canRollBack: boolean;
 }
 
-/** The draft's own words, so the template preview shows the real store. */
-export interface LookSample { name: string; eyebrow: string; heading: string; subheading: string; cta: string; products: { title: string; price: string }[] }
+import { sampleFrom } from '../../../../lib/aimp/storefront/preview-sample.ts';
+import type { LookSample } from '../../../../lib/aimp/storefront/preview-sample.ts';
 
 export interface WebsiteModel {
   slug: string;
@@ -99,8 +99,7 @@ export function buildWebsiteModel(input: { slug: string; draft: DraftView; histo
       stateLabel: history.liveVersion === null ? 'Not published yet' : draft.hasUnpublishedChanges ? 'Has changes that are not published' : 'Same as the live version',
     },
     look: { template: draft.config.brand.template ?? null, accent: draft.config.brand.accent ?? null, hasLogo: Boolean(draft.config.brand.logo),
-      sample: { name: draft.config.brand.name, eyebrow: draft.config.hero.eyebrow, heading: draft.config.hero.heading, subheading: draft.config.hero.subheading, cta: draft.config.hero.ctaLabel,
-        products: draft.config.products.slice(0, 4).map((p) => ({ title: p.title, price: `$${(p.priceMinor / 100).toFixed(2)}` })) } },
+      sample: sampleFrom(draft.config) },
     publish: { allowed: canPublish, reason: canPublish ? '' : NOTHING_NEW },
     versions,
     rollbackNote: versions.length === 0 ? NOTHING_PUBLISHED : versions.length === 1 ? NOTHING_EARLIER : '',

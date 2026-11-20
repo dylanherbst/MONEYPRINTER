@@ -71,3 +71,13 @@ test('custom accent and logo are carried through; bad ones never reach the confi
   const forged = { ...demoStore, brand: { ...demoStore.brand, logo: 'javascript:alert(1)' } };
   assert.equal(validateStoreConfig(forged).ok, false);
 });
+
+test('no two templates share the same layout, and all hero styles are used', () => {
+  const combo = (t: (typeof templates)[number]) => [t.hero, t.grid, t.head, t.flow, t.trust].join('|');
+  assert.equal(new Set(templates.map(combo)).size, 15);
+  assert.ok(new Set(templates.map((t) => t.hero)).size >= 7);
+  assert.ok(new Set(templates.map((t) => t.grid)).size === 5);
+  assert.ok(new Set(templates.map((t) => t.flow)).size === 4);
+  // Two templates may look alike in one respect, but never in hero + grid + header together.
+  assert.equal(new Set(templates.map((t) => [t.hero, t.grid, t.head].join('|'))).size, 15);
+});

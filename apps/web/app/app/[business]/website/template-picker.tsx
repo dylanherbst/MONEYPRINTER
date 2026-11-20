@@ -2,10 +2,8 @@
 // Template picker for the Website page: 15 ready-made looks, a colour and a logo. Nothing here is published: it saves to the private draft
 // through the same `websiteAction` as the text editor. The server checks everything again (templates.ts), so this file only helps the person.
 import { useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
-import '../../../s/[store]/store.css';
-import { fontStacks } from '../../../../lib/aimp/storefront/render-config';
-import type { LookSample } from './view-model';
+import { TemplatePreview } from '../../../s/[store]/_ui/template-preview';
+import type { LookSample } from '../../../../lib/aimp/storefront/preview-sample';
 import { GlassButton, GlassCard } from '../../../design-system/aimp-glass';
 import { LOGO_MAX_BYTES, resolvePalette, templates } from '../../../../lib/aimp/storefront/templates';
 
@@ -74,31 +72,7 @@ export function TemplatePicker({ current, hasLogo, sample, busy, disabled, onApp
         </div>
       </div>
       <p className="plg-note"><strong>Live preview</strong> (your words and products in “{tpl.name}”)</p>
-      <div className="st aws-live" data-testid="template-preview" data-hero={tpl.hero} data-cards={tpl.cards} data-radius={tpl.radius}
-        style={{ '--st-bg': colours.bg, '--st-surface': colours.surface, '--st-ink': colours.ink, '--st-muted': colours.muted, '--st-line': colours.line, '--st-accent': colours.accent, '--st-accent-ink': colours.accentInk, '--st-soft': colours.soft, '--st-font': fontStacks[tpl.font], minHeight: 0 } as CSSProperties}>
-        <header className="st-header" style={{ position: 'static' }}>
-          <div className="st-wrap st-header-inner">
-            <span className="st-logo">{(logo ? logo : null) ? <img className="st-logo-img" src={logo} alt="" /> : null}<span>{sample.name}</span></span>
-            <nav><a href="#preview">Shop</a><a href="#preview">FAQ</a></nav>
-          </div>
-        </header>
-        <section className="st-hero">
-          <div className="st-wrap st-hero-inner">
-            <div className="st-hero-copy">
-              <p className="st-eyebrow">{sample.eyebrow}</p>
-              <h1>{sample.heading}</h1>
-              <p className="st-lead">{sample.subheading}</p>
-              <a className="st-btn st-btn-primary" href="#preview">{sample.cta}</a>
-            </div>
-            <div className="st-hero-art"><div className="st-cover st-cover-lg" /></div>
-          </div>
-        </section>
-        <div className="st-wrap st-section">
-          <div className="st-grid">
-            {sample.products.map((p) => <a key={p.title} className="st-card" href="#preview"><div className="st-cover" /><div className="st-card-body"><span className="st-card-title">{p.title}</span><span className="st-price">{p.price}</span></div></a>)}
-          </div>
-        </div>
-      </div>
+      <TemplatePreview tpl={tpl} palette={colours} sample={sample} {...(logo ? { logo } : {})} />
       <div className="aws-look-sample" aria-label="Colour sample" style={{ background: colours.bg, color: colours.ink, borderColor: colours.line }}>
         <span style={{ color: colours.muted }}>Sample</span>
         <span className="aws-look-pill" style={{ background: colours.accent, color: colours.accentInk }}>Buy now</span>
