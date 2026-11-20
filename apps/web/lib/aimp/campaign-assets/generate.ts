@@ -24,33 +24,64 @@ export function themeFor(plan: LaunchCampaignPlan, item: CampaignContentItem): C
 }
 
 const pick = <T>(list: readonly T[], attempt: number): T => list[attempt % list.length] as T;
+/** A keyword someone would type: no cut-off text and no word said twice in a row or twice overall. */
+const goodKeyword = (k: string): boolean => {
+  if (!k || k.includes('…')) return false;
+  const w = k.toLowerCase().split(/\s+/);
+  return new Set(w).size === w.length;
+};
 const keywordsFor = (item: CampaignContentItem, theme: CampaignSeoTheme | null): string[] => {
   const base = theme?.keywords ?? [item.productTitle.toLowerCase()];
-  return [...new Set(base.map((k) => fit(k.trim(), LIMITS.keywordMax)).filter(Boolean))].slice(0, LIMITS.keywordsMax);
+  const all = [...new Set(base.map((k) => fit(k.trim(), LIMITS.keywordMax)))].filter(goodKeyword);
+  return (all.length ? all : [fit(item.productTitle.toLowerCase(), LIMITS.keywordMax)]).slice(0, LIMITS.keywordsMax);
 };
+const sentence = (t: string): string => { const x = t.trim(); return /[.!?…]$/.test(x) ? x : `${x}.`; };
+/** Join sentences without saying the same thing twice (same price, same words). */
+const joinUnique = (parts: string[], price = ''): string => {
+  const out: string[] = [];
+  for (const p of parts.map((x) => x.trim()).filter(Boolean)) {
+    const low = p.toLowerCase();
+    if (out.some((o) => o.toLowerCase().includes(low) || low.includes(o.toLowerCase()))) continue;
+    if (price && low.includes(price.toLowerCase()) && out.some((o) => o.toLowerCase().includes(price.toLowerCase()))) continue;
+    out.push(sentence(p));
+  }
+  return out.join(' ');
+};
+/** The few words printed on the Pin picture. Fixed per kind of post so it is never cut off. */
+const overlayFor = (item: CampaignContentItem): string => {
+  switch (item.pillarId) {
+    case 'launch': return 'Now available';
+    case 'problem': return 'Made for busy planners';
+    case 'inside': return 'See what is inside';
+    case 'how_to': return 'How to use it';
+  }
+};
+const stripBrandPrefix = (hook: string, brand: string): string => hook.replace(new RegExp(`^New from ${brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:\\s*`, 'i'), '');
 
 function pin({ item, plan, theme, attempt }: GenerateInput<'pin'>): ContentByKind['pin'] {
-  const title = pick([item.hook, `${item.productTitle}: ${item.hook}`], attempt);
   const brand = plan.brand.name;
+  const hook = stripBrandPrefix(item.hook, brand);
+  const title = item.pillarId === 'launch' ? pick([`${hook}: now available`, `${hook}, ${item.priceLabel}`], attempt) : pick([hook, `${hook} | ${brand}`], attempt);
   return {
     title: fit(title, LIMITS.pinTitle),
-    description: fit(`${item.description} ${item.callToAction}`, LIMITS.pinDescription),
-    altText: fit(`Cover of ${item.productTitle} by ${brand}. ${item.hook}`, LIMITS.pinAltText),
+    description: fit(joinUnique([item.description, item.callToAction], item.priceLabel), LIMITS.pinDescription),
+    altText: fit(`Cover of the ${item.productTitle} by ${brand}`, LIMITS.pinAltText),
     destinationUrl: item.targetUrl,
     board: fit(theme?.pinterestBoard ?? `${brand} ideas`, LIMITS.pinBoard),
-    imageBrief: fit(`Vertical Pin showing the cover of ${item.productTitle}. Headline on the image: "${fit(item.hook, 60)}". Style: ${plan.brand.tone}. ${item.angle}`, LIMITS.imageBrief),
-    imageSpec: { width: PIN_IMAGE.width, height: PIN_IMAGE.height, aspect: PIN_IMAGE.aspect, fileName: `${item.id}.png`, textOverlay: fit(item.hook, 60) },
+    imageBrief: fit(`Vertical Pin showing the cover of ${item.productTitle}. Headline on the image: "${overlayFor(item)}". Style: ${plan.brand.tone}. ${item.angle}`, LIMITS.imageBrief),
+    imageSpec: { width: PIN_IMAGE.width, height: PIN_IMAGE.height, aspect: PIN_IMAGE.aspect, fileName: `${item.id}.png`, textOverlay: overlayFor(item) },
     publishDate: item.scheduledDate,
     keywords: keywordsFor(item, theme),
   };
 }
 
 function caption({ item, plan, attempt }: GenerateInput<'caption'>): ContentByKind['caption'] {
-  const lead = attempt % 2 === 0 ? item.hook : `${item.productTitle}. ${item.hook}`;
+  const hook = stripBrandPrefix(item.hook, plan.brand.name);
+  const lead = sentence(attempt % 2 === 0 ? hook : `${item.productTitle}. ${hook}`);
   const variants = [
-    `${lead}\n\n${item.description}\n\n${item.callToAction}`,
-    `${item.productTitle} from ${plan.brand.name} is ${item.priceLabel}. ${item.description} Link in bio.`,
-    `${item.hook} ${item.callToAction}`,
+    `${lead}\n\n${joinUnique([item.description])}\n\n${sentence(item.callToAction)}`,
+    joinUnique([`${item.productTitle} from ${plan.brand.name} is ${item.priceLabel}`, item.description, 'Link in bio'], item.priceLabel),
+    joinUnique([hook, item.callToAction], item.priceLabel),
   ].map((v) => fit(v.replace(/[ \t]+/g, ' '), LIMITS.captionMax));
   return { variants, destinationUrl: item.targetUrl, publishDate: item.scheduledDate };
 }

@@ -496,7 +496,8 @@ test('the plan carries Pinterest and search themes built from this business\'s n
   for (const l of approved) {
     const t = plan.seoThemes.find((x) => x.keywords.includes(l.title.toLowerCase()));
     assert.ok(t, `a theme for ${l.title}`);
-    assert.ok(t.theme.includes(l.title) && t.pinterestBoard.includes(l.title));
+    // The board is a topic people follow, never a product name (20 Nov 2026).
+    assert.ok(t.theme.includes(l.title) && !t.pinterestBoard.includes(l.title) && t.pinterestBoard.endsWith('printables'));
   }
   const draft = ctx.listings.find((l) => l.status === 'draft');
   if (draft) assert.ok(!JSON.stringify(plan.seoThemes).toLowerCase().includes(draft.title.toLowerCase()));

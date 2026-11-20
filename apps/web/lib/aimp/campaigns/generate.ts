@@ -64,8 +64,9 @@ function seoThemesFor(b: BrandProfile, listings: readonly SellableListing[]): Ca
     const title = l.title.trim();
     themes.push({
       theme: clip(`${title}: ${niche} for ${who}`, 140),
-      keywords: uniq([title.toLowerCase(), `${title.toLowerCase()} pdf`, `${niche} ${title.toLowerCase()}`]),
-      pinterestBoard: clip(`${title} (${niche})`, BOARD_MAX),
+      keywords: uniq([title.toLowerCase(), `${title.toLowerCase()} pdf`, ...(title.toLowerCase().includes(niche) ? [`${niche} checklist printable`] : [`${niche} ${title.toLowerCase()}`])]),
+      // A board is a topic people follow, never a product name.
+      pinterestBoard: clip(`${niche} printables`, BOARD_MAX),
     });
   }
   return themes;
