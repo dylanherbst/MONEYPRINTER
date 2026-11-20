@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { legacyRedirect } from './lib/aimp/hosts/legacy';
 import { requestHeadersFor, routeForHost } from './lib/aimp/hosts/resolve';
 
 // Multi-tenant storefront routing (plan §D01/§D05, AMP-032). The decision itself is the pure `routeForHost`:
@@ -14,7 +15,12 @@ export function proxy(request: NextRequest) {
     AIMP_STORE_TEST_DOMAIN: process.env.AIMP_STORE_TEST_DOMAIN,
   });
   const headers = requestHeadersFor(request.headers, route);
-  if (route.action === 'pass') return NextResponse.next({ request: { headers } });
+  if (route.action === 'pass') {
+    // Old VENTRA pages (and the old root) go to the guided start. See lib/aimp/hosts/legacy.ts.
+    const to = legacyRedirect(request.nextUrl.pathname, request.headers.get('host'), { AIMP_SHOW_LEGACY: process.env.AIMP_SHOW_LEGACY });
+    if (to) return NextResponse.redirect(new URL(to, request.url), 307);
+    return NextResponse.next({ request: { headers } });
+  }
   if (route.action === 'not_found') {
     return new NextResponse('Not found', {
       status: 404,
