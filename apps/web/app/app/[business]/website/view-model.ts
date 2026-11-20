@@ -24,6 +24,9 @@ export interface VersionRow {
   canRollBack: boolean;
 }
 
+/** The draft's own words, so the template preview shows the real store. */
+export interface LookSample { name: string; eyebrow: string; heading: string; subheading: string; cta: string; products: { title: string; price: string }[] }
+
 export interface WebsiteModel {
   slug: string;
   status: SiteStatus;
@@ -33,7 +36,7 @@ export interface WebsiteModel {
   draft: DraftForm & { revision: number; productCount: number; hasUnpublishedChanges: boolean; updatedLabel: string; stateLabel: string };
   publish: { allowed: boolean; reason: string };
   /** The look now on the draft: template id, custom accent (or null), whether a logo is set. */
-  look: { template: string | null; accent: string | null; hasLogo: boolean };
+  look: { template: string | null; accent: string | null; hasLogo: boolean; sample: LookSample };
   versions: VersionRow[];
   /** Why there is nothing to go back to, or '' when at least one earlier version can be restored. */
   rollbackNote: string;
@@ -95,7 +98,9 @@ export function buildWebsiteModel(input: { slug: string; draft: DraftView; histo
       updatedLabel: whenLabel(draft.updatedAt),
       stateLabel: history.liveVersion === null ? 'Not published yet' : draft.hasUnpublishedChanges ? 'Has changes that are not published' : 'Same as the live version',
     },
-    look: { template: draft.config.brand.template ?? null, accent: draft.config.brand.accent ?? null, hasLogo: Boolean(draft.config.brand.logo) },
+    look: { template: draft.config.brand.template ?? null, accent: draft.config.brand.accent ?? null, hasLogo: Boolean(draft.config.brand.logo),
+      sample: { name: draft.config.brand.name, eyebrow: draft.config.hero.eyebrow, heading: draft.config.hero.heading, subheading: draft.config.hero.subheading, cta: draft.config.hero.ctaLabel,
+        products: draft.config.products.slice(0, 4).map((p) => ({ title: p.title, price: `$${(p.priceMinor / 100).toFixed(2)}` })) } },
     publish: { allowed: canPublish, reason: canPublish ? '' : NOTHING_NEW },
     versions,
     rollbackNote: versions.length === 0 ? NOTHING_PUBLISHED : versions.length === 1 ? NOTHING_EARLIER : '',

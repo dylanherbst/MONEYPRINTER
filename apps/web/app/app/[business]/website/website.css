@@ -39,3 +39,6 @@
 .aws-look-clear { background: none; border: 0; text-decoration: underline; color: inherit; font: inherit; cursor: pointer; min-height: 44px; }
 .aws-look-sample { display: flex; align-items: center; justify-content: space-between; margin-top: 1rem; padding: .8rem 1rem; border: 1px solid; border-radius: 12px; }
 .aws-look-pill { padding: .5rem 1.1rem; border-radius: 999px; font-weight: 600; }
+.aws-live { border: 1px solid #ddd; border-radius: 12px; overflow: hidden; margin-top: .5rem; max-height: 560px; overflow-y: auto; }
+.aws-live .st-hero { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.aws-live h1 { font-size: 1.7rem; }

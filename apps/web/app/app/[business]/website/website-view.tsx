@@ -116,7 +116,7 @@ export function WebsiteView({ businessId, model }: { businessId: string; model: 
         <p className="plg-note">Products, prices and colours come from your approved listings and brand. <Link href="/start/store" className="plg-link">Update them in guided set-up</Link>.</p>
       </GlassCard>
 
-      <TemplatePicker key={`${model.look.template}-${model.look.accent}-${model.draft.revision}`} current={model.look} hasLogo={model.look.hasLogo} busy={busy === 'look'} disabled={dirty || isBusy} onApply={applyLook} />
+      <TemplatePicker key={`${model.look.template}-${model.look.accent}-${model.draft.revision}`} current={model.look} sample={model.look.sample} hasLogo={model.look.hasLogo} busy={busy === 'look'} disabled={dirty || isBusy} onApply={applyLook} />
 
       {preview ? (
         <GlassCard heading="h2" eyebrow="Preview of your draft" title="How your store would look" data-testid="preview-box" badges={<GlassBadge>Not public</GlassBadge>}>
