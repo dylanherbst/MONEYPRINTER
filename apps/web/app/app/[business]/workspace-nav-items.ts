@@ -6,6 +6,7 @@ export interface NavItem { label: string; segment: string; ready: boolean }
 // reached from Settings (settingsLinks below).
 export const workspaceNavItems: readonly NavItem[] = [
   { label: 'Home', segment: 'home', ready: true },
+  { label: 'Offer', segment: 'offers', ready: true },
   { label: 'Products', segment: 'products', ready: true },
   { label: 'Website', segment: 'website', ready: true },
   { label: 'Payments', segment: 'payments', ready: true },
@@ -33,7 +34,7 @@ export type TabId = (typeof appTabs)[number]['id'] | 'settings';
 /** Where each tab goes, and which first path segments keep it lit. */
 export const tabRoutes: Record<TabId, { segment: string; segments: readonly string[] }> = {
   home: { segment: 'home', segments: ['', 'home', 'dashboard'] },
-  shop: { segment: 'products', segments: ['products', 'orders', 'website', 'brand', 'domains', 'payments'] },
+  shop: { segment: 'products', segments: ['offers', 'products', 'orders', 'website', 'brand', 'domains', 'payments'] },
   growth: { segment: 'marketing', segments: ['marketing'] },
   settings: { segment: 'settings', segments: ['settings', 'integrations', 'approvals', 'operator', 'inbox', 'gaps'] },
 };

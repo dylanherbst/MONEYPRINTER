@@ -16,7 +16,7 @@ export function renderProductPdf(spec: ProductSpec, size: PaperSize): RenderedPd
   const check = validateProductSpec(spec);
   if (!check.ok) throw new ProductFactoryError('The product spec is not valid, so nothing was rendered.', check.errors);
   const paper = PAPER[size];
-  const doc = new PdfDocument({ title: spec.title, subject: spec.subtitle, author: 'VENTRA Product Factory' });
+  const doc = new PdfDocument({ title: spec.title, subject: spec.subtitle, author: 'AiMoneyPrinter' });
   const total = allPages(spec).length;
   const pages: RenderedPageInfo[] = [];
   let n = 0;
@@ -51,7 +51,7 @@ export function renderSamplePdf(spec: ProductSpec, size: PaperSize = 'a4'): Rend
   const showcase: TemplateKind[] = ['month', 'week', 'checklist', 'tracker', 'year-glance', 'prompts', 'howto', 'notes'];
   const rank = (t: TemplateKind) => (t === 'cover' ? -1 : showcase.indexOf(t));
   const chosen = [...firsts].sort((x, y) => rank(x.page.template) - rank(y.page.template)).slice(0, SAMPLE_MAX_PAGES).sort((x, y) => x.no - y.no);
-  const doc = new PdfDocument({ title: `${spec.title} (free sample)`, subject: spec.subtitle, author: 'VENTRA Product Factory' });
+  const doc = new PdfDocument({ title: `${spec.title} (free sample)`, subject: spec.subtitle, author: 'AiMoneyPrinter' });
   const pages: RenderedPageInfo[] = [];
   for (const f of chosen) {
     const page = doc.addPage(paper.width, paper.height);

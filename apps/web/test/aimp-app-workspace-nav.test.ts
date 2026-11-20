@@ -35,7 +35,7 @@ test('a page that is not built is plain text, never a link', () => {
 });
 
 test('every item is either a link or plain text, never both, and the order is stable', () => {
-  assert.deepEqual(workspaceNavItems.map((i) => i.label), ['Home', 'Products', 'Website', 'Payments', 'Marketing', 'Orders']);
+  assert.deepEqual(workspaceNavItems.map((i) => i.label), ['Home', 'Offer', 'Products', 'Website', 'Payments', 'Marketing', 'Orders']);
   for (const i of workspaceNavItems) assert.equal(workspaceNavHref('b', i) === null, !i.ready, i.label);
   assert.equal(new Set(workspaceNavItems.map((i) => i.label)).size, workspaceNavItems.length);
 });

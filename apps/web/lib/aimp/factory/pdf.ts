@@ -170,7 +170,7 @@ export class PdfDocument {
       `<< /Type /Pages /Kids [${kids}] /Count ${this.pages.length} >>`,
       '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
       '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
-      `<< /Producer (VENTRA Product Factory)${this.info.title ? ` /Title (${escapePdfText(this.info.title)})` : ''}${this.info.author ? ` /Author (${escapePdfText(this.info.author)})` : ''}${this.info.subject ? ` /Subject (${escapePdfText(this.info.subject)})` : ''} >>`,
+      `<< /Producer (AiMoneyPrinter)${this.info.title ? ` /Title (${escapePdfText(this.info.title)})` : ''}${this.info.author ? ` /Author (${escapePdfText(this.info.author)})` : ''}${this.info.subject ? ` /Subject (${escapePdfText(this.info.subject)})` : ''} >>`,
     ];
     this.pages.forEach((p, i) => {
       const contentNo = first + i * 2 + 1;
