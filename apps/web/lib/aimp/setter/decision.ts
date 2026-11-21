@@ -4,7 +4,11 @@ import { actions, intents, leadStages, type AgentDecision } from './types.ts';
 type J = Record<string, unknown>;
 export function validateDecision(raw: unknown): { ok: true; decision: AgentDecision } | { ok: false; errors: string[] } {
   let v: unknown = raw;
-  if (typeof raw === 'string') { try { v = JSON.parse(raw.replace(/^```(json)?|```$/g, '').trim()); } catch { return { ok: false, errors: ['Model output is not JSON.'] }; } }
+  if (typeof raw === 'string') {
+    const trimmed = raw.replace(/^```(json)?|```$/g, '').trim();
+    const a = trimmed.indexOf('{'), b = trimmed.lastIndexOf('}');
+    try { v = JSON.parse(a >= 0 && b > a ? trimmed.slice(a, b + 1) : trimmed); } catch { return { ok: false, errors: ['Model output is not JSON.'] }; }
+  }
   const d = (typeof v === 'object' && v !== null && !Array.isArray(v) ? v : null) as J | null;
   if (!d) return { ok: false, errors: ['Model output is not an object.'] };
   const errors: string[] = [];

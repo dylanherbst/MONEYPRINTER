@@ -11,3 +11,4 @@ export * from './oauth.ts';
 export * from './pipeline.ts';
 export * from './analytics.ts';
 export * from './simulator.ts';
+export * from './claude.ts';

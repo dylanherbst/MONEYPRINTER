@@ -19,6 +19,7 @@ function view(s: NonNullable<ReturnType<typeof sb>>): SetterView {
   const ws = s.ws;
   return {
     config: s.store.config(ws)!,
+    agentName: s.agentName,
     killSwitch: s.store.killSwitch(ws),
     conversations: s.store.conversations(ws).map((c) => ({ ...c, lead: s.store.lead(ws, c.id), messages: s.store.messages(ws, c.id).map((m) => ({ id: m.id, direction: m.direction, author: m.author, text: m.text, status: m.status, error: m.error, notes: m.policyNotes ?? [], intent: m.decision?.intent ?? null, confidence: m.decision?.confidence ?? null })) })),
     metrics: setterMetrics(s.store, ws),

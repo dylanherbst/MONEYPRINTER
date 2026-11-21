@@ -35,7 +35,7 @@ export function SetterClient({ business, initial }: { business: string; initial:
         {(['inbox', 'setup', 'results'] as const).map((t) => <button key={t} type="button" aria-pressed={tab === t} onClick={() => setTab(t)}>{t === 'inbox' ? 'Inbox and test' : t === 'setup' ? 'Setup' : 'Results'}</button>)}
       </nav>
       <div className="st-status">
-        <span>Mode: <strong>{c.mode === 'auto' ? 'Automatic replies' : c.mode === 'off' ? 'Off' : 'Drafts only'}</strong>{c.paused ? ' (paused)' : ''}</span>
+        <span>Replies written by: <strong>{v.agentName === 'rules' ? 'basic rules (no AI key yet)' : `Claude (${v.agentName})`}</strong> · Mode: <strong>{c.mode === 'auto' ? 'Automatic replies' : c.mode === 'off' ? 'Off' : 'Drafts only'}</strong>{c.paused ? ' (paused)' : ''}</span>
         <span className="st-row">
         <button type="button" disabled={busy} onClick={async () => { await run(inboxAction(business, { kind: 'reset' }), (r) => r.message); setOpen(null); setEdit({}); }}>Reset test messages</button>
         <button type="button" className={v.killSwitch ? 'st-on' : 'st-danger'} disabled={busy} onClick={() => run(inboxAction(business, { kind: 'kill', on: !v.killSwitch }), (r) => r.message)}>{v.killSwitch ? 'Allow sending again' : 'Stop all sending'}</button>
