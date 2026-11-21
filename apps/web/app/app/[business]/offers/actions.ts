@@ -1,7 +1,8 @@
 'use server';
 // The three server actions of the Offer builder. Each checks the demo switch and that the business is known, then calls the pure
 // builder in lib/aimp/offers. Nothing is published here: "approve" only marks the seller's product as ready for the shop.
-import { availability, checkBusiness } from '../../../start/_server/runtime';
+import { WORKSPACE, OWNER, admit, availability, checkBusiness, runtime } from '../../../start/_server/runtime';
+import { linkToCatalogue } from '../../../../lib/aimp/offers/link';
 import { buildOffers, checkAnswers, checkContent, draftContent, specFromOffer, buyerGets, pageCount, offerFormats } from '../../../../lib/aimp/offers/build';
 import type { Offer, OfferAnswers, OfferFormat, ProductContent } from '../../../../lib/aimp/offers/build';
 import { getOfferState, setOfferState } from '../../../../lib/aimp/offers/store';
@@ -34,7 +35,7 @@ export async function suggestOffersAction(business: string, raw: unknown): Promi
   const r = buildOffers(answers);
   if (!r.ok) return { ok: false, errors: r.errors, offers: [], draft: null };
   const prev = getOfferState(business);
-  setOfferState(business, { ...prev, answers, approved: null });
+  setOfferState(business, { ...prev, answers, approved: null, linked: prev.linked });
   return { ok: true, errors: [], offers: r.offers, draft: draftContent(answers) };
 }
 
@@ -57,7 +58,7 @@ export async function previewProductAction(business: string, offerId: unknown, a
   const b = build(business, offerId, answers, content);
   if (!b.ok) return { ok: false, errors: b.errors, ...none };
   const sample = renderSamplePdf(b.spec);
-  setOfferState(business, { answers: b.answers, offerId: b.offer.id, content: b.content, approved: null });
+  setOfferState(business, { answers: b.answers, offerId: b.offer.id, content: b.content, approved: null, linked: getOfferState(business).linked });
   return { ok: true, errors: [], pages: pageCount(b.spec), buyerGets: buyerGets(b.spec), sampleBase64: Buffer.from(sample.bytes).toString('base64'), sampleName: sample.fileName, priceMinor: b.offer.testPriceMinor };
 }
 
@@ -70,6 +71,24 @@ export async function approveProductAction(business: string, offerId: unknown, a
   if (!b.ok) return { ok: false, message: 'Fix the problems first. Nothing was approved.', errors: b.errors };
   renderProductPdf(b.spec, 'a4'); // proves the full file builds before we say it is approved
   const prev = getOfferState(business);
-  setOfferState(business, { answers: b.answers, offerId: b.offer.id, content: b.content, approved: { spec: b.spec, approvedAt: new Date().toISOString(), priceMinor, version: (prev.approved?.version ?? 0) + 1 } });
-  return { ok: true, message: 'Approved. This is the file your buyers will get.', errors: [] };
+  const version = (prev.approved?.version ?? 0) + 1;
+  const approvedAt = new Date().toISOString();
+  setOfferState(business, { answers: b.answers, offerId: b.offer.id, content: b.content, approved: { spec: b.spec, approvedAt, priceMinor, version }, linked: prev.linked });
+  // Put the approved product into the same products + catalogue pipeline checkout reads. If the brand is not approved yet the product is
+  // still saved and we say what is left, rather than pretending the shop is ready.
+  const rt = runtime();
+  if (!admit(rt, business)) return { ok: true, message: 'Approved. The demo is full, so it was not added to the shop list.', errors: [] };
+  const r = await linkToCatalogue(
+    { products: rt.products, catalogue: rt.catalogue, assets: rt.assets, workspaceId: WORKSPACE, actorId: OWNER },
+    { businessId: business, spec: b.spec, priceMinor, version, previous: prev.linked },
+  );
+  const lk = r.linked;
+  if (lk) {
+    const kept = (rt.productIds.get(business) ?? []).filter((id) => id !== prev.linked?.productId && id !== lk.productId);
+    rt.productIds.set(business, [...kept, lk.productId]);
+    setOfferState(business, { ...getOfferState(business), linked: lk });
+  }
+  if (r.state === 'live') return { ok: true, message: 'Approved and added to your shop. This is the file your buyers will get.', errors: [] };
+  if (r.state === 'needs_brand') return { ok: true, message: `Approved. ${r.message}`, errors: [] };
+  return { ok: true, message: `Approved, but it is not in the shop yet: ${r.message}`, errors: [] };
 }

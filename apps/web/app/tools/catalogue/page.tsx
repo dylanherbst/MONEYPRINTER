@@ -41,7 +41,7 @@ export default async function CatalogueTest({ searchParams }: { searchParams: Pr
 
     <form action={startListing}>
       <p><label>Blueprint <select name="blueprint" defaultValue="printable-planner" style={box}>
-        {blueprintRegistry.list().map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
+        {blueprintRegistry.list().filter((b) => b.id !== 'seller-workbook').map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
       </select></label></p>
       <p><label>Comparable prices in cents, comma separated (optional, 3 or more are used) <input name="comparables" placeholder="900, 1200, 1500, 1800" style={box} /></label></p>
       <p><button type="submit" style={btn} data-testid="start">Create an approved demo product and a listing draft</button></p>

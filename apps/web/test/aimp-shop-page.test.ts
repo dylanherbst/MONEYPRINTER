@@ -9,7 +9,7 @@ function approved(): OfferState {
   const r = buildOffers(answers); if (!r.ok) throw new Error('offers');
   const offer = r.offers[0]!; const content = draftContent(answers);
   const spec = specFromOffer(offer, answers, content, () => new Date('2026-11-21T00:00:00Z'));
-  return { answers, offerId: offer.id, content, approved: { spec, approvedAt: '2026-11-21T00:00:00Z', priceMinor: 1900, version: 1 } };
+  return { answers, offerId: offer.id, content, approved: { spec, approvedAt: '2026-11-21T00:00:00Z', priceMinor: 1900, version: 1 }, linked: null };
 }
 
 test('no shop until a product is approved', () => {

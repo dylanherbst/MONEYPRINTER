@@ -52,7 +52,7 @@ export default async function ProductFactoryTest({ searchParams }: { searchParam
     <form method="get">
       <input type="hidden" name="build" value="1" />
       <p><label>Blueprint <select name="blueprint" defaultValue={form.blueprint}>
-        {blueprintRegistry.list().map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
+        {blueprintRegistry.list().filter((b) => b.id !== 'seller-workbook').map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
       </select></label></p>
       <p><label>Niche <input name="niche" defaultValue={form.niche} /></label></p>
       <p><label>Audience <input name="audience" defaultValue={form.audience} /></label></p>

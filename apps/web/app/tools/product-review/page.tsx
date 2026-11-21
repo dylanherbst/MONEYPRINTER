@@ -26,7 +26,7 @@ export default async function ProductReviewTest({ searchParams }: { searchParams
 
     <form action={generateDemo}>
       <p><label>Blueprint <select name="blueprint" defaultValue="printable-planner">
-        {blueprintRegistry.list().map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
+        {blueprintRegistry.list().filter((b) => b.id !== 'seller-workbook').map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
       </select></label></p>
       <p><button type="submit" data-testid="generate">Generate a demo product</button></p>
     </form>

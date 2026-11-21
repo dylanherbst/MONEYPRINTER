@@ -127,7 +127,7 @@ export function specFromOffer(offer: Offer, a: OfferAnswers, content: ProductCon
     { title: 'Notes', pages: notes(offer.id === 'checklist' ? 1 : 2) },
   ];
   const spec: ProductSpec = {
-    specVersion: 1, blueprint: { id: 'seller-workbook', version: '1' }, title: offer.title, subtitle, niche: clean(a.knows), audience: who,
+    specVersion: 1, blueprint: { id: 'seller-workbook', version: '1.0.0' }, title: offer.title, subtitle, niche: clean(a.knows), audience: who,
     mode: 'live', generatedAt: now().toISOString(), paperSizes: ['a4', 'letter'], sections, claims: deriveClaims(sections),
     ai: { model: 'seller-written', note: 'Written by the seller. Not written by AI.' },
   };
