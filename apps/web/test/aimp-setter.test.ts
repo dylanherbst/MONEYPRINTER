@@ -46,18 +46,18 @@ test('duplicate delivery produces at most one reply', async () => {
   const c = clock();
   const sb = createSandbox({ now: c.now });
   auto(sb);
-  const { raw, sig } = sb.rawSigned('how much is the dinner plan?', '9002', 'dup-1');
+  const { raw, sig } = sb.rawSigned('how much is the sunset lamp?', '9002', 'dup-1');
   const [a, b] = await Promise.all([sb.setter.receive(raw, sig), sb.setter.receive(raw, sig)]);
   await sb.setter.receive(raw, sig);
   assert.deepEqual([a.results[0], b.results[0]].sort(), ['duplicate', 'sent']);
   assert.equal(sb.sender.sent.length, 1);
   assert.doesNotMatch(sb.sender.sent[0]!.text, /AI|automated/i);
-  assert.match(sb.sender.sent[0]!.text, /\$19/);
+  assert.match(sb.sender.sent[0]!.text, /\$39/);
 });
 
 test('draft_only is the default: nothing is sent until the owner approves', async () => {
   const sb = createSandbox({ now: clock().now });
-  const r = await sb.inbound('what format is the plan, is it a pdf?', '9003');
+  const r = await sb.inbound('how long does shipping take?', '9003');
   assert.deepEqual(r.results, ['draft']);
   assert.equal(sb.sender.sent.length, 0);
   const conv = sb.store.conversations(sb.ws)[0]!;
@@ -73,7 +73,7 @@ test('tenant isolation: one workspace cannot read or act on another workspace co
   const store = createMemorySetterStore();
   const a = createSandbox({ workspaceId: 'ws-a', store, now: clock().now });
   const b = createSandbox({ workspaceId: 'ws-b', store, now: clock().now });
-  await a.inbound('is it vegetarian friendly?', '7001');
+  await a.inbound('does it need batteries?', '7001');
   const convA = store.conversations('ws-a')[0]!;
   assert.equal(store.conversations('ws-b').length, 0);
   assert.equal(store.conversation('ws-b', convA.id), null);
@@ -114,7 +114,7 @@ test('no automated send: window closed, opt-out, paused, takeover, kill switch, 
 test('eligibility is re-checked at send time: an approved draft after the window closes is not sent', async () => {
   const c = clock();
   const sb = createSandbox({ now: c.now });
-  await sb.inbound('is it gluten free?', '9004');
+  await sb.inbound('can I return it?', '9004');
   const conv = sb.store.conversations(sb.ws)[0]!;
   const draft = sb.store.messages(sb.ws, conv.id).find((m) => m.status === 'draft')!;
   c.advance(WINDOW_MS + 1);
@@ -138,7 +138,7 @@ test('asking for a person, owner replying in the app, or a complaint hands off a
   auto(sb);
   assert.deepEqual((await sb.inbound('can I talk to a real person', '9006')).results, ['handoff']);
   assert.deepEqual((await sb.inbound('are you a bot?', '9009')).results, ['sent']);
-  assert.match(sb.sender.sent.at(-1)!.text, /automated assistant for Calm Kitchen/);
+  assert.match(sb.sender.sent.at(-1)!.text, /automated assistant for Glow Haven/);
   sb.sender.sent.length = 0;
   assert.deepEqual((await sb.inbound('how much?', '9006')).results, ['blocked:human_takeover']);
   assert.deepEqual((await sb.inbound('this is a scam, I want a refund', '9007')).results, ['handoff']);
@@ -148,7 +148,7 @@ test('asking for a person, owner replying in the app, or a complaint hands off a
   assert.equal(sb.sender.sent.length, 0);
 });
 
-const dec = (over: Partial<AgentDecision>): AgentDecision => ({ intent: 'purchase_ready', lead_stage: 'purchase_ready', response_text: 'It is $19.', confidence: 0.9, knowledge_source_ids: ['offer-plan'], recommended_action: 'reply', handoff_reason: null, cta_id: 'offer-plan', ...over });
+const dec = (over: Partial<AgentDecision>): AgentDecision => ({ intent: 'purchase_ready', lead_stage: 'purchase_ready', response_text: 'It is $39.', confidence: 0.9, knowledge_source_ids: ['offer-lamp'], recommended_action: 'reply', handoff_reason: null, cta_id: 'offer-lamp', ...over });
 test('policy: no invented prices, links, guarantees or card requests; unknown sources become drafts', () => {
   const cfg = { ...sampleConfig('w', T0), mode: 'auto' as const };
   const conv = { id: 'c', workspaceId: 'w', igAccountId: '1', igsid: '2', state: 'open' as const, humanTakeover: false, lastInboundAt: T0.toISOString(), lastActivityAt: T0.toISOString(), unread: 0, aiDisclosed: true, pitchesDeclined: 0 };
@@ -163,7 +163,7 @@ test('policy: no invented prices, links, guarantees or card requests; unknown so
   assert.equal(applyPolicy(dec({ response_text: 'x'.repeat(1200) }), cfg, conv, el).action, 'draft');
   assert.equal(applyPolicy(dec({}), cfg, { ...conv, pitchesDeclined: 1 }, el).action, 'draft');
   assert.doesNotMatch(applyPolicy(dec({}), cfg, { ...conv, aiDisclosed: false }, el).text, /Automated/);
-  assert.match(applyPolicy(dec({}), { ...cfg, discloseAi: true }, { ...conv, aiDisclosed: false }, el).text, /^\(Automated reply from Calm Kitchen/);
+  assert.match(applyPolicy(dec({}), { ...cfg, discloseAi: true }, { ...conv, aiDisclosed: false }, el).text, /^\(Automated reply from Glow Haven/);
   assert.equal(applyPolicy(dec({ response_text: "I'm a real person, not a bot." }), cfg, conv, el).action, 'handoff');
 });
 
@@ -182,10 +182,10 @@ test('model output must match the schema; bad output and outages hand off withou
 
 test('rate limits retry with backoff, then dead-letter, never duplicate', async () => {
   const s1 = createSandbox({ failTimes: 1, now: clock().now }); auto(s1);
-  assert.deepEqual((await s1.inbound('how much is the plan?', '1')).results, ['sent']);
+  assert.deepEqual((await s1.inbound('how much is the sunset lamp?', '1')).results, ['sent']);
   assert.equal(s1.sender.sent.length, 1);
   const s2 = createSandbox({ failTimes: 10, now: clock().now }); auto(s2);
-  assert.match((await s2.inbound('how much is the plan?', '1')).results[0]!, /^send_failed/);
+  assert.match((await s2.inbound('how much is the sunset lamp?', '1')).results[0]!, /^send_failed/);
   assert.equal(s2.sender.sent.length, 0);
   assert.equal(setterMetrics(s2.store, s2.ws).deadLetters, 1);
 });
@@ -194,14 +194,14 @@ test('a click is not a purchase; only verified outcomes count', async () => {
   const sb = createSandbox({ now: clock().now });
   await sb.inbound('how much?', '1');
   const conv = sb.store.conversations(sb.ws)[0]!;
-  const link = sb.setter.clickLink('https://app.example.com/r', sb.ws, conv.id, 'https://shop.example.com/dinner-plan');
+  const link = sb.setter.clickLink('https://app.example.com/r', sb.ws, conv.id, 'https://glowhaven.example.com/sunset-lamp');
   const token = decodeURIComponent(new URL(link).searchParams.get('t')!);
-  assert.equal(sb.setter.recordClick(token), 'https://shop.example.com/dinner-plan');
+  assert.equal(sb.setter.recordClick(token), 'https://glowhaven.example.com/sunset-lamp');
   assert.equal(sb.setter.recordClick(token.slice(0, -2) + 'xx'), null);
   let m = setterMetrics(sb.store, sb.ws);
   assert.equal(m.checkoutClicks, 1);
   assert.equal(m.verifiedPurchases, 0);
-  sb.setter.recordVerifiedOutcome(sb.ws, { kind: 'purchase', source: 'stripe_verified', conversationId: conv.id, amountMinor: 1900 });
+  sb.setter.recordVerifiedOutcome(sb.ws, { kind: 'purchase', source: 'stripe_verified', conversationId: conv.id, amountMinor: 3900 });
   m = setterMetrics(sb.store, sb.ws);
   assert.equal(m.verifiedPurchases, 1);
 });

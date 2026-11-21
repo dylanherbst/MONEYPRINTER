@@ -49,7 +49,7 @@ export function SetterClient({ business, initial }: { business: string; initial:
             <h2>Pretend to be a customer</h2>
             <p className="st-muted">Sends a simulated, signed Instagram message through the real pipeline.</p>
             <div className="st-row"><label><input type="radio" checked={person === 'a'} onChange={() => setPerson('a')} /> Person A</label><label><input type="radio" checked={person === 'b'} onChange={() => setPerson('b')} /> Person B</label></div>
-            <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder='e.g. "how much is it?" or "stop"' />
+            <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder='e.g. "how much is the lamp?", "how long is shipping?" or "stop"' />
             <button type="button" className="st-primary" disabled={busy || !text.trim()} onClick={async () => { const r = await run(simulateAction(business, text, person), (x) => `Result: ${x.result}`); if (r.view?.conversations[0]) setOpen(r.view.conversations[0].id); setText(''); }}>Send as customer</button>
           </div>
           <div className="st-card">

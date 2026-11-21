@@ -10,16 +10,25 @@ import { signForTest, simulatedPayload } from './webhook.ts';
 
 export const SIM_ACCOUNT = '17841400000000001';
 
+/** Mock business for the test lab: a typical dropshipping store selling one hero product. Every fact here is sample data. */
 export function sampleConfig(workspaceId: string, now: Date): AgentConfig {
   return {
     ...defaultConfig(workspaceId, now),
-    businessName: 'Calm Kitchen', idealCustomer: 'busy parents who want easy weeknight dinners', qualifyingQuestion: 'How many people are you usually cooking for?',
-    offers: [{ id: 'offer-plan', name: 'Weeknight Dinner Plan', priceMinor: 1900, currency: 'AUD', description: 'A 4-week printable meal plan with shopping lists.', ctaUrl: 'https://shop.example.com/dinner-plan', ctaKind: 'checkout' }],
-    knowledge: [
-      { id: 'faq-format', question: 'What format is the plan in? Is it a PDF download?', answer: 'It is a PDF you download straight after paying. Print it or use it on a tablet.' },
-      { id: 'faq-diet', question: 'Is it vegetarian or gluten free friendly?', answer: 'Every week has vegetarian options. It is not a gluten-free plan.' },
+    businessName: 'Glow Haven', idealCustomer: 'people who want a cosy, aesthetic bedroom or a gift for someone who does',
+    brandVoice: 'warm, casual, short, like a friend texting', qualifyingQuestion: 'Is it for your own room or a gift?',
+    offers: [
+      { id: 'offer-lamp', name: 'Sunset Lamp', priceMinor: 3900, currency: 'AUD', description: 'A projector lamp that casts a warm sunset glow on your wall, with 4 colour modes and a USB cable.', ctaUrl: 'https://glowhaven.example.com/sunset-lamp', ctaKind: 'checkout' },
+      { id: 'offer-bundle', name: 'Sunset Lamp 2-pack', priceMinor: 6900, currency: 'AUD', description: 'Two Sunset Lamps, handy for gifting.', ctaUrl: 'https://glowhaven.example.com/sunset-lamp-2-pack', ctaKind: 'checkout' },
     ],
-    refundPolicy: 'Digital downloads are not refundable once downloaded. Message us if something is wrong with your file.',
+    knowledge: [
+      { id: 'faq-shipping', question: 'How long does shipping take? When will it arrive? Delivery time?', answer: 'Orders ship within 1 to 2 business days and usually arrive in 7 to 12 business days. You get a tracking link by email once it ships.' },
+      { id: 'faq-free-shipping', question: 'Is shipping free? Shipping cost?', answer: 'Shipping is free anywhere in Australia.' },
+      { id: 'faq-returns', question: 'Can I return it? Returns policy? Refund if I do not like it?', answer: 'Yep, you have 30 days from delivery to return it unused for a full refund. Just message us and we will sort it.' },
+      { id: 'faq-power', question: 'How is it powered? Does it need batteries? USB plug?', answer: 'It runs off USB, so any phone charger or laptop port works. No batteries needed.' },
+      { id: 'faq-colours', question: 'What colours or modes does it have?', answer: 'It has 4 modes: sunset, sunset red, rainbow and sun. You can rotate the head to move the glow around.' },
+    ],
+    refundPolicy: '30-day returns on unused items, full refund. Damaged on arrival: we replace it free.',
+    prohibitedClaims: ['improves sleep', 'cures', 'medical', 'only a few left'],
     bookingUrl: '', minConfidence: 0.6, discloseAi: false,
   };
 }
