@@ -1,0 +1,35 @@
+// Server wiring for the AI Sales Setter.
+//  - live(): the real webhook pipeline. Needs META_APP_SECRET, SETTER_TOKEN_KEY, SETTER_CLICK_SECRET. Outbound to Instagram happens ONLY
+//    when SETTER_LIVE_SEND=1; otherwise sends are recorded by a fake sender, so nothing reaches anyone. Store is in memory (lost on
+//    restart) until the database migration is applied.
+//  - sandbox(business): the per-business test lab, fully simulated.
+import { createFakeSender, createInstagramSender, createMemorySetterStore, createSandbox, createSetter, ruleAgent, type Setter, type SetterStore } from '../../../lib/aimp/setter/index';
+
+type Live = { setter: Setter; store: SetterStore; liveSend: boolean };
+type G = typeof globalThis & { __aimpSetterLive?: Live | null; __aimpSetterSandboxes?: Map<string, ReturnType<typeof createSandbox>> };
+const g = globalThis as G;
+
+export const SETTER_ENV = ['META_APP_SECRET', 'META_WEBHOOK_VERIFY_TOKEN', 'SETTER_TOKEN_KEY', 'SETTER_CLICK_SECRET'] as const;
+export const missingSetterEnv = (): string[] => SETTER_ENV.filter((k) => !process.env[k]);
+
+export function live(): Live | null {
+  if (g.__aimpSetterLive !== undefined) return g.__aimpSetterLive;
+  if (missingSetterEnv().length) return null;
+  const liveSend = process.env.SETTER_LIVE_SEND === '1';
+  const store = createMemorySetterStore();
+  const sender = liveSend ? createInstagramSender({ fetch: (u, i) => fetch(u, i), graphVersion: process.env.META_GRAPH_VERSION }) : createFakeSender();
+  const setter = createSetter({ store, agent: ruleAgent, sender, appSecret: process.env.META_APP_SECRET!, tokenKeyHex: process.env.SETTER_TOKEN_KEY!, clickSecret: process.env.SETTER_CLICK_SECRET! });
+  g.__aimpSetterLive = { setter, store, liveSend };
+  return g.__aimpSetterLive;
+}
+
+const MAX_SANDBOXES = 200;
+export function sandbox(business: string): ReturnType<typeof createSandbox> | null {
+  const m = (g.__aimpSetterSandboxes ??= new Map());
+  const cur = m.get(business);
+  if (cur) return cur;
+  if (m.size >= MAX_SANDBOXES) return null;
+  const sb = createSandbox({ workspaceId: business });
+  m.set(business, sb);
+  return sb;
+}
