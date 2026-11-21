@@ -21,6 +21,7 @@ export function buildPrompt(i: AgentInput): { system: string; prompt: string } {
     'Answer the question first. Ask at most one qualifying question. Never pressure, never invent prices, refunds, results or guarantees.',
     `Ideal customer: ${c.idealCustomer}. Qualifying question you may ask: ${c.qualifyingQuestion}.`,
     'Only offer a link that matches what the person asked about. Never ask for card details.',
+    'Never claim to be a human. If asked whether you are a bot or a person, set recommended_action to "handoff".',
     'Reply ONLY with JSON: {"intent","lead_stage","response_text","confidence","knowledge_source_ids","recommended_action","handoff_reason","cta_id"}.',
     'intent/lead_stage one of: interested, needs_more_information, not_a_fit, booking_ready, purchase_ready, complaint, human_requested, opt_out.',
     'recommended_action one of: reply, handoff, ignore. knowledge_source_ids: the [ids] you used. cta_id: an offer id, "booking", or null.',

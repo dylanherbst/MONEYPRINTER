@@ -4,7 +4,7 @@
 // idempotency key per message, so a duplicate webhook or a double click can never produce two replies.
 import { parseKey, readSigned, signValue, unseal } from './crypto.ts';
 import { validateDecision } from './decision.ts';
-import { checkEligibility, isOptOut, wantsHuman, type Block } from './eligibility.ts';
+import { asksIfAutomated, checkEligibility, isOptOut, wantsHuman, type Block } from './eligibility.ts';
 import { applyPolicy } from './policy.ts';
 import type { SetterAgent } from './agent.ts';
 import type { DmSender } from './sender.ts';
@@ -27,7 +27,7 @@ export interface SetterDeps {
 
 export const defaultConfig = (workspaceId: string, now: Date): AgentConfig => ({
   workspaceId, mode: 'draft_only', paused: false, businessName: '', idealCustomer: '', brandVoice: 'friendly, short, natural', offers: [], knowledge: [],
-  prohibitedClaims: [], refundPolicy: '', bookingUrl: '', qualifyingQuestion: '', timezone: 'Australia/Perth', minConfidence: 0.6,
+  prohibitedClaims: [], refundPolicy: '', bookingUrl: '', qualifyingQuestion: '', timezone: 'Australia/Perth', minConfidence: 0.6, discloseAi: false,
   promptVersion: '', updatedAt: now.toISOString(),
 });
 
@@ -88,7 +88,8 @@ export function createSetter(d: SetterDeps) {
         audit(ws, 'opt_out', `${conv.id} opted out.`);
         return 'opted_out';
       }
-      if (wantsHuman(ev.text)) {
+      // "Are you a bot?" is never answered by the automation (no denial, no lie): a person takes it.
+      if (wantsHuman(ev.text) || asksIfAutomated(ev.text)) {
         setLead(ws, conv, 'human_requested', ev.text);
         s.saveConversation({ ...conv, humanTakeover: true, state: 'human' });
         audit(ws, 'handoff', `${conv.id} asked for a person.`);

@@ -1,12 +1,14 @@
 // Post-decision policy gate. The model suggests; this decides. Every rule is deterministic and explainable.
 import type { AgentConfig, AgentDecision, DmConversation } from './types.ts';
 
-export const DISCLOSURE = "Hi! I'm an AI assistant for {business}. A person can take over any time, just ask.";
+export const DISCLOSURE = "(Automated reply from {business}. A person can take over any time, just ask.)";
 export const MAX_TEXT_BYTES = 1000;
 const BANNED = [
   /\bguarantee(d|s)?\b/i, /\brisk[- ]free\b/i, /\b(make|earn) \$?\d[\d,]*(k)?\b.*\b(per|a|every) (day|week|month)\b/i, /\bget rich\b/i,
   /\bonly \d+ (left|spots?)\b/i, /\b(last chance|expires (tonight|today))\b/i, /\b(card number|cvv|cvc|bank (details|account))\b/i,
   /\b(diagnos|prescri|legal advice|financial advice|tax advice)\w*/i,
+  // Never claim to be a person.
+  /\bi'?\s?a?m (a )?(real|human|not a bot|not an ai|not ai)\b/i, /\b(this is|you'?re talking to) (a )?real (person|human)\b/i,
 ];
 
 export type Outcome = { action: 'send' | 'draft' | 'handoff' | 'ignore'; text: string; notes: string[]; ctaId: string | null };
@@ -45,7 +47,7 @@ export function applyPolicy(d: AgentDecision, cfg: AgentConfig, conv: DmConversa
   if (ctaId && !cfg.offers.some((o) => o.id === ctaId) && ctaId !== 'booking') { notes.push('Unknown call to action dropped.'); ctaId = null; }
   if (ctaId && conv.pitchesDeclined > 0) { notes.push('The person declined before; no link pushed again.'); ctaId = null; forceDraft = true; }
 
-  if (!conv.aiDisclosed) text = `${DISCLOSURE.replace('{business}', cfg.businessName || 'this business')} ${text}`;
+  if (cfg.discloseAi && !conv.aiDisclosed) text = `${DISCLOSURE.replace('{business}', cfg.businessName || 'this business')} ${text}`;
   if (Buffer.byteLength(text, 'utf8') > MAX_TEXT_BYTES) { forceDraft = true; notes.push('Reply is over 1000 bytes; shorten before sending.'); }
   if (d.confidence < cfg.minConfidence) { forceDraft = true; notes.push(`Low confidence (${d.confidence}).`); }
 

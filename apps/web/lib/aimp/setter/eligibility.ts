@@ -42,3 +42,6 @@ const STOP = /^\s*(stop|unsubscribe|opt[\s-]?out|leave me alone|don'?t (message|
 export const isOptOut = (text: string): boolean => STOP.test(text);
 const HUMAN = /\b(real person|human|speak to (someone|a person)|talk to (someone|a person|the owner))\b/i;
 export const wantsHuman = (text: string): boolean => HUMAN.test(text);
+const BOT_Q = /\b(are|r) (you|u) (a |an )?(bot|ai|robot|real|human|automated|a person)\b|\bis this (a |an )?(bot|ai|automated|real person)\b|\b(am i )?(talking|chatting|speaking) (to|with) (a |an )?(bot|ai|robot|real person|human)\b/i;
+/** The person asks whether they are talking to automation. */
+export const asksIfAutomated = (text: string): boolean => BOT_Q.test(text);

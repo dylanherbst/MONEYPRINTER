@@ -51,7 +51,7 @@ test('duplicate delivery produces at most one reply', async () => {
   await sb.setter.receive(raw, sig);
   assert.deepEqual([a.results[0], b.results[0]].sort(), ['duplicate', 'sent']);
   assert.equal(sb.sender.sent.length, 1);
-  assert.match(sb.sender.sent[0]!.text, /AI assistant/);
+  assert.doesNotMatch(sb.sender.sent[0]!.text, /AI|automated/i);
   assert.match(sb.sender.sent[0]!.text, /\$19/);
 });
 
@@ -137,6 +137,7 @@ test('asking for a person, owner replying in the app, or a complaint hands off a
   const sb = createSandbox({ now: clock().now });
   auto(sb);
   assert.deepEqual((await sb.inbound('can I talk to a real person', '9006')).results, ['handoff']);
+  assert.deepEqual((await sb.inbound('are you a bot?', '9009')).results, ['handoff']);
   assert.deepEqual((await sb.inbound('how much?', '9006')).results, ['blocked:human_takeover']);
   assert.deepEqual((await sb.inbound('this is a scam, I want a refund', '9007')).results, ['handoff']);
   const echoRaw = simulatedPayload(sb.igAccountId, [{ from: '9008', text: 'hi from the owner', mid: 'owner-1', ts: T0.getTime(), echo: true }]);
@@ -159,8 +160,9 @@ test('policy: no invented prices, links, guarantees or card requests; unknown so
   assert.equal(applyPolicy(dec({ confidence: 0.1 }), cfg, conv, el).action, 'draft');
   assert.equal(applyPolicy(dec({ response_text: 'x'.repeat(1200) }), cfg, conv, el).action, 'draft');
   assert.equal(applyPolicy(dec({}), cfg, { ...conv, pitchesDeclined: 1 }, el).action, 'draft');
-  const first = applyPolicy(dec({}), cfg, { ...conv, aiDisclosed: false }, el);
-  assert.match(first.text, /^Hi! I'm an AI assistant for Calm Kitchen/);
+  assert.doesNotMatch(applyPolicy(dec({}), cfg, { ...conv, aiDisclosed: false }, el).text, /Automated/);
+  assert.match(applyPolicy(dec({}), { ...cfg, discloseAi: true }, { ...conv, aiDisclosed: false }, el).text, /^\(Automated reply from Calm Kitchen/);
+  assert.equal(applyPolicy(dec({ response_text: "I'm a real person, not a bot." }), cfg, conv, el).action, 'handoff');
 });
 
 test('model output must match the schema; bad output and outages hand off without sending', async () => {

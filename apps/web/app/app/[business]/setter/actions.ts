@@ -45,7 +45,7 @@ export async function saveConfigAction(business: string, raw: unknown): Promise<
   const mode = o.mode === 'auto' || o.mode === 'off' ? o.mode : 'draft_only';
   if (mode === 'auto' && o.confirmAuto !== true) return { ok: false, message: 'Tick the box to confirm automatic replies.', view: view(s) };
   const next: AgentConfig = {
-    ...cur, mode, paused: o.paused === true, businessName: str(o.businessName, 80), idealCustomer: str(o.idealCustomer, 200), brandVoice: str(o.brandVoice, 120) || cur.brandVoice,
+    ...cur, mode, paused: o.paused === true, discloseAi: o.discloseAi === true, businessName: str(o.businessName, 80), idealCustomer: str(o.idealCustomer, 200), brandVoice: str(o.brandVoice, 120) || cur.brandVoice,
     qualifyingQuestion: str(o.qualifyingQuestion, 200), refundPolicy: str(o.refundPolicy, 400), bookingUrl: https(o.bookingUrl), offers, knowledge,
     prohibitedClaims: str(o.prohibitedClaims, 600).split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 20), updatedAt: new Date().toISOString(),
   };

@@ -20,7 +20,7 @@ export function SetterClient({ business, initial }: { business: string; initial:
   const c = v.config;
   const [form, setForm] = useState({
     businessName: c.businessName, idealCustomer: c.idealCustomer, brandVoice: c.brandVoice, qualifyingQuestion: c.qualifyingQuestion, refundPolicy: c.refundPolicy,
-    bookingUrl: c.bookingUrl, prohibitedClaims: c.prohibitedClaims.join('\n'), mode: c.mode, paused: c.paused, confirmAuto: false,
+    bookingUrl: c.bookingUrl, discloseAi: c.discloseAi, prohibitedClaims: c.prohibitedClaims.join('\n'), mode: c.mode, paused: c.paused, confirmAuto: false,
     offers: c.offers.map((o) => ({ name: o.name, description: o.description, price: dollars(o.priceMinor), ctaUrl: o.ctaUrl })),
     knowledge: c.knowledge.map((k) => ({ question: k.question, answer: k.answer })),
   });
@@ -114,6 +114,7 @@ export function SetterClient({ business, initial }: { business: string; initial:
           <label><input type="radio" checked={form.mode === 'auto'} onChange={() => setForm({ ...form, mode: 'auto' })} /> Automatic replies when it is allowed</label>
           <label><input type="radio" checked={form.mode === 'off'} onChange={() => setForm({ ...form, mode: 'off' })} /> Off</label>
           {form.mode === 'auto' ? <label><input type="checkbox" checked={form.confirmAuto} onChange={(e) => setForm({ ...form, confirmAuto: e.target.checked })} /> I understand the AI will reply on my behalf, only within 24 hours of a person messaging me, and only with the facts above.</label> : null}
+          <label><input type="checkbox" checked={form.discloseAi} onChange={(e) => setForm({ ...form, discloseAi: e.target.checked })} /> Say the first reply is automated. Off by default. Some places (for example California and Germany) may require this by law, so check where your customers are.</label>
           <label><input type="checkbox" checked={form.paused} onChange={(e) => setForm({ ...form, paused: e.target.checked })} /> Pause the AI</label>
           <button type="button" className="st-primary" disabled={busy} onClick={() => run(saveConfigAction(business, form), (r) => r.message)}>Save</button>
         </section>

@@ -20,7 +20,7 @@ export function sampleConfig(workspaceId: string, now: Date): AgentConfig {
       { id: 'faq-diet', question: 'Is it vegetarian or gluten free friendly?', answer: 'Every week has vegetarian options. It is not a gluten-free plan.' },
     ],
     refundPolicy: 'Digital downloads are not refundable once downloaded. Message us if something is wrong with your file.',
-    bookingUrl: '', minConfidence: 0.6,
+    bookingUrl: '', minConfidence: 0.6, discloseAi: false,
   };
 }
 

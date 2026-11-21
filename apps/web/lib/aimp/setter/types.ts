@@ -39,6 +39,9 @@ export interface AgentConfig {
   timezone: string;
   /** Replies below this confidence become drafts even in auto mode. */
   minConfidence: number;
+  /** Add an "automated assistant" line to the first reply. Off by default (owner choice). Some places (e.g. California, Germany) may
+   *  legally require disclosure for automated chats; the owner is told this in Setup. */
+  discloseAi: boolean;
   promptVersion: string;
   updatedAt: string;
 }
