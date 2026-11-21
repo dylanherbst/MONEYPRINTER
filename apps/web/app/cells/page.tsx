@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import { site } from '../../lib/aimp/site-config';
-import { startRoutes } from '../start/flow';
 import { fontVars } from '../plant-lab/fonts';
 import { CellsStage } from './cells-stage';
 import { CTA, SIGNUP } from './content';
+import { SiteHeader } from './site-header';
 import './cells.css';
 
 // The public home page (owner approved for production, 16 Nov 2026): the homepage story told with a cloud of cells
@@ -28,17 +28,7 @@ export default function CellsPage() {
     <div className={`cells ${fontVars}`} data-tone="light">
       <CellsStage tuneByDefault={TUNE_BY_DEFAULT} />
 
-      <header className="cells-top">
-        <a href="/" className="cells-logo" aria-label={site.name}>
-          <img src="/brand/aimp-logo.webp" alt="" width={36} height={36} />
-        </a>
-        <nav className="cells-nav" aria-label="On this page">
-          <a href="#how">How it works</a>
-          <a href="/learn">Learn more</a>
-          <a href="/learn#faqs">FAQs</a>
-        </nav>
-        <a href={`${startRoutes.account}?mode=login`} className="cells-signin">Sign in</a>
-      </header>
+      <SiteHeader />
 
       <main>
         <section className="cells-ch cells-ch-hero" data-chapter="field" aria-labelledby="cells-h1">
@@ -115,7 +105,7 @@ export default function CellsPage() {
           </div>
           <div className="cells-copy cells-copy-low">
             <a className="cells-btn" href={SIGNUP}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
-            <p className="cells-more"><a href="/learn">Learn more</a><span aria-hidden="true">·</span><a href="/learn#faqs">FAQs</a></p>
+            <p className="cells-more"><a href="/how-it-works">How it works</a><span aria-hidden="true">·</span><a href="/faq">FAQs</a><span aria-hidden="true">·</span><a href="/about">About us</a></p>
           </div>
         </section>
 
