@@ -3,6 +3,7 @@ import { site } from '../../lib/aimp/site-config';
 import { startRoutes } from '../start/flow';
 import { fontVars } from '../plant-lab/fonts';
 import { CellsStage } from './cells-stage';
+import { CTA, SIGNUP } from './content';
 import './cells.css';
 
 // The public home page (owner approved for production, 16 Nov 2026): the homepage story told with a cloud of cells
@@ -19,8 +20,6 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { themeColor: '#ffffff', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
-const START = startRoutes.welcome;
-const CTA = 'Find my side business';
 // The Tune panel is a design tool: shown on test versions, hidden on the live site unless the address has ?tune=1.
 const TUNE_BY_DEFAULT = process.env.VERCEL_ENV !== 'production';
 
@@ -33,6 +32,11 @@ export default function CellsPage() {
         <a href="/" className="cells-logo" aria-label={site.name}>
           <img src="/brand/aimp-logo.webp" alt="" width={36} height={36} />
         </a>
+        <nav className="cells-nav" aria-label="On this page">
+          <a href="#how">How it works</a>
+          <a href="/learn">Learn more</a>
+          <a href="/learn#faqs">FAQs</a>
+        </nav>
         <a href={`${startRoutes.account}?mode=login`} className="cells-signin">Sign in</a>
       </header>
 
@@ -43,7 +47,7 @@ export default function CellsPage() {
             <h1 id="cells-h1">Start a side business without spending weeks building it.</h1>
             <p className="cells-lede">AI researches the idea, makes the product and opens your shop. You approve every step before anything goes live.</p>
             <div className="cells-actions">
-              <a className="cells-btn" href={START}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
+              <a className="cells-btn" href={SIGNUP}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
               <a className="cells-link" href="#how">See how it works</a>
             </div>
           </div>
@@ -58,27 +62,40 @@ export default function CellsPage() {
           </div>
         </section>
 
-        <section className="cells-ch cells-ch-low" data-chapter="vortex" id="how" aria-label="Ideas">
+        {/* Not a chapter: while it is read the cells are still out of sight, gathering for step 1. */}
+        <section className="cells-pain" aria-labelledby="cells-h-pain">
+          <div className="cells-copy">
+            <p className="cells-label">Start with the customer</p>
+            <h2 id="cells-h-pain">A website is easy to launch. Finding customers is the hard part.</h2>
+            <p className="cells-body">It&apos;s easy to spend weeks on a store, a logo and posts, then find out the offer doesn&apos;t solve a problem people care about. So we start with the customer, then build the business.</p>
+          </div>
+          <div className="cells-versus" role="list">
+            <div className="cells-vs cells-vs-old" role="listitem"><span>The usual way</span><b>Build first, hope later</b></div>
+            <div className="cells-vs cells-vs-new" role="listitem"><span>With {site.name}</span><b>Research first, test early</b></div>
+          </div>
+        </section>
+
+        <section className="cells-ch cells-ch-low" data-chapter="vortex" id="how" aria-label="Find the gap">
           <div className="cells-stat">
-            <p className="cells-label">Step 1 of 3</p>
+            <p className="cells-label">Step 1 of 3 · Find the gap</p>
             <p className="cells-big">5</p>
-            <p>business ideas researched around your time, budget and skills, with the sources to check them.</p>
+            <p>business ideas from real customer problems, market signals and gaps competitors leave, with the sources to check them.</p>
           </div>
         </section>
 
-        <section className="cells-ch cells-ch-mid" data-chapter="helix" aria-label="Build">
+        <section className="cells-ch cells-ch-mid" data-chapter="helix" aria-label="Build the offer">
           <div className="cells-stat">
-            <p className="cells-label">Step 2 of 3</p>
+            <p className="cells-label">Step 2 of 3 · Build the offer</p>
             <p className="cells-big">1</p>
-            <p>brand, first product and shop made for the idea you pick. Change anything, or do it yourself.</p>
+            <p>clear offer to test: who it&apos;s for, what they get and a price, with the brand, product and shop made for it. Change anything, or do it yourself.</p>
           </div>
         </section>
 
-        <section className="cells-ch cells-ch-top" data-chapter="horizon" aria-label="Launch">
+        <section className="cells-ch cells-ch-top" data-chapter="horizon" aria-label="Launch and learn">
           <div className="cells-stat">
-            <p className="cells-label">Step 3 of 3</p>
+            <p className="cells-label">Step 3 of 3 · Launch and learn</p>
             <p className="cells-big">1st</p>
-            <p>sale is what everything points at. Launch posts are drafted and checked before anything goes out; you approve, then they publish on time.</p>
+            <p>version goes out small, so you learn what people respond to before you spend more. Launch posts are drafted and checked; you approve before anything publishes.</p>
           </div>
         </section>
 
@@ -94,13 +111,14 @@ export default function CellsPage() {
 
         <section className="cells-ch cells-ch-split cells-ch-final" data-chapter="galaxy" aria-labelledby="cells-h-final">
           <div className="cells-copy">
-            <h2 id="cells-h-final">A whole side business, already in motion.</h2>
+            <h2 id="cells-h-final">Your next business starts with a problem worth solving.</h2>
           </div>
           <div className="cells-copy cells-copy-low">
-            <a className="cells-btn" href={START}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
-            <p className="cells-note">Free to start. We help you build and launch; we don&apos;t promise sales or income.</p>
+            <a className="cells-btn" href={SIGNUP}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
+            <p className="cells-more"><a href="/learn">Learn more</a><span aria-hidden="true">·</span><a href="/learn#faqs">FAQs</a></p>
           </div>
         </section>
+
       </main>
     </div>
   );
