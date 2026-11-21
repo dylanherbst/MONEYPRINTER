@@ -13,7 +13,7 @@ export const viewport: Viewport = { themeColor: '#ffffff' };
 export default function FaqPage() {
   return (
     <InfoShell closing="Your next business starts with a problem worth solving." current="/faq">
-      <section className="cells-sec cells-intro" aria-labelledby="faq-h1">
+      <section className="cells-sec cells-intro" data-chapter="" aria-labelledby="faq-h1">
         <p className="cells-label">FAQs</p>
         <h1 id="faq-h1">Before you start</h1>
         <div className="cells-faq">

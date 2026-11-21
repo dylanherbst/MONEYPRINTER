@@ -3,17 +3,20 @@ import { site } from '../../lib/aimp/site-config';
 import { fontVars } from '../plant-lab/fonts';
 import { CTA, SIGNUP } from './content';
 import { SiteHeader } from './site-header';
+import { CellsStage } from './cells-stage';
 import './cells.css';
 
-/** Plain page in the home page's look (no cells animation), for Learn more and FAQs. */
+/** Page in the home page's look, with the same scroll-driven cells behind it: How it works, FAQs, About us. */
 export function InfoShell({ children, closing, current }: { children: ReactNode; closing?: string; current?: string }) {
   return (
     <div className={`cells cells-plain ${fontVars}`} data-tone="light">
+      {/* Same moving cells and wave background as the home page; each section below is one step of the scroll. */}
+      <CellsStage tuneByDefault={false} />
       <SiteHeader solid current={current} />
-      <main className="cells-after">
+      <main className="cells-info">
         {children}
         {closing && (
-          <section className="cells-sec cells-close" aria-labelledby="cells-h-close">
+          <section className="cells-sec cells-close" data-chapter="close" aria-labelledby="cells-h-close">
             <h2 id="cells-h-close">{closing}</h2>
             <a className="cells-btn" href={SIGNUP}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
             <p className="cells-note">No coding experience needed. Results are not guaranteed.</p>

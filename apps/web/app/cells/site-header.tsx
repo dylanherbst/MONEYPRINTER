@@ -3,6 +3,7 @@ import { SIGN_IN } from './content';
 
 /** The public site's pages, in header order. */
 export const NAV = [
+  { href: '/', label: 'Home' },
   { href: '/how-it-works', label: 'How it works' },
   { href: '/faq', label: 'FAQs' },
   { href: '/about', label: 'About us' },

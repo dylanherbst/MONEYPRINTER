@@ -122,7 +122,7 @@
 .cells-vs-new b { color: var(--cells-ink); }
 
 /* After the story: plain sections. The cells canvas fades out behind them. */
-.cells-after { position: relative; z-index: 1; padding: 24px 22px 0; display: grid; gap: 88px; }
+.cells-after, .cells-info { position: relative; z-index: 1; padding: 24px 22px 0; display: grid; gap: 88px; }
 .cells-sec { max-width: 64rem; width: 100%; margin: 0 auto; display: grid; gap: 14px; }
 .cells-sec h2 { max-width: 40rem; }
 .cells-cards { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 12px; }
@@ -218,7 +218,7 @@
   .cells-versus { max-width: 38rem; gap: 14px; }
   .cells-vs { padding: 18px 20px; }
   .cells-vs b { font-size: 1.35rem; }
-  .cells-after { padding: 40px 8vw 0; gap: 120px; }
+  .cells-after, .cells-info { padding: 40px 8vw 0; gap: 120px; }
   .cells-cards-3 { grid-template-columns: repeat(3, 1fr); }
   .cells-cards-5 { grid-template-columns: repeat(5, 1fr); }
   .cells-card-link { padding-right: 18px; padding-bottom: 60px; }
@@ -232,7 +232,7 @@
 .cells-more a { color: var(--cells-ink); font-weight: 600; text-underline-offset: 4px; text-decoration-color: var(--cells-line); }
 /* Learn more and FAQ pages: no canvas, so clear the fixed header and soften the page. */
 .cells-plain { background: linear-gradient(180deg, #f6f2ff 0, var(--cells-bg) 420px); }
-.cells-plain .cells-after { padding-top: 110px; }
+.cells-plain .cells-info { padding-top: 110px; }
 .cells-intro h1 { font-size: clamp(2.3rem, 9vw, 4rem); line-height: 1.02; }
 .cells-foot a { color: inherit; }
 /* Sign-up page: a heading and the one card, centred on the screen. */
@@ -262,3 +262,10 @@
   .cells-top-end .cells-signin { display: inline; }
   .cells-cards-2 { grid-template-columns: 1fr 1fr; }
 }
+/* Info pages: sections get a little more room so the cells can move between them; text sits on frosted panels. */
+.cells-info .cells-sec { padding: 22px 20px; border-radius: 26px; background: color-mix(in srgb, var(--cells-bg) 72%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.cells-info .cells-close { background: color-mix(in srgb, var(--cells-accent) 8%, var(--cells-bg)); padding: 48px 20px; }
+@media (min-width: 900px) { .cells-info .cells-sec { padding: 32px 36px; } .cells-info .cells-close { padding: 72px 40px; } }
+.cells-signup-main { position: relative; z-index: 1; }
+.cells-signup-main h1 { text-shadow: 0 0 22px var(--cells-bg), 0 0 8px var(--cells-bg); }

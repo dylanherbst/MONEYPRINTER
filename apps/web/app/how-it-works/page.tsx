@@ -13,13 +13,13 @@ export const viewport: Viewport = { themeColor: '#ffffff' };
 export default function HowItWorksPage() {
   return (
     <InfoShell closing="Find a customer need. Build an offer around it." current="/how-it-works">
-      <section className="cells-sec cells-intro" aria-labelledby="how-h1">
+      <section className="cells-sec cells-intro" data-chapter="" aria-labelledby="how-h1">
         <p className="cells-label">How it works</p>
         <h1 id="how-h1">How {site.name} works</h1>
         <p className="cells-body">Start with the customer, then build the business. Here is what that looks like in practice.</p>
       </section>
 
-      <section className="cells-sec" aria-labelledby="cells-h-routes">
+      <section className="cells-sec" data-chapter="" aria-labelledby="cells-h-routes">
         <p className="cells-label">Three ways in</p>
         <h2 id="cells-h-routes">No idea? A skill? A business already? Start where you are.</h2>
         <ul className="cells-cards cells-cards-3">
@@ -35,7 +35,7 @@ export default function HowItWorksPage() {
         </ul>
       </section>
 
-      <section className="cells-sec" aria-labelledby="cells-h-spend">
+      <section className="cells-sec" data-chapter="" aria-labelledby="cells-h-spend">
         <p className="cells-label">Smarter spend</p>
         <h2 id="cells-h-spend">Spend smarter before you spend more.</h2>
         <p className="cells-body">You shouldn&apos;t need a big ad budget to find out whether people care about your idea. Start with research, a focused offer and a small test. Learn what gets a response before you spend more.</p>
@@ -44,7 +44,7 @@ export default function HowItWorksPage() {
         </ol>
       </section>
 
-      <section className="cells-sec" id="what-you-get" aria-labelledby="cells-h-output">
+      <section className="cells-sec" data-chapter="" id="what-you-get" aria-labelledby="cells-h-output">
         <p className="cells-label">What you get</p>
         <h2 id="cells-h-output">Leave with more than a business idea.</h2>
         <ul className="cells-cards cells-cards-5">

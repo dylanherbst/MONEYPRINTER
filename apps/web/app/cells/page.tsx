@@ -28,7 +28,7 @@ export default function CellsPage() {
     <div className={`cells ${fontVars}`} data-tone="light">
       <CellsStage tuneByDefault={TUNE_BY_DEFAULT} />
 
-      <SiteHeader />
+      <SiteHeader current="/" />
 
       <main>
         <section className="cells-ch cells-ch-hero" data-chapter="field" aria-labelledby="cells-h1">

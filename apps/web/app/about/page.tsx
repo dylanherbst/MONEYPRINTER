@@ -19,7 +19,7 @@ const BELIEFS = [
 export default function AboutPage() {
   return (
     <InfoShell closing="Your next business starts with a problem worth solving." current="/about">
-      <section className="cells-sec cells-intro" aria-labelledby="about-h1">
+      <section className="cells-sec cells-intro" data-chapter="" aria-labelledby="about-h1">
         <p className="cells-label">About us</p>
         <h1 id="about-h1">We help everyday people start a business worth building.</h1>
         <p className="cells-body">
@@ -28,7 +28,7 @@ export default function AboutPage() {
         </p>
       </section>
 
-      <section className="cells-sec" aria-labelledby="about-h-believe">
+      <section className="cells-sec" data-chapter="" aria-labelledby="about-h-believe">
         <p className="cells-label">What we believe</p>
         <h2 id="about-h-believe">A good business starts with a problem worth solving.</h2>
         <ul className="cells-cards cells-cards-2">
