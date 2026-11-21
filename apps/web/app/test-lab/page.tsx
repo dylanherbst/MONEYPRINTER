@@ -9,6 +9,9 @@ export const dynamic = 'force-dynamic';
 
 const pages = (b: string, shop: string | null): { name: string; href: string; test: string }[] => [
   { name: 'Template gallery', href: '/test-lab/templates', test: 'All 15 store templates side by side. Then Website, Pick a template, to apply one to the mock shop.' },
+  { name: 'AI Setter (new)', href: `/app/${b}/setter`, test: 'Inbox and test tab: type "how much is the dinner plan?" as a customer and get a draft; approve it. Try "stop", "can I talk to a real person", and "Stop all sending". Setup tab: switch to automatic replies (needs the tick box). Results tab: counts. All simulated: nothing reaches Instagram.' },
+  { name: 'Offer builder (new)', href: `/app/${b}/offers`, test: 'Answer the three questions, pick an offer, edit the steps, preview the sample PDF, set a price and approve. The message says whether it went into your shop.' },
+  { name: 'One-page shop (new)', href: `/shop/${b}`, test: 'Appears after you approve an offer. Sales copy, free sample PDF, what buyers get, Buy now bar on a phone (checkout is still off and says so).' },
   { name: 'Home', href: `/app/${b}/home`, test: 'Needs-me, ready and happened lists. Press "Send my weekly brief" with any email (test outbox only).' },
   { name: 'Inbox', href: `/app/${b}/inbox`, test: 'Three waiting drafts. Approve and send one, press "I will handle it" on another, add your own test message.' },
   { name: 'Orders', href: `/app/${b}/orders`, test: 'Two paid, delivered orders. Open one and check the delivery shows once.' },
