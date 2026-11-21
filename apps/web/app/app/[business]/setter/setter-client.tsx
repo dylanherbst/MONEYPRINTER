@@ -36,7 +36,10 @@ export function SetterClient({ business, initial }: { business: string; initial:
       </nav>
       <div className="st-status">
         <span>Mode: <strong>{c.mode === 'auto' ? 'Automatic replies' : c.mode === 'off' ? 'Off' : 'Drafts only'}</strong>{c.paused ? ' (paused)' : ''}</span>
+        <span className="st-row">
+        <button type="button" disabled={busy} onClick={async () => { await run(inboxAction(business, { kind: 'reset' }), (r) => r.message); setOpen(null); setEdit({}); }}>Reset test messages</button>
         <button type="button" className={v.killSwitch ? 'st-on' : 'st-danger'} disabled={busy} onClick={() => run(inboxAction(business, { kind: 'kill', on: !v.killSwitch }), (r) => r.message)}>{v.killSwitch ? 'Allow sending again' : 'Stop all sending'}</button>
+        </span>
       </div>
       {msg ? <p role="status" className="st-msg">{msg}</p> : null}
 

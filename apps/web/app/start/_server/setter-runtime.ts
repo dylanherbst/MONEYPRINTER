@@ -24,6 +24,17 @@ export function live(): Live | null {
 }
 
 const MAX_SANDBOXES = 200;
+/** Clears the test conversations, leads, results and activity for one business. Its setup (offers, FAQs, mode) is kept. */
+export function resetSandbox(business: string): ReturnType<typeof createSandbox> | null {
+  const m = (g.__aimpSetterSandboxes ??= new Map());
+  const old = m.get(business);
+  const cfg = old?.store.config(old.ws) ?? null;
+  m.delete(business);
+  const fresh = sandbox(business);
+  if (fresh && cfg) fresh.store.saveConfig(cfg);
+  return fresh;
+}
+
 export function sandbox(business: string): ReturnType<typeof createSandbox> | null {
   const m = (g.__aimpSetterSandboxes ??= new Map());
   const cur = m.get(business);

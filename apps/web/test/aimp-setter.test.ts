@@ -137,7 +137,9 @@ test('asking for a person, owner replying in the app, or a complaint hands off a
   const sb = createSandbox({ now: clock().now });
   auto(sb);
   assert.deepEqual((await sb.inbound('can I talk to a real person', '9006')).results, ['handoff']);
-  assert.deepEqual((await sb.inbound('are you a bot?', '9009')).results, ['handoff']);
+  assert.deepEqual((await sb.inbound('are you a bot?', '9009')).results, ['sent']);
+  assert.match(sb.sender.sent.at(-1)!.text, /automated assistant for Calm Kitchen/);
+  sb.sender.sent.length = 0;
   assert.deepEqual((await sb.inbound('how much?', '9006')).results, ['blocked:human_takeover']);
   assert.deepEqual((await sb.inbound('this is a scam, I want a refund', '9007')).results, ['handoff']);
   const echoRaw = simulatedPayload(sb.igAccountId, [{ from: '9008', text: 'hi from the owner', mid: 'owner-1', ts: T0.getTime(), echo: true }]);

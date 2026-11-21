@@ -31,6 +31,9 @@ export const defaultConfig = (workspaceId: string, now: Date): AgentConfig => ({
   promptVersion: '', updatedAt: now.toISOString(),
 });
 
+export const honestAnswer = (business: string): string =>
+  `Fair question! I'm the automated assistant for ${business || 'the shop'}. Happy to keep helping, or I can get someone from the team to jump in. Just say the word.`;
+
 export function createSetter(d: SetterDeps) {
   const now = d.now ?? (() => new Date());
   let n = 0;
@@ -88,8 +91,7 @@ export function createSetter(d: SetterDeps) {
         audit(ws, 'opt_out', `${conv.id} opted out.`);
         return 'opted_out';
       }
-      // "Are you a bot?" is never answered by the automation (no denial, no lie): a person takes it.
-      if (wantsHuman(ev.text) || asksIfAutomated(ev.text)) {
+      if (wantsHuman(ev.text)) {
         setLead(ws, conv, 'human_requested', ev.text);
         s.saveConversation({ ...conv, humanTakeover: true, state: 'human' });
         audit(ws, 'handoff', `${conv.id} asked for a person.`);
@@ -98,6 +100,16 @@ export function createSetter(d: SetterDeps) {
       const el = eligibility(ws, conv);
       if (!el.canDraft) { audit(ws, 'not_eligible', `${conv.id}: ${el.blocks.join(', ')}`); return `blocked:${el.blocks.join(',')}`; }
       const cfg = s.config(ws)!;
+      // Asked directly whether this is automated: answer honestly, never deny it (owner decision: only say so when asked).
+      if (asksIfAutomated(ev.text)) {
+        const send = cfg.mode === 'auto' && el.canSend;
+        const m: DmMessage = { id: `msg-${newId()}`, workspaceId: ws, conversationId: conv.id, direction: 'out', author: 'ai', text: honestAnswer(cfg.businessName), status: send ? 'queued' : 'draft', mid: null, error: null, createdAt: iso(), policyNotes: ['Asked if this is automated: answered honestly.'] };
+        s.saveMessage(m);
+        s.saveConversation({ ...conv, state: send ? 'open' : 'awaiting_approval' });
+        if (!send) return 'draft';
+        const r = await deliverLocked(ws, m.id, 'ai');
+        return r.ok ? 'sent' : `send_failed:${r.reason}`;
+      }
       let raw: unknown;
       try { raw = await d.agent.decide({ config: cfg, history: s.messages(ws, conv.id).slice(0, -1), latest: ev.text }); }
       catch { s.saveConversation({ ...conv, humanTakeover: true, state: 'human' }); audit(ws, 'model_error', `${conv.id}: the AI did not answer; handed to a person.`); return 'model_error'; }
