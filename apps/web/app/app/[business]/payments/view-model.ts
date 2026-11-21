@@ -17,6 +17,8 @@ export interface PaymentsInput {
   gate: CheckoutGate;
   /** `payouts_enabled` of the seller's account, or null when there is no account. */
   payoutsEnabled: boolean | null;
+  /** The seller account's id (`stripeAccountId`), or null when there is no account. Used only to tell sample accounts apart. */
+  accountId: string | null;
   provider: ProviderInput;
 }
 
@@ -40,9 +42,9 @@ export interface PaymentsVM {
 export const DEMO_NOTE = 'This is the demo. What you see here is kept in memory on this computer and is lost when the app restarts.';
 export const NOT_AVAILABLE_TITLE = 'Payments are not available in the demo yet';
 export const NOT_AVAILABLE_TEXT =
-  'A business made in this demo has no payment account, and one cannot be connected from here yet. So this business cannot take payments or receive payouts today. This is not a problem with your business.';
+  'We cannot read a payment account for this business here, and one cannot be connected from here yet. So this business cannot take payments or receive payouts today. This is not a problem with your business.';
 export const AMOUNTS_NOTE = 'Payout amounts and dates are not shown here yet. This page only tells you whether payments and payouts are switched on.';
-export const SAMPLE_NOTE = 'Payments are running on sample data on this site. No real card is charged and no real money moves.';
+export const SAMPLE_NOTE = 'The payment details here are sample data. No real card is charged and no real money moves.';
 export const NO_CONNECT_NOTE = 'You cannot do this from this page yet. Connecting a payment account is not switched on.';
 
 export const paymentsHref = (businessId: string): string => `/app/${businessId}/payments`;
@@ -53,6 +55,11 @@ const STATE: Record<SellerState, { label: string; tone: Tone; text: string }> = 
   under_review: { label: 'Being checked', tone: 'neutral', text: 'Stripe is checking the account. Payments stay off until it finishes.' },
   restricted: { label: 'Payments paused', tone: 'danger', text: 'Stripe has paused this account, so payments are off.' },
   ready: { label: 'Ready', tone: 'success', text: 'The payment account is connected and customers can pay by card.' },
+};
+
+const ACCOUNT_READY_GATE_CLOSED = {
+  label: 'Account ready', tone: 'neutral' as Tone,
+  text: 'The payment account is set up, but checkout is closed right now, so customers cannot pay by card yet.',
 };
 
 const PROVIDER: Record<string, { label: string; tone: Tone }> = {
@@ -70,7 +77,18 @@ export function providerFact(p: ProviderInput): Fact {
   return { ...known, text };
 }
 
-const isSample = (p: ProviderInput): boolean => p.status === 'test' || p.status === 'fixture';
+/**
+ * The id prefix of the sample seller account the /start runtime registers (SAMPLE_SELLER_PREFIX in app/start/_server/orders-runtime.ts,
+ * which is server code, so the value is repeated here and a test checks the two stay equal).
+ */
+export const SAMPLE_ACCOUNT_PREFIX = 'acct_sample_demo_';
+
+/** True when this account is the sample one. It reads the account itself, never the site's provider status. */
+export const isSampleAccount = (accountId: string | null | undefined): boolean => typeof accountId === 'string' && accountId.startsWith(SAMPLE_ACCOUNT_PREFIX);
+
+// The sample notice shows when the account is a sample account OR the provider runs on sample/test data. Either alone is enough, so a
+// sample account is never shown as real money whatever the provider status reads.
+const isSample = (i: PaymentsInput): boolean => isSampleAccount(i.accountId) || i.provider.status === 'test' || i.provider.status === 'fixture';
 
 function payoutsFact(i: PaymentsInput): Fact {
   if (i.payoutsEnabled === null) return { label: 'No payouts yet', tone: 'neutral', text: 'Payouts start after a payment account is connected and checked.' };
@@ -80,7 +98,8 @@ function payoutsFact(i: PaymentsInput): Fact {
 }
 
 export function buildPayments(i: PaymentsInput): PaymentsVM {
-  const s = STATE[i.readiness.state];
+  // "Customers can pay" is claimed only when the checkout gate is open too, never from the account state alone.
+  const s = i.readiness.state === 'ready' && !i.gate.enabled ? ACCOUNT_READY_GATE_CLOSED : STATE[i.readiness.state];
   const next = i.readiness.nextAction.kind === 'none'
     ? null
     : { label: i.readiness.nextAction.label, why: i.readiness.nextAction.why, note: i.readiness.nextAction.kind === 'wait' ? 'There is nothing you need to do right now.' : NO_CONNECT_NOTE };
@@ -93,14 +112,14 @@ export function buildPayments(i: PaymentsInput): PaymentsVM {
     outstanding: [...i.readiness.outstanding],
     next,
     provider: providerFact(i.provider),
-    sampleNote: isSample(i.provider) ? SAMPLE_NOTE : null,
+    sampleNote: isSample(i) ? SAMPLE_NOTE : null,
     amountsNote: AMOUNTS_NOTE,
   };
 }
 
 export interface UnavailableVM { title: string; text: string; provider: Fact }
 
-/** No seller account store in this runtime: say exactly that, with the site's real provider status beside it. */
+/** The page has no seller source to read (a runtime without one): say exactly that, with the site's real provider status beside it. */
 export function buildUnavailable(provider: ProviderInput): UnavailableVM {
   return { title: NOT_AVAILABLE_TITLE, text: NOT_AVAILABLE_TEXT, provider: providerFact(provider) };
 }

@@ -47,6 +47,20 @@ export function purchaseState(store: StoreConfig, built: boolean = checkoutBuilt
   return { canBuy: true };
 }
 
-export const policyPages = { refund: 'Refund policy', privacy: 'Privacy policy', terms: 'Terms of sale' } as const;
+export type TestPurchaseState = { canTest: true; label: string } | { canTest: false; reason: string };
+/** Shown next to any test buy button and on the order it creates. */
+export const TEST_PURCHASE_LABEL = 'Test purchase: no real payment is taken and nothing is charged.';
+/**
+ * AMP-147. A fixture "test purchase" is allowed ONLY on a DEMO store that the guided-setup (/start) runtime published
+ * (`isStartStore`, decided server-side from the runtime's own store list). A real store (non-demo) never gets it: its rules stay
+ * exactly `purchaseState`. This does not change `purchaseState` or `checkoutBuilt`.
+ */
+export function testPurchaseState(store: StoreConfig, isStartStore: boolean): TestPurchaseState {
+  if (!store.demo) return { canTest: false, reason: 'Test purchases are only for demo stores.' };
+  if (!isStartStore) return { canTest: false, reason: 'Test purchases are only for stores made in guided setup.' };
+  return { canTest: true, label: TEST_PURCHASE_LABEL };
+}
+
+export const policyPages ={ refund: 'Refund policy', privacy: 'Privacy policy', terms: 'Terms of sale' } as const;
 export type PolicyPage = keyof typeof policyPages;
 export const isPolicyPage = (v: string): v is PolicyPage => Object.hasOwn(policyPages, v);

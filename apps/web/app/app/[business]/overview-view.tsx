@@ -98,7 +98,12 @@ export function OverviewView({ vm, fixtureLabel }: { vm: OverviewViewModel; fixt
       </section>
 
       <GlassCard heading="h2" eyebrow="In order of importance" title={vm.headings.needsYou} data-testid="needs-you">
-        {vm.needsYou.length === 0 ? <p className="plg-text">Nothing needs you right now.</p> : (
+        {vm.needsYou.length === 0 ? (
+          // When the approvals list could not be read, "nothing" would be a guess: say so plainly instead.
+          vm.banners.some((b) => b.id === 'approvals_not_read')
+            ? <p className="plg-text" data-testid="needs-you-unchecked">We could not check your approvals, so we cannot say whether anything needs you. Open this page again in a minute to try again.</p>
+            : <p className="plg-text">Nothing needs you right now.</p>
+        ) : (
           <ol className="ao-needs">
             {vm.needsYou.map((i) => (
               <li key={i.id} data-severity={i.severity} data-testid="needs-item">

@@ -9,6 +9,7 @@ import { assetKinds } from '../../../../../../lib/aimp/campaign-assets/types.ts'
 import type { AssetIssue } from '../../../../../../lib/aimp/campaign-assets/types.ts';
 import { isBusinessId } from '../../../../../start/journey.ts';
 import { isKnownBusiness } from '../../../_server/overview.ts';
+import { WENT_WRONG } from '../../_server/marketing-guard.ts';
 import type { MarketingContexts } from '../../_server/marketing.ts';
 import { NOT_IN_DEMO, draftsLabel } from '../view-model.ts';
 import { assetDeps, creativeStoresOf } from './creative.ts';
@@ -124,8 +125,22 @@ function refusal(errors: AssetIssue[]): CreativeReply {
   }
 }
 
-/** Guard, then run the op on the campaign-assets service. A refusal changes nothing. */
-export async function runCreativeOp(g: CreativeGuardInput, businessId: unknown, rawOp: unknown): Promise<CreativeReply> {
+/**
+ * Guard, then run the op on the campaign-assets service. A refusal changes nothing. Anything thrown on the way (a campaign or asset
+ * store read or write) becomes the same plain reply as the Marketing page, which does not claim either outcome; only the error's name is logged.
+ */
+export async function runCreativeOp(
+  g: CreativeGuardInput, businessId: unknown, rawOp: unknown, log: (message: string, detail: string) => void = console.error,
+): Promise<CreativeReply> {
+  try {
+    return await runCreativeOpUnsafe(g, businessId, rawOp);
+  } catch (e) {
+    log('[app creative] draft change failed:', e instanceof Error ? e.name : 'unknown error');
+    return { ok: false, message: WENT_WRONG, errors: [] };
+  }
+}
+
+async function runCreativeOpUnsafe(g: CreativeGuardInput, businessId: unknown, rawOp: unknown): Promise<CreativeReply> {
   const guard = guardCreativeOp(g, businessId, rawOp);
   if (!guard.ok) return { ok: false, message: guard.message, errors: [] };
   const { op } = guard;

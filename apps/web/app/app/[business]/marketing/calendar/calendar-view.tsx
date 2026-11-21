@@ -6,10 +6,11 @@ import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { AppIntro, AppLayout, GlassBadge, GlassButton, GlassCard, GlassKeyValue, GlassNotice, GlassState } from '../../../../design-system/aimp-glass';
 import { exportCalendarAction } from './actions';
-import { BY_HAND, NOTHING_POSTED, PUBLISHING_LABEL, PUBLISHING_TEXT, countsLine, entriesLabel, exportHint } from './view-model';
+import { BY_HAND, NOTHING_POSTED, PUBLISHING_LABEL, PUBLISHING_NOTE, PUBLISHING_TEXT, countsLine, entriesLabel, exportHint } from './view-model';
 import type { CalendarDay, CalendarModel, EntryState } from './view-model';
 
 const UNREACHABLE = 'We could not reach the server, so no file was made. Try again.';
+const SAVE_FAILED = 'The file was made, but your browser could not save it to this device. Nothing was posted. Try again, or check that downloads are allowed on this site.';
 const TONE: Readonly<Record<EntryState, 'neutral' | 'success' | 'warn'>> = { plan_draft: 'neutral', not_written: 'neutral', draft: 'neutral', approved: 'success', rejected: 'warn' };
 
 /** Hand the ZIP file to the browser as a download. Nothing leaves the device. */
@@ -51,18 +52,33 @@ export function CalendarView({ businessId, model }: { businessId: string; model:
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string; files: string[] } | null>(null);
   const busyRef = useRef(false);
+  const focusRef = useRef<HTMLDivElement>(null);
   const marketing = `/app/${businessId}/marketing`;
   const creative = `${marketing}/creative`;
 
   async function exportNow() {
     if (busyRef.current) return;
     busyRef.current = true; setBusy(true); setNotice(null);
+    let reply: Awaited<ReturnType<typeof exportCalendarAction>> | null = null;
     try {
-      const r = await exportCalendarAction(businessId);
-      if (r.ok && r.file) saveFile(r.file);
-      setNotice({ ok: r.ok && r.file !== null, text: r.message || 'That did not go through, so nothing was saved.', files: r.file?.files ?? [] });
+      reply = await exportCalendarAction(businessId);
     } catch { setNotice({ ok: false, text: UNREACHABLE, files: [] }); }
-    finally { busyRef.current = false; setBusy(false); }
+    if (reply) {
+      const r = reply;
+      // AMP-161: a failure to save the file on this device is its own message, not the server's.
+      let saved = true;
+      if (r.ok && r.file) { try { saveFile(r.file); } catch { saved = false; } }
+      if (!saved) setNotice({ ok: false, text: SAVE_FAILED, files: [] });
+      else setNotice({ ok: r.ok && r.file !== null, text: r.message || 'That did not go through, so nothing was saved.', files: r.file?.files ?? [] });
+    }
+    busyRef.current = false; setBusy(false);
+    // The button is disabled while the file is made, so keyboard focus would be lost: put it on the export area, which the result sits next to.
+    // AMP-161: only when focus is still lost (on the page itself or on the export button). If the owner has moved on, focus stays where they put it.
+    requestAnimationFrame(() => {
+      const el = document.activeElement;
+      const lost = !el || el === document.body || el === document.documentElement || focusRef.current?.contains(el);
+      if (lost) focusRef.current?.focus({ preventScroll: true });
+    });
   }
 
   return (
@@ -73,8 +89,11 @@ export function CalendarView({ businessId, model }: { businessId: string; model:
         <Link href={marketing} className="plg-link acal-link" data-target="large" data-testid="back-to-marketing">Back to Marketing</Link>
       </AppIntro>
 
+      {/* The one place the result is announced (polite, once). It stays on the page, so a change of text is what gets read; the visible notice below is not live. */}
+      <p role="status" aria-live="polite" aria-atomic="true" className="acal-live" data-testid="export-status">{notice ? notice.text : ''}</p>
+
       {notice ? (
-        <GlassNotice tone={notice.ok ? 'success' : 'error'} title={notice.text} data-testid={notice.ok ? 'export-done' : 'export-refused'}>
+        <GlassNotice tone={notice.ok ? 'success' : 'error'} live="none" title={notice.text} data-testid={notice.ok ? 'export-done' : 'export-refused'}>
           {notice.files.length ? (
             <>
               <p>In the file:</p>
@@ -99,12 +118,12 @@ export function CalendarView({ businessId, model }: { businessId: string; model:
             <GlassCard heading="h2" title="Publishing" badges={<GlassBadge tone="neutral" dot data-testid="publishing-state">{PUBLISHING_LABEL}</GlassBadge>} data-testid="publishing">
               <p className="plg-text">{PUBLISHING_TEXT}</p>
               <GlassKeyValue items={model.channels.map((c) => ({ label: c.label, value: c.publishing }))} />
-              <p className="plg-note">Connected publishing: Coming.</p>
+              <p className="plg-note" data-testid="publishing-note">{PUBLISHING_NOTE}</p>
             </GlassCard>
 
             <GlassCard heading="h2" title="Save your approved text" data-testid="export">
               <p className="plg-text" data-testid="export-hint">{exportHint(model)}</p>
-              <div className="acal-actions">
+              <div className="acal-actions acal-focus-target" ref={focusRef} tabIndex={-1} role="group" aria-label="Save your approved text" data-testid="export-actions">
                 {model.exportable > 0 ? (
                   <GlassButton variant="primary" onClick={() => { void exportNow(); }} loading={busy} loadingLabel="Making your file…" disabled={busy} data-testid="export-button">Save as a ZIP file</GlassButton>
                 ) : null}

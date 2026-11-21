@@ -416,6 +416,80 @@ test('AMP-109: an approvals read that fails on EVERY call, or on the first call 
   if (d.found) assert.equal(buildDashboard(d).attention.empty, NOTHING_NEEDS_YOU);
 });
 
+test('AMP-137: a failed approvals read for one business leaves another business\'s dashboard untouched, in either order', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const approval = (id: string, businessId: string): ApprovalView => ({
+    id, area: 'marketing', kind: 'scheduled-post', description: `Post ${id} (${businessId})`, status: 'pending', requestedAt: NOW().getTime() - 1000,
+    expiresAt: NOW().getTime() + 60_000, decidedAt: null, jobId: null,
+  });
+  const approvals: NonNullable<OverviewExtras['approvals']> = async (scope) => {
+    if (scope.businessId === 'biz-a') throw new Error('approvals store down: secret-detail');
+    return [approval('b-p1', scope.businessId), approval('b-p2', scope.businessId)];
+  };
+  const load = async (businessId: string) => {
+    const rt: OverviewRuntime = { ...fakeRuntime(['biz-a', 'biz-b']), fulfilment };
+    const world = await ordersWorld();
+    const found = await loadDashboard(rt, ctx, { orders: world.orders, approvals }, businessId, { now: NOW });
+    assert.ok(found.found, businessId);
+    if (!found.found) throw new Error('unreachable');
+    return { found, vm: buildDashboard(found) };
+  };
+  for (const order of [['biz-a', 'biz-b'], ['biz-b', 'biz-a']]) {
+    const results = new Map<string, Awaited<ReturnType<typeof load>>>();
+    for (const b of order) results.set(b, await load(b));
+    const a = results.get('biz-a')!;
+    const b = results.get('biz-b')!;
+    assert.equal(a.found.postApprovals, null);
+    assert.equal(a.found.postApprovalsFailed, true);
+    assert.equal(statOf(a.vm, 'posts', 'post-approvals').note, APPROVALS_NOT_READ);
+    // The other business: its own list was read, counted and shown; nothing of the failure leaks into it.
+    assert.equal(b.found.postApprovalsFailed, false);
+    assert.equal(b.found.postApprovals, 2);
+    assert.equal(statOf(b.vm, 'posts', 'post-approvals').value, '2');
+    assert.equal(b.vm.totals.postApprovals, 2);
+    assert.equal(b.vm.totals.paidOrders, 1);
+    assert.deepEqual(b.vm.totals.sales, [{ currency: 'AUD', amountMinor: 9999 }]);
+    assert.notEqual(b.vm.attention.empty, ATTENTION_APPROVALS_NOT_READ);
+  }
+});
+
+test('AMP-137: a first-call-only approvals failure on the uncached overview path flags that one load, then recovers on the next', async (t) => {
+  const logged: unknown[][] = [];
+  t.mock.method(console, 'error', (...args: unknown[]) => { logged.push(args); });
+  let reads = 0;
+  const approvals: NonNullable<OverviewExtras['approvals']> = async () => {
+    reads += 1;
+    if (reads === 1) throw new TypeError('approvals store down: secret-detail');
+    return [];
+  };
+  const rt: OverviewRuntime = { ...fakeRuntime(['biz-a', 'biz-b']), fulfilment };
+  const world = await ordersWorld();
+  const extras: OverviewExtras = { orders: world.orders, approvals };
+  // No cache: this is loadBusinessOverview itself, the path the overview page takes when it is not behind the shared cache.
+  const first = await loadBusinessOverview(rt, ctx, extras, 'biz-a', NOW);
+  assert.ok(first.found);
+  if (!first.found) return;
+  assert.equal(first.approvalsFailed, true);
+  assert.ok(buildOverviewViewModel({ overview: first.overview, approvalsFailed: first.approvalsFailed }).banners.some((b) => b.id === 'approvals_not_read'));
+  // The next read (a later page load) succeeds: the flag and the banner are gone, with no cache holding the failure.
+  const second = await loadBusinessOverview(rt, ctx, extras, 'biz-a', NOW);
+  assert.ok(second.found);
+  if (!second.found) return;
+  assert.equal(second.approvalsFailed, false);
+  assert.ok(!buildOverviewViewModel({ overview: second.overview, approvalsFailed: second.approvalsFailed }).banners.some((b) => b.id === 'approvals_not_read'));
+  // The uncached dashboard on the same kind of source is not taken to an error state either, and its orders are all there.
+  reads = 0;
+  const d = await loadDashboard(rt, ctx, extras, 'biz-a', { now: NOW });
+  assert.ok(d.found);
+  if (!d.found) return;
+  assert.equal(d.postApprovals, null);
+  assert.equal(d.postApprovalsFailed, true);
+  assert.equal(buildDashboard(d).totals.paidOrders, 7);
+  assert.equal(logged.length >= 2, true, 'each failure is logged');
+  assert.ok(logged.every((l) => l[1] === 'TypeError'), 'only the error name is logged');
+  assert.ok(!JSON.stringify(logged).includes('secret-detail'));
+});
+
 // ---- needs your attention ----
 test('each required action links to the workspace page that fixes it, and only to pages that exist', async () => {
   const { vm } = await fullDashboard();

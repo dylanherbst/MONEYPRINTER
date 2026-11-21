@@ -1,15 +1,17 @@
 // Seller payments and payouts (screen 18, AMP-088). The server read runs against the REAL seller account store, readiness rules and
-// checkout gate (lib/aimp/sellers) on the lib's own fixture accounts; the view model is pure. The /start runtime has no seller
-// account store, so the page's own source is null: that honest state is tested too (and what it would need).
+// checkout gate (lib/aimp/sellers) on the lib's own fixture accounts; the view model is pure. A runtime without a seller store gives
+// the page a null source: that honest state is tested too (and what is still missing).
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import { MISSING_WIRING, loadPayments, paymentsSource } from '../app/app/[business]/payments/_server/payments.ts';
 import type { PaymentsRuntime, PaymentsSource } from '../app/app/[business]/payments/_server/payments.ts';
 import {
-  AMOUNTS_NOTE, NOT_AVAILABLE_TEXT, NOT_AVAILABLE_TITLE, NO_CONNECT_NOTE, SAMPLE_NOTE, buildPayments, buildUnavailable, paymentsHref, providerFact,
+  AMOUNTS_NOTE, NOT_AVAILABLE_TEXT, NOT_AVAILABLE_TITLE, NO_CONNECT_NOTE, SAMPLE_ACCOUNT_PREFIX, SAMPLE_NOTE, buildPayments, buildUnavailable,
+  isSampleAccount, paymentsHref, providerFact,
 } from '../app/app/[business]/payments/view-model.ts';
 import type { ProviderInput } from '../app/app/[business]/payments/view-model.ts';
+import { SAMPLE_SELLER_PREFIX } from '../app/start/_server/orders-runtime.ts';
 import { FIXTURE_SELLERS, createInMemorySellerStore, sellerStates } from '../lib/aimp/sellers/index.ts';
 import type { SellerState } from '../lib/aimp/sellers/index.ts';
 
@@ -33,6 +35,37 @@ function setup() {
   };
   return { accounts, source, rt, vmFor };
 }
+
+// ---- a sample account is always marked as sample, from the account itself ----
+test('an account whose id starts acct_sample_demo_ always shows the sample notice, even when the provider status reads live', () => {
+  assert.equal(SAMPLE_ACCOUNT_PREFIX, SAMPLE_SELLER_PREFIX, 'the view model prefix equals the runtime constant');
+  const { vmFor, accounts, source } = setup();
+  const LIVE: ProviderInput = { status: 'live', label: 'Live' };
+  const base = vmFor('ready', LIVE).input;
+  assert.equal(base.provider.status, 'live');
+  assert.equal(buildPayments(base).sampleNote, null, 'a non-sample account on a live provider shows no sample notice');
+  assert.equal(isSampleAccount(base.accountId), false);
+  for (const provider of [LIVE, OFF, { status: 'disabled', label: 'Off' } as ProviderInput, FIXTURE]) {
+    assert.equal(buildPayments({ ...base, accountId: `${SAMPLE_SELLER_PREFIX}biz-ready`, provider }).sampleNote, SAMPLE_NOTE, provider.status);
+  }
+  // Through the real store: register a sample account and read it back with a live provider.
+  const id = `${SAMPLE_SELLER_PREFIX}biz-sample`;
+  const snap = { ...FIXTURE_SELLERS.find((f) => f.key === 'ready')!.snapshot!, id };
+  accounts.register({ workspaceId: WS, businessId: 'biz-sample', stripeAccountId: id, snapshot: snap, lastEventCreated: 0 });
+  const r = loadPayments(rtOf('biz-sample'), source, LIVE, 'biz-sample');
+  assert.ok(r.found && r.available);
+  assert.equal(r.input.accountId, `${SAMPLE_SELLER_PREFIX}biz-sample`);
+  assert.equal(buildPayments(r.input).sampleNote, SAMPLE_NOTE);
+  assert.equal(isSampleAccount(null), false);
+});
+
+test('the page and view model no longer claim the /start runtime has no seller store', () => {
+  for (const f of ['page.tsx', 'view-model.ts', 'payments-view.tsx', '_server/payments.ts']) {
+    const src = readFileSync(new URL(`../app/app/[business]/payments/${f}`, import.meta.url), 'utf8');
+    assert.doesNotMatch(src, /runtime has no seller|No seller account store in this runtime|has no seller account store yet/, f);
+  }
+  assert.doesNotMatch(NOT_AVAILABLE_TEXT, /—|–/);
+});
 
 // ---- the honest state of the /start demo ----
 test('a runtime without a seller store has no source, so the page says payments are not available in the demo yet', () => {

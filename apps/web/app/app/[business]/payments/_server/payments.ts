@@ -31,7 +31,7 @@ export const MISSING_WIRING = [
   'payout amounts and dates: the seller account model only knows whether payouts are switched on (payouts_enabled), so there is no balance or payout list to show',
 ] as const;
 
-/** The seller source for this runtime. The /start runtime has none yet, so this is always null (see the file header). */
+/** The seller source for this runtime: its one store plus its order workspace, or null for a runtime that has no store. */
 export function paymentsSource(rt: PaymentsRuntime): PaymentsSource | null {
   // The runtime's ONE seller store and the workspace its orders run in (never from the request). A runtime without a store: null.
   if (!rt.sellers || !rt.orderDemo) return null;
@@ -53,5 +53,5 @@ export function loadPayments(rt: PaymentsRuntime, source: PaymentsSource | null,
   const account = source.accounts.get(source.workspaceId, businessId);
   const readiness = deriveReadiness(account?.snapshot ?? null);
   const gate = checkoutGate({ workspaceId: source.workspaceId, businessId, accounts: source.accounts, payments: provider });
-  return { found: true, available: true, input: { readiness, gate, payoutsEnabled: account ? account.snapshot.payouts_enabled : null, provider } };
+  return { found: true, available: true, input: { readiness, gate, payoutsEnabled: account ? account.snapshot.payouts_enabled : null, accountId: account ? account.stripeAccountId : null, provider } };
 }

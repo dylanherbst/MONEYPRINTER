@@ -2,10 +2,15 @@
 // grant service and nothing about where the file is stored. No markup, no line breaks from stored text in the subject.
 import type { Grant } from '../files/types.ts';
 import type { Order } from '../orders/types.ts';
+import { currencyDigits } from '../overview/format.ts';
 
 /** Control characters (line breaks included) become spaces, so stored text can never add a header or a fake line. */
 export const oneLine = (s: string, max: number): string => s.replace(/\p{Cc}+/gu, ' ').trim().slice(0, max);
-export const formatMoney = (amountMinor: number, currency: string): string => `${currency === 'AUD' ? 'A$' : ''}${(amountMinor / 100).toFixed(2)} ${currency}`;
+// Decimals follow the currency (AMP-099) via the shared currencyDigits (overview/format.ts): JPY 0, USD 2, KWD 3. AUD/USD text is unchanged.
+export const formatMoney = (amountMinor: number, currency: string): string => {
+  const d = currencyDigits(currency);
+  return `${currency === 'AUD' ? 'A$' : ''}${(amountMinor / 10 ** d).toFixed(d)} ${currency}`;
+};
 
 export interface DeliveryEmailInput {
   order: Pick<Order, 'id' | 'title' | 'amountMinor' | 'currency' | 'buyerEmail' | 'productVersion'>;

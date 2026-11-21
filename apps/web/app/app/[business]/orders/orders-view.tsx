@@ -1,7 +1,7 @@
 // Orders queue (screen 19) on the Peach & Lavender glass library. A server component: it only draws what the view model says.
 import Link from 'next/link';
 import { AppIntro, AppLayout, GlassBadge, GlassCard, GlassNotice, GlassState } from '../../../design-system/aimp-glass';
-import { DEMO_NOTE, NO_STORE_TEXT, NO_STORE_TITLE } from './view-model';
+import { DEMO_NOTE, NO_STORE_TEXT, NO_STORE_TITLE, TEST_ORDER_LABEL } from './view-model';
 import type { ListVM } from './view-model';
 
 function Intro({ businessId }: { businessId: string }) {
@@ -14,7 +14,7 @@ function Intro({ businessId }: { businessId: string }) {
   );
 }
 
-/** No orders source in this runtime: say exactly that, and do not show a zero. */
+/** No order store connected to this server session: say exactly that, and do not show a zero. */
 export function OrdersUnavailable({ businessId }: { businessId: string }) {
   return (
     <AppLayout width="wide">
@@ -41,6 +41,7 @@ export function OrdersView({ businessId, vm }: { businessId: string; vm: ListVM 
           </ul>
         </nav>
         <p className="plg-note" role="status" data-testid="list-summary">{vm.summary}</p>
+        {vm.testNote ? <p className="plg-note" data-testid="test-count-note">{vm.testNote}</p> : null}
 
         {vm.empty ? (
           <GlassState kind="empty" title={vm.empty.title} data-testid="empty-state"><p>{vm.empty.text}</p></GlassState>
@@ -49,6 +50,7 @@ export function OrdersView({ businessId, vm }: { businessId: string; vm: ListVM 
             {vm.rows.map((r) => (
               <li key={r.id} className="apo-item" data-testid="order-row" data-payment={r.payment.label} data-delivery={r.delivery.label}>
                 <h3>{r.title}</h3>
+                {r.test ? <p><GlassBadge tone="demo" data-testid="test-order-label">{TEST_ORDER_LABEL}</GlassBadge></p> : null}
                 <div className="apo-meta">
                   <span>Amount: <strong>{r.amount}</strong></span>
                   <span>Buyer: {r.buyer}</span>

@@ -1,4 +1,5 @@
 // Turns the storefront validator's terse "path: rule" strings into plain English a seller can act on.
+import { currencyDigits } from '../overview/format.ts';
 
 const SINGULAR: Record<string, string> = {
   products: 'Product', bundles: 'Bundle', sections: 'Section', faq: 'FAQ item', trust: 'Trust point',
@@ -22,9 +23,17 @@ export function humanPath(path: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-const dollars = (minor: number) => `$${(minor / 100).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+/**
+ * Price text. The validator's rule string carries no currency, so callers may pass one (AMP-099). Without it, or for AUD, the text is
+ * the old `$12.50`. Any other currency shows its own decimals and code, for example `500 JPY` or `1.500 KWD`.
+ */
+const money = (minor: number, currency?: string) => {
+  const d = currencyDigits(currency ?? 'AUD');
+  const num = (minor / 10 ** d).toLocaleString('en-AU', { minimumFractionDigits: d, maximumFractionDigits: d });
+  return !currency || currency === 'AUD' ? `$${num}` : `${num} ${currency}`;
+};
 
-export function plainError(raw: string): string {
+export function plainError(raw: string, currency?: string): string {
   const i = raw.indexOf(': ');
   if (i < 0) return raw;
   const label = humanPath(raw.slice(0, i));
@@ -35,7 +44,7 @@ export function plainError(raw: string): string {
   }
   if (rule === 'angle brackets are not allowed') return `${label} cannot contain the < or > characters.`;
   if ((m = /^one of (.+)$/.exec(rule))) return `${label} must be one of: ${m[1]}.`;
-  if ((m = /^whole cents between (\d+) and (\d+)$/.exec(rule))) return `${label} must be a price between ${dollars(Number(m[1]))} and ${dollars(Number(m[2]))}.`;
+  if ((m = /^whole cents between (\d+) and (\d+)$/.exec(rule))) return `${label} must be a price between ${money(Number(m[1]), currency)} and ${money(Number(m[2]), currency)}.`;
   if ((m = /^list of (\d+)-(\d+)$/.exec(rule))) return `${label} needs ${m[1]} to ${m[2]} items.`;
   if ((m = /^(\d+)-(\d+) items$/.exec(rule))) return `${label} needs ${m[1]} to ${m[2]} items.`;
   if (rule === 'must exceed price') return `${label} must be higher than the normal price.`;
@@ -46,4 +55,4 @@ export function plainError(raw: string): string {
   return `${label}: ${rule}.`;
 }
 
-export const plainErrors = (raw: string[]): string[] => raw.map(plainError);
+export const plainErrors = (raw: string[], currency?: string): string[] => raw.map((r) => plainError(r, currency));

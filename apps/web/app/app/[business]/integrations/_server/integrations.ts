@@ -10,6 +10,7 @@
 import { PROVIDER_IDS } from '../../../../../lib/aimp/flags.ts';
 import type { ProviderId } from '../../../../../lib/aimp/flags.ts';
 import type { ProviderStatus } from '../../../../../lib/aimp/providers/types.ts';
+import { isSampleSellerAccountId } from '../../../../../lib/aimp/sellers/sample.ts';
 import { loadPayments } from '../../payments/_server/payments.ts';
 import type { PaymentsRuntime, PaymentsSource } from '../../payments/_server/payments.ts';
 import type { IntegrationsInput, SiteStatusInput, StripeInput } from '../view-model.ts';
@@ -19,9 +20,6 @@ export type IntegrationsSource = PaymentsSource;
 export type ProviderStatuses = Readonly<Record<ProviderId, Pick<ProviderStatus, 'status' | 'label'>>>;
 
 export type IntegrationsLookup = { found: false } | { found: true; input: IntegrationsInput };
-
-/** Ids the fixtures and the labelled sample orders use (`acct_sample_demo_<business>`, `acct_demo_<state>`). Checked here, never shown. */
-const SAMPLE_ACCOUNT = /^acct_(sample|demo)_/;
 
 /** Only the status kind of each provider, in the order the lib lists them. Labels, reasons and credential flags stay on the server. */
 export function siteStatuses(statuses: ProviderStatuses): SiteStatusInput[] {
@@ -40,7 +38,7 @@ export function loadIntegrations(rt: IntegrationsRuntime, source: IntegrationsSo
   const site = siteStatuses(statuses);
   if (!pay.available || !source) return { found: true, input: { stripe: { available: false, site: provider.status }, site } };
   const account = source.accounts.get(source.workspaceId, businessId);
-  const sample = account ? provider.status !== 'live' || SAMPLE_ACCOUNT.test(account.stripeAccountId) : false;
+  const sample = account ? provider.status !== 'live' || isSampleSellerAccountId(account.stripeAccountId) : false;
   const stripe: StripeInput = {
     available: true,
     site: provider.status,

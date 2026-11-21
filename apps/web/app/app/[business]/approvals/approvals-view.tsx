@@ -36,12 +36,19 @@ export function ApprovalsView({ vm }: { vm: ApprovalsVM }) {
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [cap, setCap] = useState(String(vm.usage.limit));
   const busyRef = useRef(false);
+  const statusRef = useRef<HTMLDivElement>(null);
+
+  // The saved allowance is the truth: when the page is re-read (or a save was refused) the box shows it again.
+  useEffect(() => { setCap(String(vm.usage.limit)); }, [vm.usage.limit]);
+  // After a decision the confirm box is gone, so focus would be lost. Move it to the result message, which is a polite live region.
+  useEffect(() => { if (notice) statusRef.current?.focus({ preventScroll: true }); }, [notice]);
 
   async function run(op: Record<string, unknown>) {
     if (busyRef.current) return; // a second click while the first is on its way does nothing
     busyRef.current = true; setBusy(true); setNotice(null);
     try {
       const r = await approvalsAction(vm.businessId, op);
+      if (op.kind === 'cap' && !r.ok) setCap(String(vm.usage.limit)); // a refused save: the box goes back to the saved value
       setNotice({ ok: r.ok, text: r.message || (r.ok ? 'Done.' : 'That did not go through, so nothing changed.') });
       router.refresh(); // re-read after a refusal too: the list may have changed elsewhere
     } catch { setNotice({ ok: false, text: UNREACHABLE }); }
@@ -56,7 +63,9 @@ export function ApprovalsView({ vm }: { vm: ApprovalsVM }) {
         <Link href={vm.overviewHref} className="plg-link aap-link" data-target="large" data-testid="back-to-overview">Back to your overview</Link>
       </AppIntro>
 
-      {notice ? <GlassNotice tone={notice.ok ? 'success' : 'error'} title={notice.text} data-testid={notice.ok ? 'action-done' : 'action-refused'} /> : null}
+      <div ref={statusRef} tabIndex={-1} role="status" aria-live="polite" className="aap-status" data-testid="action-status">
+        {notice ? <GlassNotice tone={notice.ok ? 'success' : 'error'} live="none" title={notice.text} data-testid={notice.ok ? 'action-done' : 'action-refused'} /> : null}
+      </div>
 
       <GlassCard heading="h2" highlighted eyebrow="Approval inbox" title={vm.pendingTitle} data-testid="pending">
         {vm.pending.length === 0 ? (

@@ -14,7 +14,8 @@ export NEXT_DIST_DIR=.next-prod
 export AIMP_TOOLS_ENABLED=1
 
 echo "Building the production version (takes a minute or two)..."
-if ! npx next build; then
+# CI=1 stops Next.js asking interactive questions (upgrade / coding-agent prompts) that would block the build.
+if ! CI=1 NEXT_TELEMETRY_DISABLED=1 npx next build; then
   echo; echo "BUILD FAILED - copy the error above and send it to Claude."
   read -r -p "Press Return to close."; exit 1
 fi

@@ -13,8 +13,9 @@ export const dynamic = 'force-dynamic';
 
 // Screen 18: whether an existing business can take payments and receive payouts. Same in-memory DEMO runtime as /start and the other
 // /app pages (lost on restart), and off in production unless the demo tools are enabled. Read-only: no call to Stripe is made and there
-// is no connect button. The /start runtime has no seller account store yet, so today this page shows an honest "not available in the
-// demo yet" state beside the site's real payment provider status (the same `resolveStatus('payments', ...)` /start uses).
+// is no connect button. The /start runtime carries one seller account store (AMP-107), so this page reads the business's account from it;
+// only a runtime without that store shows the "not available" state. The site's real payment provider status (the same
+// `resolveStatus('payments', ...)` /start uses) is shown beside it, and a sample account is always labelled as sample.
 export default async function PaymentsPage({ params }: { params: Promise<{ business: string }> }) {
   const { business } = await params;
   const a = availability();

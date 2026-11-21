@@ -82,6 +82,11 @@ export interface HandlerDeps {
   faults?: FaultPlan;
   /** When set, `publish-site` really publishes, smoke-tests and rolls back (AMP-035). Unset: demo stubs. */
   publishSite?: PublishWithCheckDeps;
+  /**
+   * Per-business version of `publishSite` (AMP-146). Answers the real deps for a business that has a store, or null when it has none:
+   * then that job runs the labelled demo stub. Takes precedence over `publishSite`. A throw is NOT "no store": it is a temporary job error.
+   */
+  publishSiteFor?: (scope: { workspaceId: string; businessId: string | null }) => Promise<PublishWithCheckDeps | null> | PublishWithCheckDeps | null;
 }
 
 const str = (v: JsonValue, k: string, fallback: string): string => {
@@ -106,6 +111,21 @@ export function createDemoJobDefinitions(deps: HandlerDeps): JobKindDefinition[]
     },
   });
   const once = (a: StepArgs, label: string, run: () => Promise<JsonValue>) => effects.once(a.idempotencyKey, label, run);
+  // The real publish deps for this job's business, or undefined (demo stub). Per-business resolver first, then the fixed deps.
+  // check-version recorded `real: true`: this job's decision is "real store", and later steps may not flip it to the stub.
+  const sawRealStore = (a: StepArgs): boolean => {
+    const c = a.outputs['check-version'];
+    return c !== null && typeof c === 'object' && !Array.isArray(c) && c.real === true;
+  };
+  const publishDepsFor = async (a: StepArgs): Promise<PublishWithCheckDeps | undefined> => {
+    if (deps.publishSiteFor) {
+      // A throw is NOT "no store": the store may exist but cannot be read right now, so the job retries instead of faking a pass.
+      try { return (await deps.publishSiteFor({ workspaceId: a.job.workspaceId, businessId: a.job.businessId ?? null })) ?? undefined; } catch {
+        throw new JobError('temporary', 'The store could not be read just now, so nothing was published or checked. It will try again.');
+      }
+    }
+    return deps.publishSite;
+  };
 
   return [
     {
@@ -135,13 +155,16 @@ export function createDemoJobDefinitions(deps: HandlerDeps): JobKindDefinition[]
         // With `deps.publishSite` wired these are REAL (AMP-035): publish the version, smoke-test it, undo it on failure.
         // Without it they stay DEMO stubs so the demo runner and its tests keep working.
         step('publish-site', 'check-version', async (a): Promise<JsonValue> => {
-          if (!deps.publishSite) return { ok: true, demo: true };
+          if (!(await publishDepsFor(a))) return { ok: true, demo: true };
           if (!str(a.input, 'storeSlug', '') || !a.job.businessId) throw new JobError('permanent', 'Say which store to publish. Nothing was published.');
-          return { ok: true };
+          return { ok: true, real: true };
         }),
         step('publish-site', 'publish', (a) => once(a, 'site.publish', async (): Promise<JsonValue> => {
-          if (!deps.publishSite) return { liveUrl: `https://demo.invalid/${a.job.id}`, demo: true };
-          const r = await publishWithCheck(deps.publishSite, { actor: { workspaceId: a.job.workspaceId, userId: 'publish-job' }, businessId: a.job.businessId ?? '', storeSlug: str(a.input, 'storeSlug', '') });
+          const real = await publishDepsFor(a);
+          // check-version saw a real store: never fall back to the stub for this job.
+          if (!real && sawRealStore(a)) throw new JobError('temporary', 'The store could not be found just now, so nothing was published. It will try again.');
+          if (!real) return { liveUrl: `https://demo.invalid/${a.job.id}`, demo: true };
+          const r = await publishWithCheck(real, { actor: { workspaceId: a.job.workspaceId, userId: 'publish-job' }, businessId: a.job.businessId ?? '', storeSlug: str(a.input, 'storeSlug', '') });
           // A conflict or "please try again" is temporary: the job retries with backoff instead of failing for good.
           if (!r.ok && r.retryable) throw new JobError('temporary', r.message);
           // Everything else is recorded as this step's result (also a failed check, with its structured lists) and judged by the next step.
@@ -158,9 +181,12 @@ export function createDemoJobDefinitions(deps: HandlerDeps): JobKindDefinition[]
         })),
         // The real result of the check: it fails the job when the publish did not pass, and says honestly when checkout was not tested.
         step('publish-site', 'smoke-test', async (a): Promise<JsonValue> => {
-          if (!deps.publishSite) return { smokeTest: 'pass', demo: true };
           const p = a.outputs.publish;
           const rec = p !== null && typeof p === 'object' && !Array.isArray(p) ? p : undefined;
+          // The publish step said it was a demo stub (nothing real was published): so is this result. Decided from the recorded output, not re-resolved.
+          if (!deps.publishSite && !deps.publishSiteFor) return { smokeTest: 'pass', demo: true };
+          if (rec?.demo === true && sawRealStore(a)) throw new JobError('temporary', 'The store could not be found just now, so nothing was published or checked. It will try again.');
+          if (rec?.demo === true) return { smokeTest: 'pass', demo: true };
           if (!rec || rec.published !== true) {
             throw new JobError('permanent', rec && typeof rec.message === 'string' && rec.message ? rec.message : 'The publish check did not pass, so the store was not confirmed live.');
           }

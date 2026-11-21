@@ -3,3 +3,7 @@ export * from './zip.ts';
 export * from './spec.ts';
 export * from './generate.ts';
 export * from './render.ts';
+export * from './licence.ts';
+export * from './xlsx.ts';
+export * from './image.ts';
+export * from './export.ts';

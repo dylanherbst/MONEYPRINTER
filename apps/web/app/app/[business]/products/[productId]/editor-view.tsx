@@ -8,7 +8,7 @@ import { useRef, useState } from 'react';
 import { AppIntro, AppLayout, GlassBadge, GlassButton, GlassCard, GlassField, GlassGrid, GlassIcon, GlassKeyValue, GlassNotice, GlassTextArea } from '../../../../design-system/aimp-glass';
 import { editProductAction } from './actions';
 import type { EditorOp } from './_server/editor-guard';
-import { COMING_SOON_ITEMS, DEMO_NOTE, formFromListing, isFormDirty, parsePrice, productsHref } from './view-model';
+import { COMING_SOON_ITEMS, DEMO_NOTE, exportHref, formFromListing, isFormDirty, parsePrice, productsHref } from './view-model';
 import type { EditorVM, ListingForm, ListingVM, QaVM } from './view-model';
 import './editor.css';
 
@@ -218,6 +218,21 @@ export function ProductEditorView({ businessId, editor, limits }: { businessId: 
           {' '}{editor.regen.left} {editor.regen.left === 1 ? 'rebuild' : 'rebuilds'} left for this product.
         </p>
       </GlassCard>
+
+      {current ? (
+        <GlassCard heading="h2" title="Download" data-testid="downloads">
+          <p className="plg-text">Save a copy of {current.status === 'approved' ? 'the approved' : 'the newest'} version, version {current.version}, to your computer.</p>
+          <ul className="ape-rows ape-downloads">
+            {editor.canExportXlsx ? (
+              <li><a className="plg-link" data-target="large" download href={exportHref(businessId, editor.id, 'xlsx')} data-testid="download-xlsx">Spreadsheet (.xlsx)</a></li>
+            ) : null}
+            <li><a className="plg-link" data-target="large" download href={exportHref(businessId, editor.id, 'png')} data-testid="download-png">Cover image (.png)</a></li>
+            <li><a className="plg-link" data-target="large" download href={exportHref(businessId, editor.id, 'png', 'licence')} data-testid="download-licence">Licence note (text)</a></li>
+            <li><span className="plg-note" data-testid="download-jpg-note">JPG is not available yet.</span></li>
+          </ul>
+          <p className="plg-note">{editor.canExportXlsx ? '' : 'This product has no tracker or checklist pages, so there is no spreadsheet. '}The licence note says how the file may be used. It is also written inside each download.</p>
+        </GlassCard>
+      ) : null}
 
       <GlassCard heading="h2" title="Not available yet" badges={<GlassBadge>Coming soon</GlassBadge>} data-testid="coming-soon">
         <ul className="plg-list">{COMING_SOON_ITEMS.map((i) => <li key={i.title}><strong>{i.title}.</strong> {i.text}</li>)}</ul>

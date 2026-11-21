@@ -8,13 +8,13 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { inflateRawSync } from 'node:zlib';
 import {
-  NEEDS_FIXES, NO_APPROVED_PLAN, NO_BUSINESS, NO_DRAFTS, NO_STORE, NO_WEB_ADDRESS, NOT_DONE, NOTHING_APPROVED, OLD_PLAN, WENT_WRONG, exported, runCalendarExport,
+  MAX_EXPORT_BYTES, MAX_EXPORT_FILES, MAX_EXPORT_ITEMS, NEEDS_FIXES, NO_APPROVED_PLAN, NO_BUSINESS, NO_DRAFTS, NO_STORE, NO_WEB_ADDRESS, NOT_DONE, NOTHING_APPROVED, OLD_PLAN, WENT_WRONG, exported, runCalendarExport, tooLarge,
 } from '../app/app/[business]/marketing/calendar/_server/calendar-guard.ts';
 import type { CalendarExportReply, CalendarGuardInput } from '../app/app/[business]/marketing/calendar/_server/calendar-guard.ts';
 import { loadCalendar } from '../app/app/[business]/marketing/calendar/_server/calendar.ts';
 import type { CalendarRuntime } from '../app/app/[business]/marketing/calendar/_server/calendar.ts';
 import {
-  BY_HAND, ENTRY_STATE_LABELS, NOTHING_POSTED, NOT_IN_DEMO, PUBLISHING_LABEL, PUBLISHING_TEXT, buildCalendarModel, countsLine, entriesLabel, exportHint, piecesLabel, weekdayLabel,
+  BY_HAND, ENTRY_STATE_LABELS, NOTHING_POSTED, NOT_IN_DEMO, PUBLISHING_LABEL, PUBLISHING_NOTE, PUBLISHING_TEXT, buildCalendarModel, countsLine, entriesLabel, exportHint, piecesLabel, weekdayLabel,
 } from '../app/app/[business]/marketing/calendar/view-model.ts';
 import type { CalendarModel } from '../app/app/[business]/marketing/calendar/view-model.ts';
 import { runCreativeOp } from '../app/app/[business]/marketing/creative/_server/creative-guard.ts';
@@ -313,6 +313,84 @@ test('AMP-131 a throwing store: the export answers in plain words and logs only 
   assert.deepEqual(await runCalendarExport({ availability: ON, rt: boom, ctx, now }, A, () => {}), no(WENT_WRONG));
 });
 
+test('AMP-139 size cap: an export above the item, file or byte cap is refused in one sentence on the server, with no file', async () => {
+  assert.deepEqual([MAX_EXPORT_ITEMS, MAX_EXPORT_FILES, MAX_EXPORT_BYTES], [200, 20, 5 * 1024 * 1024]);
+  const { rt, campaignId } = await makeRt();
+  await write(rt, campaignId);
+  const pin = entries(await calendar(rt)).find((e) => e.what === 'Pinterest Pin')!;
+  await review(rt, campaignId, `${pin.id}:pin`, 'approve');
+
+  // Under the default caps the same export goes through.
+  const ok = await runCalendarExport(input(rt), A);
+  assert.ok(ok.ok && ok.file);
+  const size = Buffer.from(ok.file.base64, 'base64').byteLength;
+  assert.ok(size < MAX_EXPORT_BYTES);
+
+  const cases: [Partial<{ items: number; files: number; bytes: number }>, string][] = [
+    [{ items: 0 }, tooLarge('0 approved pieces of text')],
+    [{ files: 1 }, tooLarge('1 files')],
+    [{ bytes: size - 1 }, tooLarge(`${size - 1} bytes`)],
+  ];
+  for (const [limits, message] of cases) {
+    const r = await runCalendarExport({ ...input(rt), limits }, A);
+    assert.deepEqual(r, no(message));
+    assert.equal(r.file, null);
+    assert.match(r.message, /^This export is too large to download in one go \(more than .+\), so nothing was saved\.$/);
+    assert.equal(r.message.split(/(?<=\.)\s/).length, 1, 'one plain sentence');
+  }
+  // A cap equal to the size is not over it.
+  assert.equal((await runCalendarExport({ ...input(rt), limits: { bytes: size } }, A)).ok, true);
+});
+
+test('AMP-139 publishing card: says only what the code does today, with no coming-later promise; the result is announced once and focus is moved', () => {
+  assert.doesNotMatch(PUBLISHING_TEXT, /\bcoming\b|\bsoon\b|\blater\b|will be able|\bwill\b/i);
+  assert.doesNotMatch(PUBLISHING_NOTE, /\bcoming\b|\bsoon\b|\blater\b|will be able|\bwill\b/i);
+  assert.match(PUBLISHING_TEXT, /nothing is posted for you/);
+  const dir = join(import.meta.dirname, '..', 'app', 'app', '[business]', 'marketing', 'calendar');
+  const view = readFileSync(join(dir, 'calendar-view.tsx'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
+  assert.doesNotMatch(view, /\bcoming\b|\bsoon\b|will be able/i);
+  // One polite status region that always stays on the page; the visible notice is not live, so the result is read once.
+  assert.equal(view.match(/role="status"/g)?.length, 1);
+  assert.match(view, /aria-live="polite"/);
+  assert.match(view, /<GlassNotice [^>]*live="none"/);
+  // Focus goes to the export area after the file is made (the button is disabled while it is made).
+  assert.match(view, /focusRef\.current\?\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(view, /ref=\{focusRef\} tabIndex=\{-1\}/);
+});
+
+test('AMP-161 calendar: counts are checked before the ZIP is built; a save failure on the device has its own message; focus is not stolen', async () => {
+  const dir = join(import.meta.dirname, '..', 'app', 'app', '[business]', 'marketing', 'calendar');
+  const guard = readFileSync(join(dir, '_server', 'calendar-guard.ts'), 'utf8');
+  // The stored approved assets are counted first; the ZIP service is only called after that check.
+  const at = (s: string) => guard.indexOf(s);
+  assert.ok(at('deps.assets.get(') > 0 && at('deps.assets.get(') < at('await exportCampaign('));
+  assert.ok(at('approved.length > cap.items') < at('await exportCampaign('));
+  assert.ok(at('fileCount > cap.files') < at('await exportCampaign('));
+
+  // Behaviour: with two approved pieces and a cap of one, the reply is the too-large sentence with no file; at the cap it goes through.
+  const { rt, campaignId } = await makeRt();
+  await write(rt, campaignId);
+  const pin = entries(await calendar(rt)).find((e) => e.what === 'Pinterest Pin')!;
+  await review(rt, campaignId, `${pin.id}:pin`, 'approve');
+  // One approved piece: a cap of one is not over it; a cap of none is refused with no file.
+  assert.equal((await runCalendarExport({ ...input(rt), limits: { items: 1 } }, A)).ok, true);
+  assert.deepEqual(await runCalendarExport({ ...input(rt), limits: { items: 0 } }, A), no(tooLarge('0 approved pieces of text')));
+  // A pin makes 2 files plus the README: a cap of 3 passes, a cap of 2 is refused.
+  assert.equal((await runCalendarExport({ ...input(rt), limits: { files: 3 } }, A)).ok, true);
+  assert.deepEqual(await runCalendarExport({ ...input(rt), limits: { files: 2 } }, A), no(tooLarge('2 files')));
+
+  const view = readFileSync(join(dir, 'calendar-view.tsx'), 'utf8');
+  const unreachable = /const UNREACHABLE = '([^']+)'/.exec(view)![1];
+  const saveFailed = /const SAVE_FAILED = '([^']+)'/.exec(view)![1];
+  assert.notEqual(unreachable, saveFailed);
+  assert.match(saveFailed, /could not save it to this device/);
+  assert.match(view, /try \{ saveFile\(r\.file\); \} catch \{ saved = false; \}/);
+  assert.match(view, /if \(!saved\) setNotice\(\{ ok: false, text: SAVE_FAILED/);
+  // Focus moves only when it is still lost (on the page, or on the export area), never when the owner has gone elsewhere.
+  assert.match(view, /document\.activeElement/);
+  assert.match(view, /if \(lost\) focusRef\.current\?\.focus\(\{ preventScroll: true \}\)/);
+});
+
 test('AMP-131 wording: publishing shows "Not connected" and nothing claims a post went out or has a time it goes out', async () => {
   const { rt, campaignId } = await makeRt();
   await write(rt, campaignId);
@@ -329,7 +407,7 @@ test('AMP-131 wording: publishing shows "Not connected" and nothing claims a pos
   const promises = /\b(will|going to) (be )?(post|publish|send|sent|go out)|\bscheduled (for|to|at)\b|\b(goes|went|going) out\b|\bis (now )?live\b|\bqueued\b/i;
   const variants: Ready[] = [m, { ...m, drafts: 'plan_draft' }, { ...m, drafts: 'none' }, { ...m, drafts: 'old' }, { ...m, exportable: 0 }, { ...m, exportable: 4 }];
   const copy = [
-    NOTHING_POSTED, NOT_IN_DEMO, PUBLISHING_LABEL, PUBLISHING_TEXT, BY_HAND, NO_BUSINESS, NO_STORE, NO_APPROVED_PLAN, NO_DRAFTS, OLD_PLAN, NOTHING_APPROVED, NEEDS_FIXES,
+    NOTHING_POSTED, NOT_IN_DEMO, PUBLISHING_LABEL, PUBLISHING_NOTE, PUBLISHING_TEXT, BY_HAND, tooLarge('3 files'), NO_BUSINESS, NO_STORE, NO_APPROVED_PLAN, NO_DRAFTS, OLD_PLAN, NOTHING_APPROVED, NEEDS_FIXES,
     NO_WEB_ADDRESS, NOT_DONE, WENT_WRONG, exported(1), exported(5), countsLine(m.counts), entriesLabel(3), ...Object.values(ENTRY_STATE_LABELS), ...variants.map(exportHint),
     ...m.days.flatMap((d) => [d.dateLabel, ...d.entries.flatMap((e) => [e.what, e.channelLabel, e.stateLabel])]),
   ];

@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { loadBrandKit, previewBrandChange, PREVIEW_ACTOR } from '../app/app/[business]/brand/_server/brand.ts';
 import type { BrandRuntime } from '../app/app/[business]/brand/_server/brand.ts';
+import { NO_BUSINESS, runBrandPreview } from '../app/app/[business]/brand/_server/brand-guard.ts';
 import { describeBrandKit, editsFromForm, impactRows, isDirty, paletteFromForm, toForm } from '../app/app/[business]/brand/view-model.ts';
 import { CLASH_NOTICE } from '../lib/aimp/branding/name-clash.ts';
 import { approveBrand, createBrandDraft, editBrand, getApprovedBrandOutputs, listBrandVersions } from '../lib/aimp/branding/service.ts';
@@ -224,7 +225,64 @@ test('the page keeps the production gate and reuses brandAction rather than its 
   const view = read('brand-view.tsx');
   assert.match(view, /import \{ brandAction \} from '..\/..\/..\/start\/actions'/);
   assert.match(view, /tone="demo"/);
-  const action = read('actions.ts');
-  assert.match(action, /if \(!a\.available\) return/);
-  assert.doesNotMatch(action + read('_server/brand.ts'), /rt\.brands\.mutate|runtime\(\)\.brands\.mutate/);
+  assert.doesNotMatch(read('actions.ts') + read('_server/brand-guard.ts') + read('_server/brand.ts'), /rt\.brands\.mutate|runtime\(\)\.brands\.mutate/);
+});
+
+const ON = { available: true, reason: '' };
+const OFF = { available: false, reason: 'Demo storage is switched off.' };
+const guard = (rt: BrandRuntime, availability = ON) => ({ availability, rt: () => rt, ctx });
+
+test('the preview action refuses when the demo switch is off, before it reads the runtime', async () => {
+  const rt = makeRuntime();
+  await approvedBusiness(rt, 'biz-a');
+  let read = false;
+  const r = await runBrandPreview({ availability: OFF, rt: () => { read = true; return rt; }, ctx }, 'biz-a', { palette: { primary: '#123456' } });
+  assert.deepEqual(r, { ok: false, errors: [{ field: 'brand', message: OFF.reason }] });
+  assert.equal(read, false);
+});
+
+test('the preview action refuses a malformed business id and an unknown business, and writes nothing', async () => {
+  const rt = makeRuntime();
+  await approvedBusiness(rt, 'biz-a');
+  const before = await snapshot(rt, 'biz-a');
+  const refused = { ok: false, errors: [{ field: 'businessId', message: NO_BUSINESS }] };
+  for (const bad of ['has space!', '', '__proto__', 'constructor', 42, null, undefined, {}, 'x'.repeat(500)]) {
+    assert.deepEqual(await runBrandPreview(guard(rt), bad, {}), refused, `malformed: ${String(bad).slice(0, 20)}`);
+  }
+  assert.deepEqual(await runBrandPreview(guard(rt), 'biz-nope', { palette: { primary: '#123456' } }), refused);
+  assert.equal(await snapshot(rt, 'biz-a'), before);
+  assert.equal(await snapshot(rt, 'biz-nope'), '[]');
+});
+
+test('the preview action allows a known business, ignores non-object edits, and returns only what the view uses', async () => {
+  const rt = makeRuntime();
+  const brand = await approvedBusiness(rt, 'biz-a');
+  const before = await snapshot(rt, 'biz-a');
+  const r = await runBrandPreview(guard(rt), 'biz-a', { palette: { primary: '#123456' } });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  if (!r.ok) return;
+  assert.deepEqual(Object.keys(r).sort(), ['changed', 'clash', 'ok', 'name', 'palette', 'rows', 'slugTaken', 'tagline'].sort());
+  assert.deepEqual(Object.keys(r.clash).sort(), ['level', 'message', 'notice']);
+  assert.equal(r.palette.primary, '#123456');
+  assert.equal(r.name, brand.name);
+  assert.equal(r.changed, true);
+  const text = JSON.stringify(r);
+  for (const leaked of ['approvedBy', 'brandId', 'matches', 'seo', 'hero', 'live', 'checks', 'brand']) assert.ok(!text.includes(`"${leaked}":`), `leaked ${leaked}`);
+  assert.ok(!text.includes(PREVIEW_ACTOR));
+  // A known business with no saved brand is let through the guard and refused by the service; a non-object edit is treated as no edit.
+  const same = await runBrandPreview(guard(rt), 'biz-a', 'nonsense');
+  assert.equal(same.ok && same.changed, false);
+  const fresh = makeRuntime(['biz-new']);
+  const none = await runBrandPreview(guard(fresh), 'biz-new', {});
+  assert.equal(none.ok, false);
+  assert.equal(none.ok === false && none.errors[0]!.field, 'brand');
+  assert.equal(await snapshot(rt, 'biz-a'), before);
+});
+
+test('a failed preview returns only the service errors', async () => {
+  const rt = makeRuntime();
+  await approvedBusiness(rt, 'biz-a');
+  const r = await runBrandPreview(guard(rt), 'biz-a', { palette: { primary: 'not-a-colour' } });
+  assert.equal(r.ok, false);
+  assert.deepEqual(Object.keys(r).sort(), ['errors', 'ok']);
 });

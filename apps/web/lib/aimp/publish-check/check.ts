@@ -43,6 +43,11 @@ export interface PublishCheckDeps {
   checkout: CheckoutProbe;
   /** Whether the checkout route exists. Defaults to the storefront flag (`checkoutBuilt`). */
   checkoutAvailable?: boolean;
+  /**
+   * What a passing page check says it proved, after the page label (default "loads"). An in-process loader that only resolves
+   * the published snapshot and its content, without a request to the public URL, sets an honest phrase here (AMP-146).
+   */
+  pageProof?: string;
 }
 
 export interface PublishCheckInput { workspaceId: string; businessId: string; storeSlug: string; versionId: number }
@@ -87,7 +92,7 @@ export async function runPublishCheck(deps: PublishCheckDeps, input: PublishChec
   for (const r of refs) {
     let res: PageLoadResult;
     try { res = await deps.loadPage(storeSlug, r.ref); } catch { res = { ok: false, reason: 'it could not be loaded' }; }
-    if (res.ok) pass(r.id, `${r.label} loads.`);
+    if (res.ok) pass(r.id, `${r.label} ${deps.pageProof ?? 'loads'}.`);
     else fail(r.id, `${capital(r.label)} did not load: ${res.reason}`);
   }
 

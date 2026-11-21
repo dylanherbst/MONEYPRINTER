@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { AppIntro, AppLayout, GlassBadge, GlassButton, GlassCard, GlassKeyValue, GlassNotice } from '../../../../design-system/aimp-glass';
 import { orderAction } from '../actions';
-import { DEMO_NOTE, newRequestKey } from '../view-model';
+import { DEMO_NOTE, TEST_ORDER_LABEL, newRequestKey } from '../view-model';
 import type { ActionVM, DetailVM } from '../view-model';
 
 const UNREACHABLE = 'We could not reach the server, so nothing was sent. Try again.';
@@ -38,6 +38,7 @@ export function OrderDetailView({ businessId, orderId, vm }: { businessId: strin
         <Link href={vm.backHref} className="plg-link apo-link" data-target="large" data-testid="back-to-orders">Back to your orders</Link>
       </AppIntro>
 
+      {vm.test ? <GlassNotice tone="warn" title={TEST_ORDER_LABEL} live="none" data-testid="test-order-label"><p>This order was made with the sample seller account. It is not a real sale and no real money moved.</p></GlassNotice> : null}
       {notice ? <GlassNotice tone={notice.ok ? 'success' : 'error'} title={notice.text} data-testid={notice.ok ? 'done' : 'failed'} /> : null}
       {vm.attention ? <GlassNotice tone="warn" title="This order needs your attention" data-testid="attention"><p>{vm.attention}</p></GlassNotice> : null}
 

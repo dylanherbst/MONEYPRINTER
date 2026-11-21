@@ -47,6 +47,7 @@ import type { FinderResult, OpportunityIdea } from '../opportunities/types.ts';
 import { createMemoryOrderStore, createOrderBook } from '../orders/index.ts';
 import type { OrderStore } from '../orders/index.ts';
 import { createProductService } from '../products/service.ts';
+import { createSitePublishedStoreProbe, createTenantStoreSlugFor } from '../products/published-store.ts';
 import type { ProductService } from '../products/service.ts';
 import { createMemoryProductStore } from '../products/store.ts';
 import type { ProductStore } from '../products/types.ts';
@@ -154,7 +155,19 @@ export async function createJourneyWorld(opts: { env?: Readonly<Record<string, s
   if (!readySeller) throw new Error('Seller fixtures are missing.');
 
   const products = createMemoryProductStore();
-  const productService = createProductService({ store: products, now, generateSpec: async () => { throw new Error('Regeneration is not part of this journey.'); } });
+  // AMP-104: archiving asks the real published-site data whether a live store still shows the product. The store lookup is
+  // scoped to workspace AND business and confirmed against the real site store; `sites` and `biz` exist by the time it runs.
+  const publishedStores = createSitePublishedStoreProbe({
+    resolvePublished: (slug) => sites.resolvePublished(slug),
+    storeSlugFor: createTenantStoreSlugFor({
+      sites: { listSites: (actor) => sites.listSites(actor) },
+      storeOf: (workspaceId, businessId) => {
+        const b = JOURNEY_KEYS.map((k) => biz[k]).find((x) => x.seed.workspaceId === workspaceId && x.businessId === businessId && x.slug);
+        return b?.slug ? { slug: b.slug, userId: b.seed.ownerId } : null;
+      },
+    }),
+  });
+  const productService = createProductService({ store: products, now, publishedStores, generateSpec: async () => { throw new Error('Regeneration is not part of this journey.'); } });
   const brands = createMemoryBrandStore();
   const assets = createMemoryCoverAssets();
   const catalogue = createCatalogueService({ products: productService, brands, assets, now });
@@ -402,7 +415,7 @@ export function storeConfigFor(brand: BrandProfile, listing: CatalogueListing, p
     brand: { name: brand.name, tagline: brand.tagline, theme: 'pearl', font: brand.font },
     hero: { eyebrow: brand.input.niche.slice(0, 60), heading: brand.name.slice(0, 90), subheading: brand.shortDescription.slice(0, 220), ctaLabel: 'See the download' },
     sections: ['featured', 'catalogue', 'faq'],
-    products: [{ ...p, cover: { style: p.cover.style, label: p.title.slice(0, 28) } }],
+    products: [{ ...p, productId: listing.productId, cover: { style: p.cover.style, label: p.title.slice(0, 28) } }],
     bundles: [],
     faq: [{ question: 'How do I get my file?', answer: 'After payment we email you a private download link.' }],
     trust: [],

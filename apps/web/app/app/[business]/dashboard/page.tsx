@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { AppIntro, AppLayout, GlassButton, GlassNotice, GlassState } from '../../../design-system/aimp-glass';
-import { automationCtx, demoAutomation } from '../../../../lib/aimp/automation/demo';
 import { checkoutRuntime } from '../../../../lib/aimp/checkout/demo';
-import { availability, brandCtx, catalogueCtx, checkBusiness, productCtx, runtime, siteActor, WORKSPACE } from '../../../start/_server/runtime';
+import { availability, brandCtx, catalogueCtx, checkBusiness, OWNER, productCtx, runtime, siteActor, WORKSPACE } from '../../../start/_server/runtime';
+import { automationContext } from '../approvals/_server/approvals';
+import { automationSource } from '../approvals/_server/source';
 import { automationExtras, sharedOverviewCache } from '../_server/overview';
 import type { OverviewContexts, OverviewExtras } from '../_server/overview';
 import { UnknownBusiness } from '../overview-view';
@@ -20,9 +21,10 @@ const contexts: OverviewContexts = { workspaceId: WORKSPACE, productCtx, brandCt
 // demo), each read for this business only. Only used while the demo tools are on.
 function extras(): OverviewExtras {
   const checkout = checkoutRuntime();
+  const automation = automationSource();
   return {
     orders: checkout ? async (workspaceId) => (await checkout).orders.list(workspaceId) : undefined,
-    ...automationExtras(() => demoAutomation().automation, (s) => automationCtx('dashboard', s.businessId)),
+    ...(automation ? automationExtras(automation, (s) => automationContext({ workspaceId: WORKSPACE, actorUserId: OWNER }, s.businessId)) : {}),
   };
 }
 

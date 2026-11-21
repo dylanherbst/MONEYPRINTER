@@ -11,4 +11,5 @@
 .aap-meta > span { min-inline-size: 0; overflow-wrap: anywhere; }
 .aap-cap { display: grid; gap: var(--plg-space-2); min-inline-size: 0; max-inline-size: 28rem; }
 .aap-confirm { display: grid; gap: 10px; min-inline-size: 0; padding: 16px; border-radius: 16px; border: 2px solid var(--plg-plum); background: rgb(255 255 255 / .7); }
+.aap-status:focus-visible { outline: 3px solid var(--plg-plum); outline-offset: 2px; border-radius: 16px; }
 .aap-confirm:focus-visible { outline: 3px solid var(--plg-plum); outline-offset: 2px; }

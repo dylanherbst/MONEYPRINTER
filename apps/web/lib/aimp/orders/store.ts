@@ -4,7 +4,15 @@ import type { NewOrder, Order, OrderStore, PaidOutcome } from './types.ts';
 
 const clone = <T>(v: T): T => structuredClone(v);
 
-export function createMemoryOrderStore(): OrderStore {
+export interface MemoryOrderStoreOptions {
+  /**
+   * Decides the stored TEST flag (AMP-162) for an order being created. Called once, at creation, from server code only; the buyer
+   * never supplies it. The order is a test order when the caller marked it (`test: true`) or this says so. Default: a real order.
+   */
+  testOnCreate?: (n: NewOrder) => boolean;
+}
+
+export function createMemoryOrderStore(opts: MemoryOrderStoreOptions = {}): OrderStore {
   const orders = new Map<string, Order>();
   const byKey = new Map<string, string>();
   const bySession = new Map<string, string>();
@@ -18,7 +26,11 @@ export function createMemoryOrderStore(): OrderStore {
       const existingId = byKey.get(k);
       const existing = existingId ? orders.get(existingId) : undefined;
       if (existing) return { order: clone(existing), created: false };
-      const order: Order = { ...clone(n), status: 'pending', checkoutSessionId: null, checkoutUrl: null, paidEventId: null, failureReason: null, paidAt: null };
+      // The flag is written here, once, and nothing later changes it. Every order this store makes carries an explicit true or false.
+      let test = n.test === true;
+      // A throwing callback propagates: no order is created (never fail open to a real-labelled order).
+      if (!test && opts.testOnCreate) test = opts.testOnCreate(n) === true;
+      const order: Order = { ...clone(n), test, status: 'pending', checkoutSessionId: null, checkoutUrl: null, paidEventId: null, failureReason: null, paidAt: null };
       orders.set(order.id, order);
       byKey.set(k, order.id);
       return { order: clone(order), created: true };

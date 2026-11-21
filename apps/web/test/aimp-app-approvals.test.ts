@@ -278,6 +278,36 @@ test('AMP-127 no automation store: the page says "not available in the demo yet"
   assert.match(page, /data-testid="approvals-unavailable"/);
 });
 
+test('AMP-161 onDecided runs after a successful decision (approve or reject), never after a refusal or a failure', async () => {
+  const w = world();
+  const seen: string[] = [];
+  const input = w.input({ onDecided: (id) => { seen.push(id); } });
+  const id = await w.ask('k1', 'Post one');
+  const id2 = await w.ask('k2', 'Post two');
+  // Refusals: not confirmed, bad shape, unknown approval, unknown business, demo storage off.
+  await runApprovalsOp(input, A, { kind: 'decide', approvalId: id, decision: 'approve', confirmed: false });
+  await runApprovalsOp(input, A, { kind: 'decide', approvalId: id, decision: 'maybe', confirmed: true });
+  await runApprovalsOp(input, A, { kind: 'decide', approvalId: 'nope', decision: 'approve', confirmed: true });
+  await runApprovalsOp(input, 'biz-unknown', { kind: 'decide', approvalId: id, decision: 'approve', confirmed: true });
+  await runApprovalsOp({ ...input, availability: OFF }, A, { kind: 'decide', approvalId: id, decision: 'approve', confirmed: true });
+  await runApprovalsOp(input, A, { kind: 'cap', limit: 5 });
+  assert.deepEqual(seen, []);
+  // A failing service: no hook.
+  const boom = () => { throw new Error('store down'); };
+  const quiet = console.error; console.error = () => {};
+  try { await runApprovalsOp({ ...input, deps: { ...w.deps, automation: boom as never } }, A, { kind: 'decide', approvalId: id, decision: 'approve', confirmed: true }); } finally { console.error = quiet; }
+  assert.deepEqual(seen, []);
+  // Successes: one call each, with the route's business id.
+  assert.equal((await runApprovalsOp(input, A, { kind: 'decide', approvalId: id, decision: 'approve', confirmed: true })).ok, true);
+  assert.deepEqual(seen, [A]);
+  assert.equal((await runApprovalsOp(input, A, { kind: 'decide', approvalId: id2, decision: 'reject', confirmed: true })).ok, true);
+  assert.deepEqual(seen, [A, A]);
+  // A hook that throws never hides the decision.
+  const id3 = await w.ask('k3', 'Post three');
+  const r = await runApprovalsOp({ ...input, onDecided: () => { throw new Error('x'); } }, A, { kind: 'decide', approvalId: id3, decision: 'approve', confirmed: true });
+  assert.deepEqual(r, { ok: true, message: APPROVED });
+});
+
 test('AMP-127 structure: same gates as the sibling pages, one h1, glass library, 44px targets, honest copy', async () => {
   const w = world();
   await w.ask('k1', 'Post one');
@@ -298,7 +328,7 @@ test('AMP-127 structure: same gates as the sibling pages, one h1, glass library,
   assert.ok(page.indexOf('availability()') < page.indexOf('checkBusiness(business)') && page.indexOf('checkBusiness(business)') < page.indexOf('loadApprovals('));
   const actions = read('actions.ts');
   assert.match(actions, /^'use server';/);
-  assert.match(actions, /runApprovalsOp\(\{ availability: availability\(\), rt: runtime, deps: \{ automation: automationSource\(\), workspaceId: WORKSPACE, actorUserId: OWNER \} \}, businessId, rawOp\)/);
+  assert.match(actions, /runApprovalsOp\(\{\s*availability: availability\(\), rt: runtime, deps: \{ automation: automationSource\(\), workspaceId: WORKSPACE, actorUserId: OWNER \},\s*(?:\/\/[^\n]*\s*)?onDecided: \(id\) => invalidateSharedOverview\(runtime\(\), WORKSPACE, id\),\s*\}, businessId, rawOp\)/);
   const view = read('approvals-view.tsx');
   assert.match(view, /from '..\/..\/..\/design-system\/aimp-glass'/);
   assert.equal(view.match(/<h1/g), null, 'the one h1 comes from AppIntro');

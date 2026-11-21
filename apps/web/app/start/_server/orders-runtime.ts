@@ -68,7 +68,16 @@ export interface StartOrders {
   sampled: Map<string, string[]>;
   inflight: Map<string, Promise<SampleResult>>;
   registry: ReturnType<typeof createProviderRegistry>;
+  /**
+   * Creation intents (AMP-162), NOT the flag: keys from `testIntentKey` that the sample and test-purchase paths add just before they
+   * start checkout. The order store reads them once, when it creates the order, and writes `test: true` ON THE ORDER RECORD. The flag
+   * itself lives on the order (survives a restart of whatever holds the intents, and works for a database store); nothing reads this set later.
+   */
+  testIntents: Set<string>;
 }
+
+/** Key of a creation intent: the same (workspace, listing, retry key) the order store dedupes on, so it can only mark that one order. */
+export const testIntentKey = (workspaceId: string, listingId: string, idempotencyKey: string): string => `${workspaceId}\u0000${listingId}\u0000${idempotencyKey}`;
 
 export interface StartOrdersOptions {
   workspaceId: string;
@@ -88,7 +97,10 @@ export function createStartOrders(opts: StartOrdersOptions): StartOrders {
   const registry = createProviderRegistry({ env: {} });
   const email = registry.email.adapter;
   if (!email) throw new Error('The fixture email adapter is off.');
-  const orders = createMemoryOrderStore();
+  const testIntents = new Set<string>();
+  // Only the two server paths below (sample orders, test purchase) add an intent; every other order is created with test: false.
+  // An intent is single-use: reading it removes it (and the two paths below also delete it in a finally).
+  const orders = createMemoryOrderStore({ testOnCreate: (n) => testIntents.delete(testIntentKey(n.workspaceId, n.listingId, n.idempotencyKey)) });
   const sellers = opts.sellers ?? createInMemorySellerStore();
   const stores = new Map<string, { workspaceId: string; businessId: string }>();
   const directory: StoreDirectory = { resolve: async (slug) => stores.get(slug) ?? null };
@@ -113,7 +125,7 @@ export function createStartOrders(opts: StartOrdersOptions): StartOrders {
   fulfilment.attachToCheckout(checkout);
   return {
     workspaceId: opts.workspaceId, actorId: opts.actorId, orders, files, productStore: opts.productStore, sellers, checkout, fulfilment, fulfilmentStore, email, now, stores,
-    sampled: new Map(), inflight: new Map(), registry,
+    sampled: new Map(), inflight: new Map(), registry, testIntents,
   };
 }
 
@@ -152,10 +164,16 @@ async function run(so: StartOrders, src: SampleSource, businessId: string, want:
   if (!adapter) return { ok: false, message: 'The fixture payments adapter is off.' };
   const ids = [...have];
   for (let n = have.length + 1; n <= want; n++) {
-    const started = await so.checkout.startCheckout({ storeSlug: slug, listingId: listing.listingId, buyerEmail: `sample-buyer-${n}@${SAMPLE_BUYER_DOMAIN}`, idempotencyKey: `sample-${businessId}-${n}` });
+    const key = `sample-${businessId}-${n}`;
+    const intent = testIntentKey(so.workspaceId, listing.listingId, key);
+    so.testIntents.add(intent);
+    let started;
+    try {
+      started = await so.checkout.startCheckout({ storeSlug: slug, listingId: listing.listingId, buyerEmail: `sample-buyer-${n}@${SAMPLE_BUYER_DOMAIN}`, idempotencyKey: key });
+    } finally { so.testIntents.delete(intent); }
     if (!started.ok) return { ok: false, message: started.message };
     const event = await paySessionWithFixture(adapter, started.sessionId, FIXTURE_WEBHOOK_SECRET, so.now());
-    const paid = await so.checkout.handlePaymentEvent(event);
+    const paid =await so.checkout.handlePaymentEvent(event);
     if (paid.outcome !== 'paid' && paid.outcome !== 'already_paid' && paid.outcome !== 'duplicate_event') return { ok: false, message: `The sample payment was not accepted (${paid.outcome}).` };
     ids.push(started.orderId);
     so.sampled.set(businessId, ids);
@@ -216,6 +234,9 @@ export type TestPurchaseResult = { ok: true; summary: TestPurchaseSummary } | { 
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** The checkout retry key the test-purchase form uses for one business and one (trimmed, lower-case) email. Sample orders use other keys. */
+export const testPurchaseKey = (businessId: string, email: string): string => `test-purchase:${businessId}:${createHash('sha256').update(email).digest('hex').slice(0, 24)}`;
+
 /**
  * One test purchase of the business's approved listing through the REAL checkout, paid-event and fulfilment path with FIXTURE
  * payment and email (no Stripe, no mail leaves the server). Then the same signed paid event is sent again, the way a provider
@@ -231,10 +252,15 @@ export async function runTestPurchase(so: StartOrders, src: SampleSource, busine
     if (!prep.ok) return prep;
     const adapter = so.registry.payments.adapter;
     if (!adapter) return { ok: false, message: 'The fixture payments adapter is off.' };
-    const started = await so.checkout.startCheckout({ storeSlug: prep.slug, listingId: prep.listing.listingId, buyerEmail: email, idempotencyKey: `test-purchase:${businessId}:${createHash('sha256').update(email).digest('hex').slice(0, 24)}` });
+    const intent = testIntentKey(so.workspaceId, prep.listing.listingId, testPurchaseKey(businessId, email));
+    so.testIntents.add(intent);
+    let started;
+    try {
+      started = await so.checkout.startCheckout({ storeSlug: prep.slug, listingId: prep.listing.listingId, buyerEmail: email, idempotencyKey: testPurchaseKey(businessId, email) });
+    } finally { so.testIntents.delete(intent); }
     if (!started.ok) return { ok: false, message: started.message };
     const event = await paySessionWithFixture(adapter, started.sessionId, FIXTURE_WEBHOOK_SECRET, so.now());
-    const first = await so.checkout.handlePaymentEvent(event);
+    const first =await so.checkout.handlePaymentEvent(event);
     if (first.outcome !== 'paid' && first.outcome !== 'already_paid' && first.outcome !== 'duplicate_event') return { ok: false, message: `The test payment was not accepted (${first.outcome}).` };
 
     const ctx = { workspaceId: so.workspaceId, businessId, actorId: so.actorId };

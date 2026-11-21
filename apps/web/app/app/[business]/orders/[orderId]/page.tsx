@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 // Screen 20: one order of an existing business. Same in-memory DEMO runtime as /start and the other /app pages (lost on restart), and off
 // in production unless the demo tools are enabled. An unknown order, or one that belongs to another business, is a 404 (the two cannot be
-// told apart). The /start runtime has no order store yet, so today every order id is a 404.
+// told apart). An order paid through the sample seller account is marked as a test order (decided on the server).
 export default async function OrderDetailPage({ params }: { params: Promise<{ business: string; orderId: string }> }) {
   const { business, orderId } = await params;
   const a = availability();
@@ -49,5 +49,5 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ bu
     );
   }
   if (!found.found) notFound();
-  return <OrderDetailView businessId={business} orderId={found.order.id} vm={buildDetail(business, found.order, viewerId)} />;
+  return <OrderDetailView businessId={business} orderId={found.order.id} vm={buildDetail(business, found.order, viewerId, found.test)} />;
 }

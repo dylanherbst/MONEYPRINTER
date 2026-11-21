@@ -26,6 +26,14 @@ export const NOT_DONE = 'That did not go through, so nothing was saved.';
 export const WENT_WRONG = 'Something went wrong on our side, so no file was made. Reload the page and try again. Nothing was posted.';
 export const exported = (n: number): string => `Your ZIP file with ${piecesLabel(n)} is ready to save. Nothing was posted.`;
 
+/** Size caps for one export reply (the ZIP travels back to the browser as base64, about a third bigger). Checked on the server. */
+export const MAX_EXPORT_ITEMS = 200;
+export const MAX_EXPORT_FILES = 20;
+export const MAX_EXPORT_BYTES = 5 * 1024 * 1024;
+export interface ExportLimits { items: number; files: number; bytes: number }
+export const DEFAULT_EXPORT_LIMITS: ExportLimits = { items: MAX_EXPORT_ITEMS, files: MAX_EXPORT_FILES, bytes: MAX_EXPORT_BYTES };
+export const tooLarge = (what: string): string => `This export is too large to download in one go (more than ${what}), so nothing was saved.`;
+
 export interface CalendarGuardInput {
   /** `availability()` from app/start/_server/runtime.ts. */
   availability: { available: boolean; reason: string };
@@ -33,6 +41,8 @@ export interface CalendarGuardInput {
   rt: () => CalendarRuntime;
   ctx: Pick<MarketingContexts, 'workspaceId'>;
   now: () => Date;
+  /** Size caps for the reply; the named defaults when left out. Tests pass small ones. */
+  limits?: Partial<ExportLimits>;
 }
 
 export interface CalendarExportReply {
@@ -81,8 +91,24 @@ async function runCalendarExportUnsafe(g: CalendarGuardInput, businessId: unknow
   const scope = { workspaceId: g.ctx.workspaceId, businessId };
   const campaign = await getCampaign({ store: stores.campaigns }, scope);
   if (!campaign || campaign.status !== 'approved') return no(NO_APPROVED_PLAN);
-  const r = await exportCampaign(assetDeps(rt, stores, g.now), scope, campaign.id);
+  const cap = { ...DEFAULT_EXPORT_LIMITS, ...g.limits };
+  const deps = assetDeps(rt, stores, g.now);
+  // AMP-161: the item and file counts are checked BEFORE the ZIP is built, from the stored approved assets of the same version, so a
+  // too-large export is never built at all. Anything else (no set, an older version, nothing approved) is left for the service to refuse.
+  const set = await deps.assets.get(scope.workspaceId, scope.businessId, campaign.id);
+  if (set && set.campaignVersion === campaign.version) {
+    const approved = set.assets.filter((a) => a.state === 'approved');
+    const has = (k: string) => approved.some((a) => a.kind === k);
+    const fileCount = (has('pin') ? 2 : 0) + (has('caption') ? 1 : 0) + (has('video_script') ? 1 : 0) + (has('seo') ? 1 : 0) + 1;
+    if (approved.length > cap.items) return no(tooLarge(`${cap.items} approved pieces of text`));
+    if (approved.length > 0 && fileCount > cap.files) return no(tooLarge(`${cap.files} files`));
+  }
+  const r = await exportCampaign(deps, scope, campaign.id);
   if (!r.ok) return refusal(r.errors);
   const n = r.counts.pins + r.counts.captions + r.counts.videoScripts + r.counts.seo;
+  // The size cap can only be known once the ZIP exists; it is checked before the base64 reply is built, so an over-size export leaves no file.
+  if (n > cap.items) return no(tooLarge(`${cap.items} approved pieces of text`));
+  if (r.files.length > cap.files) return no(tooLarge(`${cap.files} files`));
+  if (r.zip.byteLength > cap.bytes) return no(tooLarge(cap.bytes >= 1024 * 1024 ? `${Math.round(cap.bytes / (1024 * 1024))} MB` : `${cap.bytes} bytes`));
   return { ok: true, message: exported(n), file: { name: r.fileName, base64: Buffer.from(r.zip).toString('base64'), files: r.files }, publishing: PUBLISHING_LABEL };
 }

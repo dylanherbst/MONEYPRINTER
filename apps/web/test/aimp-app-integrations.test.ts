@@ -7,12 +7,13 @@ import test from 'node:test';
 import { loadIntegrations, siteStatuses } from '../app/app/[business]/integrations/_server/integrations.ts';
 import type { IntegrationsRuntime, IntegrationsSource } from '../app/app/[business]/integrations/_server/integrations.ts';
 import {
-  COMING_LATER, NO_CONNECT_NOTE, STRIPE_SAMPLE_NOTE, STRIPE_UNAVAILABLE, buildIntegrations, integrationsHref, siteFact,
+  COMING_LATER, DEMO_NOTE, NO_CONNECT_NOTE, STRIPE_SAMPLE_NOTE, STRIPE_UNAVAILABLE, buildIntegrations, integrationsHref, siteFact,
 } from '../app/app/[business]/integrations/view-model.ts';
 import { PROVIDER_IDS } from '../lib/aimp/flags.ts';
 import { PROVIDER_META, resolveAllStatuses } from '../lib/aimp/providers/status.ts';
 import { FIXTURE_SELLERS, createInMemorySellerStore, sellerStates } from '../lib/aimp/sellers/index.ts';
 import type { SellerState } from '../lib/aimp/sellers/index.ts';
+import { isSampleSellerAccountId } from '../lib/aimp/sellers/sample.ts';
 
 const WS = 'ws-a';
 // Made-up values that must never reach the view. Every credential variable the provider list knows gets one.
@@ -82,11 +83,62 @@ test('a sample or fixture seller is labelled sample, never "Connected", never gr
     assert.doesNotMatch(vm.stripe.account.label, /Connected/);
     assert.notEqual(vm.stripe.account.tone, 'success');
     assert.match(vm.stripe.account.text, /not a real Stripe account/);
-    assert.equal(vm.stripe.sampleNote, STRIPE_SAMPLE_NOTE);
+    assert.ok(input.stripe.hasAccount);
+    assert.equal(vm.stripe.sampleNote, STRIPE_SAMPLE_NOTE, 'the sample note shows when there is an account and it is a sample');
+    assert.equal(vm.stripe.timing, null, 'an account is shown, so no "Coming later"');
     assert.equal(vm.stripe.canTakePayments, false);
   }
-  assert.equal(vmFor('biz-not_connected').vm.stripe.sampleNote, STRIPE_SAMPLE_NOTE, 'sample site payments are still called sample with no account');
-  assert.equal(vmFor('biz-not_connected', OFF).vm.stripe.sampleNote, null);
+  // With no account there is nothing to call a sample: no sample note, whatever the site says, and "Coming later" instead.
+  for (const statuses of [NO_KEYS, LIVE, OFF]) {
+    const { input, vm } = vmFor('biz-not_connected', statuses);
+    assert.ok(input.stripe.available && !input.stripe.hasAccount);
+    assert.equal(vm.stripe.sampleNote, null, statuses.payments.status);
+    assert.equal(vm.stripe.timing, COMING_LATER);
+    assert.equal(vm.stripe.account.label, 'Not connected');
+    assert.equal(vm.stripe.canTakePayments, false);
+  }
+});
+
+test('the sample-account check is the one the sellers module owns, not a private copy', () => {
+  const dir = new URL('../app/app/[business]/integrations/', import.meta.url);
+  const server = readFileSync(new URL('_server/integrations.ts', dir), 'utf8');
+  assert.match(server, /import \{ isSampleSellerAccountId \} from '\.\.\/\.\.\/\.\.\/\.\.\/\.\.\/lib\/aimp\/sellers\/sample\.ts'/);
+  assert.doesNotMatch(server, /acct_\(|\/\^acct_/, 'no private regular expression for sample ids');
+  assert.equal(isSampleSellerAccountId('acct_demo_ready'), true);
+  assert.equal(isSampleSellerAccountId('acct_sample_demo_biz'), true);
+  assert.equal(isSampleSellerAccountId('acct_1NotASampleXYZ'), false);
+  assert.equal(isSampleSellerAccountId(null), false);
+});
+
+test('page branches: no account, sample account, real account on a live provider, provider switched to live', () => {
+  const { vmFor } = setup();
+  const none = vmFor('biz-not_connected').vm.stripe;
+  assert.deepEqual([none.account.label, none.sampleNote, none.timing, none.canTakePayments], ['Not connected', null, COMING_LATER, false]);
+  const sample = vmFor('biz-ready').vm.stripe;
+  assert.deepEqual([sample.account.label, sample.sampleNote, sample.timing, sample.canTakePayments], ['Sample account: ready', STRIPE_SAMPLE_NOTE, null, false]);
+  const real = vmFor('biz-real', LIVE).vm.stripe;
+  assert.deepEqual([real.account.label, real.sampleNote, real.timing], ['Connected', null, null]);
+  // The provider switched to live must not claim it works, only that the site is set to use it.
+  const live = vmFor('biz-not_connected', LIVE).vm.stripe.site;
+  assert.equal(live.label, 'On for this site');
+  assert.match(live.text, /set to use the real service/);
+  assert.match(live.text, /not checked that it is working/);
+  assert.doesNotMatch(live.text, /(^|\. )This site (is live|is connected|is taking|works)|real money (is|moves)/i);
+  for (const s of vmFor('biz-ready', LIVE).vm.services) assert.doesNotMatch(s.site.text, /^This site is (live|connected)/);
+  assert.match(DEMO_NOTE, /on this server/);
+});
+
+test('the view draws the view model: sample note only from the model, "Coming later" beside the Stripe account, the demo note, no controls', () => {
+  const dir = new URL('../app/app/[business]/integrations/', import.meta.url);
+  const view = readFileSync(new URL('integrations-view.tsx', dir), 'utf8');
+  // The node test runner cannot load JSX or the glass library, so this checks the source text, as the sibling page tests do.
+  assert.match(view, /stripe\.sampleNote \? <p[^>]*data-testid="stripe-sample-note">\{stripe\.sampleNote\}<\/p> : null/);
+  assert.match(view, /extra=\{stripe\.timing \?\? undefined\}/);
+  assert.match(view, /extra \? <GlassBadge[^>]*>\{extra\}<\/GlassBadge> : null/);
+  assert.match(view, /\{DEMO_NOTE\}/);
+  assert.doesNotMatch(view, /STRIPE_SAMPLE_NOTE|Sample data\./, 'the sample wording lives in the view model only');
+  assert.equal(view.match(/<h1/g)?.length ?? 0, 0, 'the single h1 comes from AppIntro');
+  assert.equal(view.match(/heading="h2"/g)?.length, 2);
 });
 
 test('only a non-sample account on a live payment provider reads as connected, and it fails closed when checkout is shut', () => {

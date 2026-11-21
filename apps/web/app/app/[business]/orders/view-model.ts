@@ -29,9 +29,13 @@ export const ordersHref = (businessId: string, filter: OrderFilter = 'all', curs
 export const orderHref = (businessId: string, orderId: string): string => `/app/${businessId}/orders/${encodeURIComponent(orderId)}`;
 
 export const DEMO_NOTE = 'Demo storage on the server: this page reads from the same in-memory demo as guided set-up, and it is lost when the server restarts.';
-export const NO_STORE_TITLE = 'No orders can exist in the demo yet';
+/** Shown only when this server session has no order store connected (for example an old session kept alive while the code changed). */
+export const NO_STORE_TITLE = 'Orders cannot be read right now';
 export const NO_STORE_TEXT =
-  'The demo behind guided set-up has no checkout, order store or delivery service for your business, so nothing can be bought and nothing is listed here. This is not a count of zero sales: orders are not connected to this demo yet.';
+  'This server session has no order store connected, so no orders can be listed. This is not a count of zero sales: the list is simply not available. Reload the demo session and try again.';
+/** One wording, used on the list row and on the order page. Text, so it never relies on colour alone. */
+export const TEST_ORDER_LABEL = 'Test order: no real payment';
+export const TEST_ORDER_COUNT_NOTE = `Order counts include test orders, marked "${TEST_ORDER_LABEL}". They are not real sales.`;
 export const REFUND_NOTE = 'This screen only shows the refund state. No refunds are issued from here.';
 
 const PAYMENT: Record<PaymentState, { label: string; tone: Tone }> = {
@@ -60,11 +64,13 @@ export interface OrderRowVM {
   created: string;
   /** Plain-English reason when the order needs the owner; otherwise null. */
   attention: string | null;
+  /** True when the server found the order was paid through the sample seller account. Never taken from the request. */
+  test: boolean;
 }
 
-export function buildRow(businessId: string, o: OwnerOrderSummary): OrderRowVM {
+export function buildRow(businessId: string, o: OwnerOrderSummary, isTest = false): OrderRowVM {
   return {
-    id: o.id, href: orderHref(businessId, o.id), title: o.title.trim() || 'Untitled product', buyer: o.buyerMasked,
+    test: isTest, id: o.id, href: orderHref(businessId, o.id), title: o.title.trim() || 'Untitled product', buyer: o.buyerMasked,
     amount: formatMoney({ amountMinor: o.amountMinor, currency: o.currency }),
     payment: PAYMENT[o.paymentState] ?? { label: 'Unknown', tone: 'neutral' }, delivery: DELIVERY[o.deliveryState] ?? { label: 'Unknown', tone: 'neutral' },
     created: formatUtc(o.createdAt), attention: o.attention ? o.attention.reason : null,
@@ -82,11 +88,13 @@ export interface ListVM {
   nextHref: string | null;
   firstPageHref: string | null;
   empty: EmptyCopy | null;
+  /** Set when a listed order is a test order: the counts above include it. Null otherwise. */
+  testNote: string | null;
 }
 
 /** Plain-English empty state. `all` is the number of orders the business has at all. */
 export function emptyCopy(filter: OrderFilter, all: number): EmptyCopy {
-  if (all === 0) return { title: 'No orders yet', text: 'When someone buys from your store, the order appears here with its payment and delivery state.' };
+  if (all === 0) return { title: 'No orders yet', text: 'When someone buys from your store, the order appears here with its payment and delivery state. You can make a test purchase from your store page to see how an order looks. It is marked as a test and no real payment is taken.' };
   switch (filter) {
     case 'needs_attention': return { title: 'Nothing needs your attention', text: 'Every order is paid and delivered, or waiting normally.' };
     case 'delivered': return { title: 'No delivered orders', text: 'Paid orders show here once their download email has been sent.' };
@@ -96,10 +104,10 @@ export function emptyCopy(filter: OrderFilter, all: number): EmptyCopy {
 }
 
 /** `cursor` is the cursor the page was really read with (`loadOrders` gives it): null on page 1, also after a bad cursor fell back to page 1. */
-export function buildList(businessId: string, page: OwnerOrdersPage, cursor: string | null = null): ListVM {
-  const rows = page.orders.map((o) => buildRow(businessId, o));
+export function buildList(businessId: string, page: OwnerOrdersPage, cursor: string | null = null, testIds: readonly string[] = []): ListVM {
+  const rows = page.orders.map((o) => buildRow(businessId, o, testIds.includes(o.id)));
   return {
-    rows, total: page.total,
+    rows, total: page.total, testNote: rows.some((r) => r.test) ? TEST_ORDER_COUNT_NOTE : null,
     tabs: orderFilters.map((f) => ({ filter: f, name: filterNames[f], count: page.counts[f], href: ordersHref(businessId, f), current: f === page.filter })),
     summary: page.total === 0 ? 'No orders to show' : `Showing ${rows.length} of ${plural(page.total, 'order')}`,
     nextHref: page.nextCursor ? ordersHref(businessId, page.filter, page.nextCursor) : null,
@@ -129,6 +137,7 @@ export interface DetailVM {
   timeline: TimelineVM[];
   actions: ActionVM[];
   updated: string;
+  test: boolean;
 }
 
 const GRANT: Record<GrantState, { label: string; tone: Tone }> = {
@@ -160,10 +169,11 @@ export function actorLabel(actor: unknown, viewerId: string | null = null): stri
 }
 
 /** `viewerId` is the server-side id of the person looking at the page (the orders source's actor), or null when it is not known. */
-export function buildDetail(businessId: string, d: OwnerOrderDetail, viewerId: string | null = null): DetailVM {
+export function buildDetail(businessId: string, d: OwnerOrderDetail, viewerId: string | null = null, isTest = false): DetailVM {
   const money = (amountMinor: number) => formatMoney({ amountMinor, currency: d.currency });
   const a = d.allowedActions;
   return {
+    test: isTest,
     id: d.id, title: d.title.trim() || 'Untitled product', backHref: ordersHref(businessId),
     payment: PAYMENT[d.paymentState] ?? { label: 'Unknown', tone: 'neutral' }, delivery: DELIVERY[d.deliveryState] ?? { label: 'Unknown', tone: 'neutral' },
     attention: d.attention ? d.attention.reason : null,

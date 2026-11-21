@@ -1,15 +1,16 @@
-// Website measurement (website plan §03 measurement plan, dev requirement 11).
-// No vendor yet: events go to window.dataLayer and a DOM event so any analytics tool can be attached later.
+// Thin forwarder kept so older callers (link components, build flow, watch demo, story canvas) compile unchanged.
+// It no longer records anything itself: each legacy event is translated by fromLegacy and handed to the single
+// measurement module (plant/measure.ts), which validates props against its allow-list. Nothing is pushed to
+// window.dataLayer, no DOM event is dispatched here, and nothing is sent anywhere.
+import { fromLegacy, pageForPath, track as measure } from './plant/measure.ts';
+
 export type SiteEvent =
   | 'hero_view' | 'cta_click' | 'story_stage_view' | 'model_select' | 'recommend_request'
   | 'preview_start' | 'preview_complete' | 'launch_view' | 'signup_click' | 'plan_select' | 'skip_animation';
 
 type Props = Record<string, string | number | boolean>;
-declare global { interface Window { dataLayer?: Array<Record<string, unknown>> } }
 
 export function track(event: SiteEvent, props: Props = {}): void {
-  if (typeof window === 'undefined') return;
-  const payload = { event, ...props, ts: Date.now(), viewport: window.innerWidth < 768 ? 'mobile' : 'desktop' };
-  (window.dataLayer ??= []).push(payload);
-  window.dispatchEvent(new CustomEvent('aimp:track', { detail: payload }));
+  const page = typeof window !== 'undefined' && window.location ? pageForPath(window.location.pathname) : null;
+  for (const [name, mapped] of fromLegacy(event, props, page)) measure(name, mapped);
 }

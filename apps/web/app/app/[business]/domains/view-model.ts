@@ -19,6 +19,8 @@ export interface DomainsInput {
   host: { name: string; via: 'root' | 'test' } | null;
   /** True only when the public store pages of this site read the same store data this page reads. */
   served: boolean;
+  /** True when the store is a demo store (it shows a demo banner and lives only in this demo server). Missing reads as demo: fail honest. */
+  demo?: boolean;
   /** The pages every store has (from lib/aimp/hosts/paths.ts plus the fixed ones). */
   policyPages: readonly string[];
 }
@@ -82,8 +84,12 @@ function reachFact(i: DomainsInput): DomainsVM['reach'] {
       'Your store is published inside this demo only. The public store pages of this site do not show stores made in the demo yet, so there is no link visitors can open.');
   }
   if (!i.host) return no('No public address yet', 'warn', 'Your store is published, but this site has no store web address set up yet, so there is no link to share.');
-  if (i.host.via === 'test') return no('Reachable on this computer only', 'neutral', `Your store is published and answers at ${i.host.name} on this computer for testing.`);
-  return { label: 'Reachable', tone: 'success', text: 'Your store is published and visitors can open it at your built-in address.', href: `https://${i.host.name}` };
+  // No check that the address really opens has run, so these say "Address ready", never "Reachable".
+  if (i.host.via === 'test') return no('Address ready on this computer only', 'neutral', `Your store is published and is set up at ${i.host.name} on this computer for testing. Nothing has checked that it opens.`);
+  const text = i.demo === false
+    ? 'Your store is published and set up at your built-in address. Nothing has checked that visitors can open it yet.'
+    : 'This is a demo store and it shows a demo banner. It can be opened only while this demo server is running.';
+  return { label: 'Address ready', tone: 'success', text, href: `https://${i.host.name}` };
 }
 
 export function buildDomains(i: DomainsInput): DomainsVM {

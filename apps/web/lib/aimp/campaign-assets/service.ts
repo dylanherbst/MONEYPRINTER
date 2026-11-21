@@ -190,7 +190,7 @@ function applyPatch(kind: AssetKind, content: AssetContent, patch: unknown): Pat
   let n = 0;
   let total = 0;
   for (const [k, v] of Object.entries(patch as Record<string, unknown>)) {
-    const type = allowed[k];
+    const type = Object.hasOwn(allowed, k) ? allowed[k] : undefined;
     if (!type) return invalid(`"${k}" cannot be edited on this kind of asset.`);
     const good = type === 'text' ? typeof v === 'string' : type === 'number' ? typeof v === 'number' && Number.isFinite(v) : Array.isArray(v) && v.every((s) => typeof s === 'string');
     if (!good) return invalid(`"${k}" has the wrong type of value.`);

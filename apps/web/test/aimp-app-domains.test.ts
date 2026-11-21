@@ -1,6 +1,6 @@
 // Domains and availability (screen 17, AMP-088). The server read runs against the REAL site-version store (seeded the way the default
-// registry seeds it) through the real lib/aimp/hosts functions; the view model is pure. The page's own runtime (/start) is not served
-// by the public store pages, and that honest state is tested too.
+// registry seeds it) through the real lib/aimp/hosts functions; the view model is pure. The page's own runtime (/start) is served
+// by the public store pages since AMP-142, and that state is tested too.
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
@@ -26,6 +26,8 @@ async function setup() {
     businesses: new Set(['biz-a', 'biz-b', 'biz-none', 'biz-draft', 'biz-reserved']), seeds: new Map(), productIds: new Map(), sites,
     slugs: new Map([['biz-a', slugA], ['biz-b', slugB], ['biz-draft', 'never-published-store'], ['biz-reserved', 'admin']]),
   };
+  // The runtime under test IS the /start runtime of this process: put it where runtime.ts keeps it, so `served` (flag AND runtime present) is true.
+  (globalThis as unknown as { __aimpStartJourney?: unknown }).__aimpStartJourney = rt;
   return { sites, rt, slugA, slugB };
 }
 
@@ -95,26 +97,65 @@ test('the built-in address is only ever on an accepted store domain', () => {
 });
 
 // ---- the honest state of the /start demo ----
-test('the public store pages do not read the /start runtime, so the page must not offer a link (true of the code, not a choice)', async () => {
-  assert.equal(PUBLIC_PAGES_SERVE_THIS_RUNTIME, false);
+test('the public store pages read the /start runtime (AMP-142, proved in aimp-start-runtime-hosts.test.ts), so the page offers a link only for a live store', async () => {
+  // AMP-142: was `false`; true now because getDefaultRegistry() (used by loadPublishedStore) also answers from the /start runtime.
+  assert.equal(PUBLIC_PAGES_SERVE_THIS_RUNTIME, true);
   assert.ok(MISSING_WIRING.length >= 3);
   const load = readFileSync(new URL('../lib/aimp/storefront/load.ts', import.meta.url), 'utf8');
   assert.match(load, /getDefaultRegistry/);
   assert.doesNotMatch(load, /start\/_server\/runtime/);
-  const { rt } = await setup();
+  const reg = readFileSync(new URL('../lib/aimp/hosts/registry.ts', import.meta.url), 'utf8');
+  assert.match(reg, /registryWithStartRuntime\(registryFromSiteVersions\(store, list\), startRuntimeFromGlobal\)/);
+  const { rt, sites, slugA } = await setup();
   const r = await loadDomains(rt, ROOT, 'biz-a');
   assert.ok(r.found);
+  assert.equal(r.input.served, true);
   const vm = buildDomains(r.input);
   assert.equal(vm.published.label, 'Published');
-  assert.equal(vm.reach.href, null);
-  assert.match(vm.reach.label, /Not reachable in the demo/);
+  assert.equal(vm.reach.href, `https://${slugA}.stores.example`);
+  assert.equal(vm.reach.label, 'Address ready');
+  assert.match(vm.reach.text, /demo store/);
+  assert.match(vm.reach.text, /demo banner/);
+  assert.match(vm.reach.text, /only while this demo server is running/);
+  // Still no link when the store is paused, was never published, or the store domain is not configured.
+  assert.ok((await sites.pause(demoActorA, slugA)).ok);
+  const paused = await loadDomains(rt, ROOT, 'biz-a');
+  assert.ok(paused.found);
+  assert.equal(buildDomains(paused.input).reach.href, null);
+  const draft = await loadDomains(rt, ROOT, 'biz-draft');
+  assert.ok(draft.found);
+  assert.equal(buildDomains(draft.input).reach.href, null);
+  const noDomain = await loadDomains(rt, {}, 'biz-b');
+  assert.ok(noDomain.found);
+  assert.equal(buildDomains(noDomain.input).reach.href, null);
+});
+
+test('no /start runtime in this process: not served and no link, even for a live store', async () => {
+  const { rt, slugA } = await setup();
+  const holder = globalThis as unknown as { __aimpStartJourney?: unknown };
+  delete holder.__aimpStartJourney;
+  try {
+    const r = await loadDomains(rt, ROOT, 'biz-a');
+    assert.ok(r.found);
+    assert.equal(r.input.published, 'live');
+    assert.equal(r.input.served, false);
+    assert.equal(buildDomains(r.input).reach.href, null);
+    assert.equal(r.input.slug, slugA);
+  } finally {
+    holder.__aimpStartJourney = rt;
+  }
 });
 
 // ---- the view model ----
 test('a link is offered only when the store is live, served and on the real store domain', () => {
   const live = buildDomains(input());
   assert.equal(live.reach.href, 'https://calm-store.stores.example');
-  assert.equal(live.reach.label, 'Reachable');
+  assert.equal(live.reach.label, 'Address ready');
+  assert.doesNotMatch(live.reach.label + live.reach.text, /Reachable/);
+  // A non-demo store never claims a check ran either.
+  const real = buildDomains(input({ demo: false }));
+  assert.equal(real.reach.label, 'Address ready');
+  assert.match(real.reach.text, /Nothing has checked/);
   assert.equal(live.address.value, 'calm-store.stores.example');
   for (const over of [
     { served: false }, { published: 'paused' as const }, { published: 'none' as const }, { host: null }, { slug: null, slugOk: false, host: null },

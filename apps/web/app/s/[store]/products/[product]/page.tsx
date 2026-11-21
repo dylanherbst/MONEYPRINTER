@@ -4,6 +4,9 @@ import { storeMetadata } from '../../../../../lib/aimp/hosts/seo';
 import { findProduct, formatPrice, loadPublishedStore, purchaseState } from '../../../../../lib/aimp/storefront/load';
 import { storeBase } from '../../_ui/base';
 import { BuyButton, Cover, Price, ProductCard } from '../../_ui/parts';
+import { TestPurchaseForm } from '../../_ui/test-purchase-form';
+import { offerTestPurchase } from '../../_server/test-purchase';
+import { testPurchaseDeps } from '../../_server/wiring';
 
 type Params = { params: Promise<{ store: string; product: string }> };
 
@@ -23,6 +26,7 @@ export default async function ProductPage({ params }: Params) {
   if (!store || !product) notFound();
   const base = await storeBase(store.slug);
   const state = purchaseState(store);
+  const testOffer = await offerTestPurchase(testPurchaseDeps(), store);
   const related = store.products.filter((x) => x.slug !== product.slug).slice(0, 3);
   // Structured data for search (plan §D06). No availability claim until checkout is live.
   const jsonLd = {
@@ -48,6 +52,7 @@ export default async function ProductPage({ params }: Params) {
           <p className="st-small st-muted">Digital product: nothing is shipped. Personal use only. See the <a href={`${base}/policies/refund`}>refund policy</a>.</p>
         </div>
       </article>
+      {testOffer ? <TestPurchaseForm store={store.slug} label={testOffer.label} /> : null}
       {related.length > 0 ? (
         <section className="st-wrap st-section" aria-labelledby="related-h">
           <h2 id="related-h">You may also like</h2>

@@ -13,7 +13,8 @@ import { CHANNEL_LABELS, dayLabel } from '../view-model.ts';
 export const NOTHING_POSTED = 'Nothing is posted, scheduled or sent from here. The days below are suggested days only; you post by hand.';
 export const NOT_IN_DEMO = 'The campaign calendar is not available in the demo yet.';
 export const PUBLISHING_LABEL = 'Not connected';
-export const PUBLISHING_TEXT = 'No social account is connected to this business, so this page can not post for you. Connecting an account is coming in a later release. Until then, save your approved text and post it yourself.';
+export const PUBLISHING_TEXT = 'No social account is connected to this business, so this page can not post for you. This page makes drafts and a file you can save. You post the approved text yourself, and nothing is posted for you.';
+export const PUBLISHING_NOTE = 'Publishing is not connected: this page only makes drafts and a ZIP file to save.';
 export const BY_HAND = 'You post this by hand';
 
 /** Where one calendar entry stands. The first two come from the plan, the last three from the text draft written for the entry. */

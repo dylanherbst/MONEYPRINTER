@@ -5,8 +5,13 @@
 import { automationSource } from './_server/source';
 import { runApprovalsOp } from './_server/approvals-guard';
 import type { ApprovalsReply } from './_server/approvals-guard';
+import { invalidateSharedOverview } from '../_server/overview';
 import { availability, OWNER, runtime, WORKSPACE } from '../../../start/_server/runtime';
 
 export async function approvalsAction(businessId: string, rawOp: unknown): Promise<ApprovalsReply> {
-  return runApprovalsOp({ availability: availability(), rt: runtime, deps: { automation: automationSource(), workspaceId: WORKSPACE, actorUserId: OWNER } }, businessId, rawOp);
+  return runApprovalsOp({
+    availability: availability(), rt: runtime, deps: { automation: automationSource(), workspaceId: WORKSPACE, actorUserId: OWNER },
+    // AMP-161: after a decision the Overview's saved waiting count is dropped for this workspace and business.
+    onDecided: (id) => invalidateSharedOverview(runtime(), WORKSPACE, id),
+  }, businessId, rawOp);
 }

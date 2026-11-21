@@ -146,10 +146,77 @@ export const toOverviewOrder = (o: Order): Tenanted<OverviewOrder> => ({
  * Whether the approvals read failed, per workspace + business (AMP-109). `failed` is the latest read; `shown` is the value that
  * belongs to the saved copy the cache is serving (a later failed re-read keeps the older copy, so it keeps that copy's value).
  */
-export interface ApprovalsHealth { failed: Set<string>; shown: Map<string, boolean> }
-export const createApprovalsHealth = (): ApprovalsHealth => ({ failed: new Set(), shown: new Map() });
+export interface ApprovalsHealth {
+  failed: Set<string>; shown: Map<string, boolean>;
+  /**
+   * AMP-108: the business name and store status read in the SAME pass as the snapshot (inside the store source), so the page never
+   * mixes a new store status with older numbers. `pending` is the latest pass; `shownStore` is the pass whose snapshot the cache is serving.
+   */
+  pendingStore: Map<string, StoreRead>; shownStore: Map<string, StoreRead>;
+}
+export interface StoreRead { businessName: string | null; status: StoreStatus }
+export const createApprovalsHealth = (): ApprovalsHealth => ({ failed: new Set(), shown: new Map(), pendingStore: new Map(), shownStore: new Map() });
 const scopeKey = (s: OverviewScope): string => `${s.workspaceId}/${s.businessId}`;
 const healthOf = new WeakMap<OverviewCache, ApprovalsHealth>();
+
+/** Most keys any per-key side record keeps. The oldest is dropped past this, so none of these maps can grow without end. */
+export const OVERVIEW_MAX_KEYS = 500;
+function setBounded<V>(map: Map<string, V>, key: string, value: V, max = OVERVIEW_MAX_KEYS): void {
+  map.delete(key);
+  map.set(key, value);
+  while (map.size > max) { const oldest = map.keys().next().value; if (oldest === undefined) break; map.delete(oldest); }
+}
+
+// --- AMP-108: back-off while a source is down ---
+
+/** First wait after a source fails, doubling on each further failure up to the maximum. Equal to the page's refresh window. */
+export const OVERVIEW_BACKOFF_BASE_MS = 5_000;
+/** The longest a down source is left alone before it is tried again. */
+export const OVERVIEW_BACKOFF_MAX_MS = 60_000;
+
+/** Thrown instead of reading a source that is still in its back-off wait. Carries the source name only, never error text. */
+export class SourceBackoffError extends Error {
+  readonly source: string;
+  constructor(source: string) { super(`The ${source} source is down; waiting before the next try.`); this.name = 'SourceBackoffError'; this.source = source; }
+}
+
+export interface SourceBackoff {
+  /** Reads through `read` unless this source is waiting out a back-off for this workspace + business (then throws `SourceBackoffError` without reading). */
+  guard<T>(source: string, scope: OverviewScope, read: () => Promise<T>): Promise<T>;
+  /** Number of sources currently remembered as failing. */
+  size(): number;
+}
+
+/**
+ * Per source per workspace + business: after a failed read the source is not read again until a wait has passed (5s, 10s, 20s ... up to
+ * 60s). The first success clears it. The clock is injected. The record is bounded; a skipped read is not counted as a new failure.
+ */
+export function createSourceBackoff(now: () => Date, opts: { baseMs?: number; maxMs?: number; maxEntries?: number } = {}): SourceBackoff {
+  const baseMs = opts.baseMs ?? OVERVIEW_BACKOFF_BASE_MS;
+  const maxMs = opts.maxMs ?? OVERVIEW_BACKOFF_MAX_MS;
+  const maxEntries = opts.maxEntries ?? OVERVIEW_MAX_KEYS;
+  const down = new Map<string, { failures: number; retryAtMs: number }>();
+  return {
+    async guard(source, scope, read) {
+      const key = `${scopeKey(scope)}#${source}`;
+      const entry = down.get(key);
+      if (entry && now().getTime() < entry.retryAtMs) throw new SourceBackoffError(source);
+      try {
+        const result = await read();
+        down.delete(key);
+        return result;
+      } catch (e) {
+        // AMP-161: callers that were reading at the same time all see this failure; only the first one counts it for this window.
+        const current = down.get(key);
+        if (current && current !== entry) throw e;
+        const failures = (entry?.failures ?? 0) + 1;
+        setBounded(down, key, { failures, retryAtMs: now().getTime() + Math.min(maxMs, baseMs * 2 ** Math.min(failures - 1, 30)) }, maxEntries);
+        throw e;
+      }
+    },
+    size: () => down.size,
+  };
+}
 
 /**
  * `OverviewDeps` over the /start runtime. Seller readiness, fulfilment and money events go through the AMP-091 adapters when the
@@ -158,39 +225,53 @@ const healthOf = new WeakMap<OverviewCache, ApprovalsHealth>();
  */
 export function createRuntimeOverviewDeps(
   rt: OverviewRuntime, ctx: OverviewContexts, extras: OverviewExtras | (() => OverviewExtras), now: () => Date, health?: ApprovalsHealth,
+  backoff?: SourceBackoff,
 ): OverviewDeps {
   const ex = typeof extras === 'function' ? extras : () => extras;
+  // AMP-108: with a `backoff`, every source read goes through it, so a source that stays down is not read on every request.
+  const guard = <T>(source: string, s: OverviewScope, read: () => Promise<T>): Promise<T> => (backoff ? backoff.guard(source, s, read) : read());
   // AMP-109: with a `health` record, an approvals read that throws or rejects does not fail the whole overview. It reads as an empty
   // list AND is recorded as failed, so the page says "could not be read" and never claims that nothing is waiting. Only the error
   // name is logged. Without a `health` record nobody could say so, so the failure is passed on as before.
   const readApprovals = async (s: OverviewScope): Promise<ApprovalView[]> => {
     const approvals = ex().approvals;
     if (!approvals) { health?.failed.delete(scopeKey(s)); return []; }
-    if (!health) return approvals(s);
+    if (!health) return guard('approvals', s, async () => approvals(s));
     try {
-      const list = await approvals(s);
+      const list = await guard('approvals', s, async () => approvals(s));
       health.failed.delete(scopeKey(s));
       return list;
     } catch (e) {
       health.failed.add(scopeKey(s));
-      console.error('[app overview] could not read approvals:', e instanceof Error ? e.name : 'unknown error');
+      if (!(e instanceof SourceBackoffError)) console.error('[app overview] could not read approvals:', e instanceof Error ? e.name : 'unknown error');
       return [];
     }
   };
+  const fulfilmentSource = (rt.fulfilment ?? rt.orderDemo?.fulfilmentStore) ? createFulfilmentSource((rt.fulfilment ?? rt.orderDemo?.fulfilmentStore)!) : { list: async () => [], moneyEvents: async () => [] };
+  const sellerSource = rt.sellers ? createSellerSource(rt.sellers) : { readiness: async () => deriveReadiness(null) };
   return {
-    orders: { list: async (s) => {
+    orders: { list: (s) => guard('orders', s, async () => {
       const extra = ex().orders;
       const [fromExtras, fromStart] = await Promise.all([extra ? extra(s.workspaceId) : [], rt.orderDemo ? rt.orderDemo.orders.list(s.workspaceId) : []]);
       const seen = new Set<string>();
       return [...fromExtras, ...fromStart].filter((o) => (seen.has(o.id) ? false : (seen.add(o.id), true))).map(toOverviewOrder);
-    } },
-    fulfilment: (rt.fulfilment ?? rt.orderDemo?.fulfilmentStore) ? createFulfilmentSource((rt.fulfilment ?? rt.orderDemo?.fulfilmentStore)!) : { list: async () => [], moneyEvents: async () => [] },
-    seller: rt.sellers ? createSellerSource(rt.sellers) : { readiness: async () => deriveReadiness(null) },
-    store: { get: async (s) => (await readStore(rt, s)).store },
-    steps: { get: (s) => readBuildSteps(rt, ctx, s) },
+    }) },
+    fulfilment: {
+      list: (s) => guard('deliveries', s, async () => fulfilmentSource.list(s)),
+      moneyEvents: (s) => guard('money events', s, async () => fulfilmentSource.moneyEvents(s)),
+    },
+    seller: { readiness: (s) => guard('seller', s, async () => sellerSource.readiness(s)) },
+    // AMP-108: with a `health` record the business name is read here too, in the same pass as the store status and the rest of the
+    // snapshot, and kept beside it, so the page shows one consistent set.
+    store: { get: (s) => guard('store', s, async () => {
+      const { store, status } = await readStore(rt, s);
+      if (health) setBounded(health.pendingStore, scopeKey(s), { businessName: await readBusinessName(rt, ctx, s.businessId), status });
+      return store;
+    }) },
+    steps: { get: (s) => guard('steps', s, () => readBuildSteps(rt, ctx, s)) },
     automation: {
       approvals: readApprovals,
-      activity: async (s) => { const activity = ex().activity; return activity ? activity(s) : []; },
+      activity: (s) => guard('activity', s, async () => { const activity = ex().activity; return activity ? activity(s) : []; }),
     },
     analytics: createAbsentVisitsSource(),
     business: { currency: async () => 'AUD' },
@@ -216,32 +297,84 @@ export type OverviewLookup =
 /** The page re-reads a business once its saved copy is older than this. A failed re-read keeps the older copy and says so. */
 export const OVERVIEW_REFRESH_AFTER_MS = 5_000;
 
-let shared: { rt: OverviewRuntime; cache: OverviewCache } | null = null;
+/** One cache per runtime AND per workspace context. Weak on the runtime, so a dropped runtime takes its caches with it. */
+const caches = new WeakMap<object, Map<string, { workspaceId: string; cache: OverviewCache }>>();
+/** Most workspace caches kept per runtime; the least recently used is dropped past this (its numbers are simply read again). */
+export const OVERVIEW_MAX_WORKSPACE_CACHES = 50;
+
+// Everything the deps read through (workspace, product and brand contexts, site actor) decides the key, so a caller with another
+// workspace context can never be handed the first caller's cache, whose reads are bound to the first caller's contexts.
+const contextKey = (ctx: OverviewContexts): string => JSON.stringify([ctx.workspaceId, ctx.productCtx, ctx.brandCtx, ctx.siteActor]);
+/** AMP-161: which runtime and context a shared cache was built for, so the loader can refuse it for any other. */
+const builtFor = new WeakMap<OverviewCache, { rt: object; key: string }>();
 
 /**
- * The ONE overview cache for this server process. It is keyed by workspace + business inside `createOverviewCache`, so one business
- * never gets another's snapshot. A different runtime object (a test, a rebuilt demo runtime) gets a fresh cache, never the old one's data.
+ * The overview cache for this runtime and this workspace context. Inside it, entries are keyed by workspace + business
+ * (`createOverviewCache`), so one business never gets another's snapshot. A different runtime object (a test, a rebuilt demo
+ * runtime) or a different workspace context gets its own cache, never the old one's data. Bounded per runtime.
  */
 export function sharedOverviewCache(rt: OverviewRuntime, ctx: OverviewContexts, extras: OverviewExtras | (() => OverviewExtras), now: () => Date = () => new Date()): OverviewCache {
-  if (!shared || shared.rt !== rt) {
-    const health = createApprovalsHealth();
-    shared = { rt, cache: createOverviewCache({ deps: createRuntimeOverviewDeps(rt, ctx, extras, now, health), refreshAfterMs: OVERVIEW_REFRESH_AFTER_MS }) };
-    healthOf.set(shared.cache, health);
-  }
-  return shared.cache;
+  let byContext = caches.get(rt);
+  if (!byContext) { byContext = new Map(); caches.set(rt, byContext); }
+  const key = contextKey(ctx);
+  const found = byContext.get(key);
+  if (found) { byContext.delete(key); byContext.set(key, found); return found.cache; } // most recently used last
+  const health = createApprovalsHealth();
+  const cache = createOverviewCache({ deps: createRuntimeOverviewDeps(rt, ctx, extras, now, health, createSourceBackoff(now)), refreshAfterMs: OVERVIEW_REFRESH_AFTER_MS });
+  healthOf.set(cache, health);
+  builtFor.set(cache, { rt, key });
+  byContext.set(key, { workspaceId: ctx.workspaceId, cache });
+  while (byContext.size > OVERVIEW_MAX_WORKSPACE_CACHES) { const oldest = byContext.keys().next().value; if (oldest === undefined) break; byContext.delete(oldest); }
+  return cache;
 }
 
-/** The page's read: unknown business => `found: false` (nothing read or cached); otherwise the cached overview and when it was read. */
+/**
+ * Drops the saved overview for ONE workspace + business, in every cache this runtime holds for that workspace, so the next read is
+ * fresh. For a decision on the Approvals page (the waiting count on the Overview and Dashboard). Never throws; touches nothing else.
+ * A source's back-off wait is kept: a down source is still not read early.
+ */
+export function invalidateSharedOverview(rt: OverviewRuntime, workspaceId: string, businessId: string): void {
+  const scope: OverviewScope = { workspaceId, businessId };
+  for (const entry of caches.get(rt)?.values() ?? []) {
+    if (entry.workspaceId !== workspaceId) continue;
+    try { entry.cache.invalidate(scope); } catch { /* ids that are not plain cannot be cached, so there is nothing to drop */ }
+    const health = healthOf.get(entry.cache);
+    health?.shown.delete(scopeKey(scope)); health?.pendingStore.delete(scopeKey(scope)); health?.shownStore.delete(scopeKey(scope)); health?.failed.delete(scopeKey(scope));
+  }
+}
+
+/**
+ * The page's read: unknown business => `found: false` (nothing read or cached); otherwise the cached overview and when it was read.
+ * The business name and store status come from the same pass as the numbers (AMP-108); only when no such pass is on record are they read directly.
+ */
 export async function loadCachedBusinessOverview(cache: OverviewCache, rt: OverviewRuntime, ctx: OverviewContexts, businessId: string): Promise<OverviewLookup> {
+  // AMP-161: a cache made by `sharedOverviewCache` reads through the runtime and context it was made for; any other is refused.
+  const owner = builtFor.get(cache);
+  if (owner && (owner.rt !== rt || owner.key !== contextKey(ctx))) throw new Error('This overview cache was built for another workspace context.');
   if (!isKnownBusiness(rt, businessId)) return { found: false };
   const scope: OverviewScope = { workspaceId: ctx.workspaceId, businessId };
-  const [c, businessName, { status }] = await Promise.all([cache.get(scope), readBusinessName(rt, ctx, businessId), readStore(rt, scope)]);
+  const c = await cache.get(scope);
   const health = healthOf.get(cache);
   const k = scopeKey(scope);
   const latest = health?.failed.has(k) ?? false;
   // A failed re-read serves the older copy, so the older copy's value is kept; otherwise the copy shown is the latest read.
-  if (health && !c.refreshFailed) health.shown.set(k, latest);
+  if (health && !c.refreshFailed) {
+    health.shown.set(k, latest);
+    // AMP-161: the name + status pair is promoted only when this read was really stored. A read that was invalidated while it ran is
+    // served but not stored; the pair is then not kept, and the direct read below is used instead.
+    if (!c.fromCache) {
+      const again = await cache.get(scope);
+      const stored = again.fromCache && again.refreshedAt === c.refreshedAt;
+      const pass = health.pendingStore.get(k);
+      if (stored && pass) setBounded(health.shownStore, k, pass);
+      else health.shownStore.delete(k);
+    }
+  }
   const approvalsFailed = health ? (health.shown.get(k) ?? latest) : false;
+  const sameSnapshot = health?.shownStore.get(k);
+  let businessName: string | null; let status: StoreStatus;
+  if (sameSnapshot) ({ businessName, status } = sameSnapshot);
+  else { const [name, store] = await Promise.all([readBusinessName(rt, ctx, businessId), readStore(rt, scope)]); businessName = name; status = store.status; }
   return {
     found: true, overview: c.overview, businessName, storeStatus: status, approvalsFailed,
     freshness: { refreshedAt: c.refreshedAt, ageMs: c.ageMs, stale: c.stale, refreshFailed: c.refreshFailed, ...(approvalsFailed ? { approvalsFailed } : {}) },
@@ -255,8 +388,9 @@ export async function loadBusinessOverview(
   if (!isKnownBusiness(rt, businessId)) return { found: false };
   const scope: OverviewScope = { workspaceId: ctx.workspaceId, businessId };
   const health = createApprovalsHealth();
-  const [overview, businessName, { status }] = await Promise.all([
-    getBusinessOverview(createRuntimeOverviewDeps(rt, ctx, extras, now, health), scope), readBusinessName(rt, ctx, businessId), readStore(rt, scope),
-  ]);
+  const overview = await getBusinessOverview(createRuntimeOverviewDeps(rt, ctx, extras, now, health), scope);
+  // Name and store status were read inside that same pass (AMP-108); nothing is read a second time.
+  const pass = health.pendingStore.get(scopeKey(scope));
+  const [businessName, status] = pass ? [pass.businessName, pass.status] : await Promise.all([readBusinessName(rt, ctx, businessId), readStore(rt, scope).then((r) => r.status)]);
   return { found: true, overview, businessName, storeStatus: status, approvalsFailed: health.failed.has(scopeKey(scope)) };
 }

@@ -16,7 +16,7 @@ import { NAME_NOTICE, contrastChecks } from '../../../../lib/aimp/branding/valid
 import { brandAction } from '../../../start/actions';
 import type { BrandOp } from '../../../start/journey-types';
 import { previewBrandAction } from './actions';
-import type { BrandPreview } from './_server/brand';
+import type { ClientBrandPreview as BrandPreview } from './_server/brand-guard';
 import { colourKeys, colourNames, describeBrandKit, editsFromForm, isDirty, paletteFromForm, statusNames, toForm, toneNames } from './view-model';
 import type { BrandForm } from './view-model';
 
@@ -202,7 +202,7 @@ export function BrandKitView({ businessId, initialVersions }: { businessId: stri
             <p className="plg-text">
               {approved ? `Your store still uses approved version ${approved.version}. This preview changed nothing.` : 'No brand is approved yet, so your store uses nothing from it. This preview changed nothing.'}
             </p>
-            <Sample name={preview.storefront.brand.name} tagline={preview.storefront.brand.tagline} palette={preview.storefront.palette} label="Sample of the previewed colours" />
+            <Sample name={preview.name} tagline={preview.tagline} palette={preview.palette} label="Sample of the previewed colours" />
             <ul className="ab-rows">
               {preview.rows.map((r) => (
                 <li key={r.id} data-changed={r.changed ? 'true' : 'false'}>

@@ -40,6 +40,8 @@ export interface StripeVM {
   outstanding: string[];
   /** Set when the account or the site's payments are sample data. */
   sampleNote: string | null;
+  /** "Coming later" while this business has no payment account to show; null once it has one. */
+  timing: string | null;
   /** Why there is no connect button. */
   connectNote: string;
 }
@@ -58,7 +60,7 @@ export interface ServiceVM {
 
 export interface IntegrationsVM { stripe: StripeVM; services: ServiceVM[] }
 
-export const DEMO_NOTE = 'This is the demo. What you see here is kept in memory on this computer and is lost when the app restarts.';
+export const DEMO_NOTE = 'This is the demo. What you see here is kept in memory on this server and is lost when the app restarts.';
 export const COMING_LATER = 'Coming later';
 export const NO_CONNECT_NOTE = 'You cannot connect or disconnect anything from this page yet. Connecting your own accounts is coming later.';
 export const STRIPE_SAMPLE_NOTE = 'Sample data. This is not a real Stripe account. No real card is charged and no real money moves.';
@@ -76,7 +78,7 @@ const SELLER: Record<SellerState, { label: string; tone: Tone; text: string }> =
 };
 
 const SITE: Record<ProviderStatusKind, { label: string; tone: Tone; text: string }> = {
-  live: { label: 'On for this site', tone: 'success', text: 'This site uses the real service.' },
+  live: { label: 'On for this site', tone: 'success', text: 'This site is set to use the real service. We have not checked that it is working.' },
   test: { label: 'Sample data', tone: 'neutral', text: 'This site uses sample data for this. Nothing real is sent, charged or published.' },
   fixture: { label: 'Sample data', tone: 'neutral', text: 'This site uses sample data for this. Nothing real is sent, charged or published.' },
   disconnected: { label: 'Not connected', tone: 'neutral', text: 'This site is not connected to this service yet.' },
@@ -97,8 +99,6 @@ const SERVICES: Record<Exclude<ProviderId, 'payments'>, { name: string; what: st
 };
 const ORDER: readonly Exclude<ProviderId, 'payments'>[] = ['social', 'email', 'storage', 'domains', 'llm'];
 
-const isSampleSite = (s: ProviderStatusKind): boolean => s === 'test' || s === 'fixture';
-
 function stripeAccount(i: StripeInput): Fact {
   if (!i.available) return { label: 'Not connected', tone: 'neutral', text: STRIPE_UNAVAILABLE };
   const s = SELLER[i.state] ?? SELLER.not_connected;
@@ -115,7 +115,8 @@ function stripeAccount(i: StripeInput): Fact {
 
 export function buildIntegrations(i: IntegrationsInput): IntegrationsVM {
   const st = i.stripe;
-  const sampleNote = (st.available && st.hasAccount && st.sample) || isSampleSite(st.site) ? STRIPE_SAMPLE_NOTE : null;
+  const hasAccount = st.available && st.hasAccount;
+  const sampleNote = hasAccount && st.sample ? STRIPE_SAMPLE_NOTE : null;
   const stripe: StripeVM = {
     name: 'Stripe',
     what: 'Taking card payments and sending the money to your bank.',
@@ -125,6 +126,7 @@ export function buildIntegrations(i: IntegrationsInput): IntegrationsVM {
     canTakePayments: st.available && st.hasAccount && !st.sample && st.canAcceptPayments && st.checkoutOpen,
     outstanding: st.available && st.hasAccount ? [...st.outstanding] : [],
     sampleNote,
+    timing: hasAccount ? null : COMING_LATER,
     connectNote: NO_CONNECT_NOTE,
   };
   const byId = new Map(i.site.map((s) => [s.id, s.status]));

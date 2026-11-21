@@ -14,7 +14,7 @@ type Query = { [key: string]: string | string[] | undefined };
 
 // Screen 19: the orders of an existing business. Same in-memory DEMO runtime as /start and the other /app pages (lost on restart), and off
 // in production unless the demo tools are enabled. `?filter=all|needs_attention|delivered|refunded` picks the filter, `?cursor=` the page.
-// The /start runtime has no order store yet, so today this page shows an honest "no orders can exist in the demo yet" state.
+// The /start runtime has an order store (AMP-103); orders paid through the sample seller account are marked as test orders.
 export default async function OrdersPage({ params, searchParams }: { params: Promise<{ business: string }>; searchParams: Promise<Query> }) {
   const { business } = await params;
   const q = await searchParams;
@@ -48,5 +48,5 @@ export default async function OrdersPage({ params, searchParams }: { params: Pro
   }
   if (!found.found) return <UnknownBusiness />;
   if (!found.available) return <OrdersUnavailable businessId={business} />;
-  return <OrdersView businessId={business} vm={buildList(business, found.page, found.cursor)} />;
+  return <OrdersView businessId={business} vm={buildList(business, found.page, found.cursor, found.testIds)} />;
 }

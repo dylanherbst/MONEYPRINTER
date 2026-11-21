@@ -4,10 +4,12 @@ import { blueprints } from '../../lib/aimp/preview/blueprints';
 import { StoryCanvas } from './_scene/story-canvas';
 import { WatchDemo } from './watch-demo';
 import { TrackedLink } from './tracked-link';
+import { HeroHeadline } from './hero-headline';
 import './tokens.css';
 import './plant.css';
 import { fontVars } from './fonts';
 import { primaryEntry } from '../../lib/aimp/entry';
+import { planButton, sitePages } from '../../lib/aimp/plant/site-pages';
 
 
 export const metadata: Metadata = {
@@ -82,7 +84,7 @@ export default function PlantLabHome() {
             <div className="amp-wrap amp-chapter-inner">
               <div className="amp-copy">
                 <p className="amp-eyebrow">The next wave of online business</p>
-                <h1 className="amp-display">Your 6-figure business is just a few clicks away.</h1>
+                <HeroHeadline control="Your 6-figure business is just a few clicks away." />
                 <p className="amp-lead">No coding. No complicated setup. Just choose an idea and our AI will build your online business from start to launch, with our niche and product finder guided by our Profitability Calculator.</p>
                 <p className="amp-journey">Your journey from 9–5 to financial freedom starts here…</p>
                 <div className="amp-actions">
@@ -129,7 +131,7 @@ export default function PlantLabHome() {
                 <h2 className="amp-h2">Build once. Automate what comes next.</h2>
                 <p className="amp-lead">Paid orders deliver themselves. Approved posts go out on schedule. A daily check tells you what needs your attention, and you can pause anything.</p>
                 <TrackedLink className="amp-btn amp-btn-primary" href={primaryEntry.href} event={{ cta: 'stage_growth' }}>{primaryEntry.label}</TrackedLink>
-                <p className="amp-note">Checkout and automatic delivery are in pilot testing with a small group first.</p>
+                <p className="amp-note">Checkout and automatic delivery are in pilot testing with a small group first. Scheduled posting and daily checks are planned and not available yet.</p>
               </div>
             </div>
           </div>
@@ -218,8 +220,8 @@ export default function PlantLabHome() {
                   <p className="amp-price">{plan.priceAud === 0 ? 'Free' : <>A${plan.priceAud}<span>/month</span></>}</p>
                   <p className="amp-plan-blurb">{plan.blurb}</p>
                   <ul>{plan.includes.map((i) => <li key={i}><Check />{i}</li>)}</ul>
-                  <TrackedLink className={`amp-btn ${plan.id === 'launch' ? 'amp-btn-primary' : 'amp-btn-secondary'}`} href={`${BUILD}?plan=${plan.id}`} event={{ cta: 'pricing', plan: plan.id }}>
-                    {plan.priceAud === 0 ? 'Start free preview' : `Choose ${plan.name}`}
+                  <TrackedLink className={`amp-btn ${plan.id === 'launch' ? 'amp-btn-primary' : 'amp-btn-secondary'}`} href={planButton(plan).href} event={{ cta: 'pricing', plan: plan.id }}>
+                    {planButton(plan).label}
                   </TrackedLink>
                 </li>
               ))}
@@ -265,6 +267,9 @@ export default function PlantLabHome() {
       <footer className="amp-footer">
         <div className="amp-wrap amp-footer-inner">
           <p className="amp-logo">{site.name}</p>
+          <nav className="amp-footer-links" aria-label="Footer">
+            {sitePages.map((p) => <a key={p.id} href={p.href}>{p.label}</a>)}
+          </nav>
           <p>Questions? <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a></p>
           <p className="amp-small">Pilot pricing and features are being tested and may change. Nothing on this site is financial advice.</p>
         </div>

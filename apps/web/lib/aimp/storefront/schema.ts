@@ -22,6 +22,8 @@ export type CoverStyle = (typeof coverStyles)[number];
 
 export interface StoreProduct {
   slug: string;
+  /** AMP-104: the product this store product was published from. Optional: older snapshots and demo stores have none. Never shown to buyers. */
+  productId?: string;
   title: string;
   summary: string;
   description: string[];
@@ -99,11 +101,11 @@ export function validateStoreConfig(input: unknown): ValidationResult {
   if (!isObj(c.brand)) errors.push('brand: object'); else {
     text(c.brand.name, 'brand.name', 60); text(c.brand.tagline, 'brand.tagline', 120);
     oneOf(c.brand.theme, 'brand.theme', Object.keys(storeThemes) as StoreThemeName[]); oneOf(c.brand.font, 'brand.font', storeFonts);
-  }
-  if (!isObj(c.hero)) errors.push('hero: object'); else {
     if (c.brand.template !== undefined) oneOf(c.brand.template, 'brand.template', templateIds);
     if (c.brand.accent !== undefined) { const t = templateById(c.brand.template ?? 'clean-launch')!; const r = resolvePalette(t, String(c.brand.accent)); if (!r.ok) errors.push(`brand.accent: ${r.message}`); }
     if (c.brand.logo !== undefined) { const r = checkLogo(c.brand.logo); if (!r.ok) errors.push(`brand.logo: ${r.message}`); }
+  }
+  if (!isObj(c.hero)) errors.push('hero: object'); else {
     text(c.hero.eyebrow, 'hero.eyebrow', 60); text(c.hero.heading, 'hero.heading', 90);
     text(c.hero.subheading, 'hero.subheading', 220); text(c.hero.ctaLabel, 'hero.ctaLabel', 30);
   }
@@ -121,6 +123,7 @@ export function validateStoreConfig(input: unknown): ValidationResult {
     if (typeof p.slug !== 'string' || !SLUG.test(p.slug)) errors.push(`${at}.slug: invalid`);
     else if (productSlugs.has(p.slug)) errors.push(`${at}.slug: duplicate`);
     else productSlugs.set(p.slug, typeof p.priceMinor === 'number' ? p.priceMinor : 0);
+    if (p.productId !== undefined && (typeof p.productId !== 'string' || p.productId.length < 1 || p.productId.length > 120)) errors.push(`${at}.productId: 1-120 characters`);
     text(p.title, `${at}.title`, 80); text(p.summary, `${at}.summary`, 160);
     textList(p.description, `${at}.description`, 6, 600, 1);
     price(p.priceMinor, `${at}.priceMinor`);

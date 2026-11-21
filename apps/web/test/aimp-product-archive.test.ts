@@ -155,8 +155,13 @@ test('AMP-100: archiveProduct says whether a published store still shows the pro
   const pc = { workspaceId: b.seed.workspaceId, actorId: b.seed.ownerId };
   const ctx = w.catalogueCtx('a');
   const titleSlugs = async () => (await w.catalogue.listVersions(ctx, b.listingId as string)).map((l) => slugify(l.title));
-  const probeWith = (productSlugsFor: () => Promise<string[]>, storeSlugFor?: () => Promise<string | null>) => createSitePublishedStoreProbe({
-    resolvePublished: (slug) => w.sites.resolvePublished(slug),
+  // A snapshot published before store products carried a product id (AMP-104): same store, ids removed.
+  const legacyResolve = async (slug: string) => {
+    const r = await w.sites.resolvePublished(slug);
+    return r.status === 'live' ? { ...r, config: { ...r.config, products: r.config.products.map((p) => { const c = { ...p }; delete c.productId; return c; }) } } : r;
+  };
+  const probeWith = (productSlugsFor: () => Promise<string[]>, storeSlugFor?: () => Promise<string | null>, legacy = false) => createSitePublishedStoreProbe({
+    resolvePublished: (slug) => (legacy ? legacyResolve(slug) : w.sites.resolvePublished(slug)),
     storeSlugFor: storeSlugFor ?? (async (c) => (c.workspaceId === b.seed.workspaceId ? (b.slug as string) : null)),
     productSlugsFor,
   });
@@ -174,7 +179,7 @@ test('AMP-100: archiveProduct says whether a published store still shows the pro
 
   // 2. Not shown: the store is paused or absent. A live store with products where none matches by slug is NOT a confident
   // "not shown" (the store may have renamed or de-duplicated the slug), so it is unknown.
-  const other = await serviceWith(probeWith(async () => ['some-other-product'])).archiveProduct(pc, productId, businessId);
+  const other = await serviceWith(probeWith(async () => ['some-other-product'], undefined, true)).archiveProduct(pc, productId, businessId);
   assert.deepEqual([other.publishedStore, other.storeNeedsRepublish], ['unknown', null]);
   const paused = await w.sites.pause({ workspaceId: b.seed.workspaceId, userId: b.seed.ownerId }, b.slug as string);
   assert.equal(paused.ok, true);
@@ -187,7 +192,7 @@ test('AMP-100: archiveProduct says whether a published store still shows the pro
   // 3. Dependency absent, cannot tell which store product it is, or the lookup fails: honestly unknown, never "false".
   for (const svc of [
     serviceWith(),
-    serviceWith(probeWith(async () => [])),
+    serviceWith(probeWith(async () => [], undefined, true)),
     serviceWith({ isProductShown: async () => { throw new Error('site data unavailable'); } }),
   ]) {
     const r = await svc.archiveProduct(pc, productId, businessId);
@@ -231,7 +236,7 @@ test('AMP-100: a live store with no products at all is not_shown; with products 
     productSlugsFor: async () => ['renamed-by-the-store-elsewhere'],
   });
   assert.equal(await probeFor([]).isProductShown({ workspaceId: b.seed.workspaceId }, product), 'not_shown');
-  assert.equal(await probeFor(live.config.products).isProductShown({ workspaceId: b.seed.workspaceId }, product), 'unknown');
+  assert.equal(await probeFor(live.config.products.map((p) => { const c = { ...p }; delete c.productId; return c; })).isProductShown({ workspaceId: b.seed.workspaceId }, product), 'unknown');
 });
 
 test('past orders and every earlier product version still resolve after archiving; new checkouts are refused', async () => {

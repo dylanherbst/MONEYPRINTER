@@ -33,7 +33,16 @@ export interface Order {
   failureReason: string | null;
   createdAt: string;
   paidAt: string | null;
+  /**
+   * STORED TEST FLAG (AMP-162), written once when the order is created and never changed: true = made by a sample or test purchase
+   * (no real payment), false = a real order. Absent (undefined) only on a record from a store that has no such field; readers must then
+   * treat the order as UNKNOWN (see `storedTestFlag`), never as real and never as test by default.
+   */
+  test?: boolean;
 }
+
+/** The stored test flag as a strict answer: true / false when the store wrote one, null when the record has no (valid) flag. */
+export const storedTestFlag = (o: Pick<Order, 'test'> | null | undefined): boolean | null => (typeof o?.test === 'boolean' ? o.test : null);
 
 export type NewOrder = Omit<Order, 'status' | 'checkoutSessionId' | 'checkoutUrl' | 'paidEventId' | 'failureReason' | 'paidAt'>;
 

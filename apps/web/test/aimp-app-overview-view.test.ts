@@ -172,6 +172,21 @@ test('the view takes every section title from the view model and keeps the headi
   assert.doesNotMatch(VIEW, /<h1|heading="h1"|<h4|heading="h4"/); // the one h1 is AppIntro's
 });
 
+test('AMP-136 approvals could not be read: the empty Needs-you card says so, never "Nothing needs you right now."', () => {
+  const o = overviewOf('new_setup');
+  const failed = buildOverviewViewModel({ overview: { ...o, needsYou: [], needsYouTotal: 0 }, approvalsFailed: true });
+  assert.equal(failed.needsYou.length, 0);
+  assert.ok(failed.banners.some((b) => b.id === 'approvals_not_read'));
+  const fine = buildOverviewViewModel({ overview: { ...o, needsYou: [], needsYouTotal: 0 } });
+  assert.ok(!fine.banners.some((b) => b.id === 'approvals_not_read'));
+  // The view picks the plain "could not check" line from that banner, and keeps the calm line only for a real, successful read.
+  const at = VIEW.indexOf("b.id === 'approvals_not_read'");
+  assert.ok(at > 0);
+  const card = VIEW.slice(VIEW.indexOf('data-testid="needs-you"'), VIEW.indexOf('data-testid="progress"'));
+  assert.match(card, /We could not check your approvals, so we cannot say whether anything needs you/);
+  assert.ok(card.indexOf("approvals_not_read") < card.indexOf('Nothing needs you right now.'));
+});
+
 test('demo storage off (production without the demo switch): the page stops at a plain notice before reading anything', () => {
   const reason = 'This step runs on demo storage, which is switched off on this site. Nothing was saved.';
   for (const valid of [true, false]) {

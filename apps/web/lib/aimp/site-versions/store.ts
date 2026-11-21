@@ -20,7 +20,11 @@ export type FailCode = 'invalid' | 'denied' | 'not_found' | 'conflict' | 'failed
 export type Result<T> = { ok: true; value: T } | { ok: false; code: FailCode; errors: string[] };
 
 export type VersionSource = { kind: 'publish' } | { kind: 'rollback'; fromVersion: number };
-export interface VersionSummary { version: number; publishedAt: string; publishedBy: string; note: string; source: VersionSource }
+export interface VersionSummary {
+  version: number; publishedAt: string; publishedBy: string; note: string; source: VersionSource;
+  /** AMP-145: present and true only when this version passed its publish check (recorded through `markChecked`). Absent means not recorded. */
+  checkedOk?: true;
+}
 /** `config` is a deep-frozen snapshot: assigning to it (in strict mode) throws. */
 export interface PublishedVersion extends VersionSummary { config: StoreConfig }
 
@@ -67,9 +71,17 @@ export interface SiteVersionStore {
   previewDraft(actor: Actor, slug: string): Promise<Result<DraftPreview>>;
   /** If the draft equals the live version nothing is published: the live summary comes back with `unchanged: true`. */
   publish(actor: Actor, slug: string, opts?: { note?: string; expectedRevision?: number }): Promise<Result<VersionSummary & { unchanged?: true }>>;
-  pause(actor: Actor, slug: string): Promise<Result<{ paused: boolean }>>;
+  /** `expectedLive` (AMP-145): compare-and-set. If a different version is live (or none), nothing changes and the result is `conflict`. */
+  pause(actor: Actor, slug: string, opts?: { expectedLive?: number }): Promise<Result<{ paused: boolean }>>;
   unpause(actor: Actor, slug: string): Promise<Result<{ paused: boolean }>>;
-  rollback(actor: Actor, slug: string, toVersion: number, opts?: { note?: string }): Promise<Result<VersionSummary>>;
+  /** `expectedLive` (AMP-145): compare-and-set. If a different version is live, nothing changes and the result is `conflict`. */
+  rollback(actor: Actor, slug: string, toVersion: number, opts?: { note?: string; expectedLive?: number }): Promise<Result<VersionSummary>>;
+  /**
+   * AMP-145: record that `version` passed its publish check. Stored per version, so it survives a new caller or a restart of
+   * whatever holds the publish-check state. Idempotent. The flag then shows as `checkedOk` on history/publish summaries.
+   * A database-backed store needs a column for it (see D03); until it exists it may answer `failed` and callers carry on.
+   */
+  markChecked(actor: Actor, slug: string, version: number): Promise<Result<{ version: number; checkedOk: true }>>;
   history(actor: Actor, slug: string): Promise<Result<HistoryView>>;
   getVersion(actor: Actor, slug: string, version: number): Promise<Result<PublishedVersion>>;
   /** Public. Takes no actor and can only ever see live published snapshots. */
@@ -85,6 +97,8 @@ interface Site {
   versions: PublishedVersion[];
   paused: boolean;
   events: SiteEvent[];
+  /** Version numbers that passed their publish check (AMP-145). Versions themselves are frozen, so the flag lives beside them. */
+  checked: Set<number>;
 }
 
 const NOTE_MAX = 200;
@@ -109,7 +123,12 @@ function stable(v: unknown): string {
 }
 
 const published = (c: StoreConfig): StoreConfig => ({ ...c, status: 'published' });
-const summary = (v: PublishedVersion): VersionSummary => ({ version: v.version, publishedAt: v.publishedAt, publishedBy: v.publishedBy, note: v.note, source: { ...v.source } });
+const summary = (v: PublishedVersion, checked?: Set<number>): VersionSummary => ({
+  version: v.version, publishedAt: v.publishedAt, publishedBy: v.publishedBy, note: v.note, source: { ...v.source },
+  ...(checked?.has(v.version) ? { checkedOk: true as const } : {}),
+});
+const validExpected = (n: unknown): boolean => n === undefined || (typeof n === 'number' && Number.isInteger(n));
+const NOT_LIVE = (expected: number, current: number | null) => `Version ${current ?? 'none'} is live now, not version ${expected}, so nothing was changed.`;
 
 export function createSiteVersionStore(options: SiteVersionStoreOptions = {}): SiteVersionStore {
   const now = options.now ?? (() => new Date());
@@ -189,7 +208,7 @@ export function createSiteVersionStore(options: SiteVersionStoreOptions = {}): S
       try { draft = { ...structuredClone(config), status: 'draft' }; } catch { return fail('invalid', 'The store settings could not be read.'); }
       const checked = validate(draft);
       if (!checked.ok) return fail('invalid', ...plainErrors(checked.errors));
-      const site: Site = { workspaceId: actor.workspaceId, slug, draft, revision: 1, updatedAt: now().toISOString(), versions: [], paused: false, events: [] };
+      const site: Site = { workspaceId: actor.workspaceId, slug, draft, revision: 1, updatedAt: now().toISOString(), versions: [], paused: false, events: [], checked: new Set() };
       sites.set(slug, site);
       return ok(view(site));
     },
@@ -241,13 +260,18 @@ export function createSiteVersionStore(options: SiteVersionStoreOptions = {}): S
         return fail('conflict', 'The draft changed after you previewed it. Preview it again before publishing.');
       }
       const l = live(a.site);
-      if (l && !view(a.site).hasUnpublishedChanges) return ok({ ...summary(l), unchanged: true });
+      if (l && !view(a.site).hasUnpublishedChanges) return ok({ ...summary(l, a.site.checked), unchanged: true });
       return commit(a.site, actor, published(structuredClone(a.site.draft)), { kind: 'publish' }, n.note);
     },
 
-    async pause(actor, slug) {
+    async pause(actor, slug, opts = {}) {
       const a = access(actor, slug);
       if (!a.ok) return a;
+      if (!validExpected(opts?.expectedLive)) return fail('invalid', 'The expected live version is not a version number.');
+      if (opts?.expectedLive !== undefined) {
+        const cur = live(a.site)?.version ?? null;
+        if (cur !== opts.expectedLive) return fail('conflict', NOT_LIVE(opts.expectedLive, cur));
+      }
       if (!live(a.site)) return fail('conflict', 'Nothing is published yet, so there is nothing to pause.');
       if (!a.site.paused) { a.site.paused = true; a.site.events.push({ at: now().toISOString(), by: actor.userId, kind: 'pause' }); }
       return ok({ paused: true });
@@ -265,7 +289,11 @@ export function createSiteVersionStore(options: SiteVersionStoreOptions = {}): S
       if (!a.ok) return a;
       const n = checkNote(opts.note);
       if (!n.ok) return n;
+      if (!validExpected(opts?.expectedLive)) return fail('invalid', 'The expected live version is not a version number.');
       const current = live(a.site);
+      if (opts?.expectedLive !== undefined && (current?.version ?? null) !== opts.expectedLive) {
+        return fail('conflict', NOT_LIVE(opts.expectedLive, current?.version ?? null));
+      }
       if (!current) return fail('conflict', 'Nothing is published yet, so there is nothing to go back to.');
       const target = Number.isInteger(toVersion) ? a.site.versions[toVersion - 1] : undefined;
       if (!target) return fail('not_found', 'That version does not exist.');
@@ -273,12 +301,24 @@ export function createSiteVersionStore(options: SiteVersionStoreOptions = {}): S
       return commit(a.site, actor, published(structuredClone(target.config)), { kind: 'rollback', fromVersion: target.version }, n.note || `Restored version ${target.version}`);
     },
 
+    async markChecked(actor, slug, version) {
+      const a = access(actor, slug);
+      if (!a.ok) return a;
+      const v = Number.isInteger(version) ? a.site.versions[version - 1] : undefined;
+      if (!v) return fail('not_found', 'That version does not exist.');
+      // Only the version that is live right now can be flagged as checked: an old or never-live version cannot be marked.
+      const current = live(a.site);
+      if (!current || current.version !== v.version) return fail('conflict', NOT_LIVE(v.version, current?.version ?? null));
+      a.site.checked.add(v.version);
+      return ok({ version: v.version, checkedOk: true as const });
+    },
+
     async history(actor, slug) {
       const a = access(actor, slug);
       if (!a.ok) return a;
       const l = live(a.site);
       return ok({
-        versions: a.site.versions.map(summary).reverse(),
+        versions: a.site.versions.map((v) => summary(v, a.site.checked)).reverse(),
         events: a.site.events.map((e) => ({ ...e })).reverse(),
         liveVersion: l ? l.version : null,
         paused: a.site.paused,

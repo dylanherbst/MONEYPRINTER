@@ -1,13 +1,17 @@
 import type { Metadata } from 'next';
 import { AppIntro, AppLayout, GlassButton, GlassNotice, GlassState } from '../../design-system/aimp-glass';
-import { automationCtx, demoAutomation } from '../../../lib/aimp/automation/demo';
 import { checkoutRuntime } from '../../../lib/aimp/checkout/demo';
 import { buildBusinessOverview, overviewStates } from '../../../lib/aimp/overview/index';
 import type { OverviewState } from '../../../lib/aimp/overview/index';
 import { DEMO_OVERVIEW_NOW, demoSnapshot } from '../../../lib/aimp/overview/demo';
 import { toolsEnabled } from '../../../lib/aimp/files/demo';
-import { availability, brandCtx, catalogueCtx, checkBusiness, productCtx, runtime, siteActor, WORKSPACE } from '../../start/_server/runtime';
+import { availability, brandCtx, catalogueCtx, checkBusiness, OWNER, productCtx, runtime, siteActor, WORKSPACE } from '../../start/_server/runtime';
+import { automationContext } from './approvals/_server/approvals';
+import { automationSource } from './approvals/_server/source';
 import { OverviewView, UnknownBusiness } from './overview-view';
+import { buildCarouselData } from './carousel/carousel-data';
+import { OverviewCarousel } from './carousel/overview-carousel';
+import { PhoneHome } from './carousel/phone-home';
 import { automationExtras, loadCachedBusinessOverview, sharedOverviewCache } from './_server/overview';
 import type { OverviewContexts, OverviewExtras } from './_server/overview';
 import { buildOverviewViewModel, overviewGate } from './view-model';
@@ -24,9 +28,10 @@ const contexts: OverviewContexts = { workspaceId: WORKSPACE, productCtx, brandCt
 // Only used while the demo tools are on (the same switch as /start). Nothing else exists yet: no analytics, no seller account.
 function extras(): OverviewExtras {
   const checkout = checkoutRuntime();
+  const automation = automationSource();
   return {
     orders: checkout ? async (workspaceId) => (await checkout).orders.list(workspaceId) : undefined,
-    ...automationExtras(() => demoAutomation().automation, (s) => automationCtx('overview', s.businessId)),
+    ...(automation ? automationExtras(automation, (s) => automationContext({ workspaceId: WORKSPACE, actorUserId: OWNER }, s.businessId)) : {}),
   };
 }
 
@@ -74,5 +79,6 @@ export default async function BusinessOverviewPage({ params, searchParams }: { p
   }
   if (!found.found) return <UnknownBusiness />;
   const vm = buildOverviewViewModel({ overview: found.overview, businessName: found.businessName, storeStatus: found.storeStatus, freshness: found.freshness });
-  return <OverviewView vm={vm} />;
+  const data = buildCarouselData(vm);
+  return <><PhoneHome data={data} /><OverviewCarousel data={data} /></>;
 }

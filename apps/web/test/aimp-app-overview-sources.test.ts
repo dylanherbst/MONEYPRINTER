@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  createRuntimeOverviewDeps, loadCachedBusinessOverview, OVERVIEW_REFRESH_AFTER_MS, OVERVIEW_SOURCES, overviewSources, sharedOverviewCache,
+  createRuntimeOverviewDeps, loadCachedBusinessOverview, OVERVIEW_BACKOFF_MAX_MS, OVERVIEW_REFRESH_AFTER_MS, OVERVIEW_SOURCES, overviewSources, sharedOverviewCache,
 } from '../app/app/[business]/_server/overview.ts';
 import type { OverviewContexts, OverviewRuntime } from '../app/app/[business]/_server/overview.ts';
 import { agoWords, buildOverviewViewModel } from '../app/app/[business]/view-model.ts';
@@ -173,8 +173,9 @@ test('the page reads from the cache, re-reads after a short while, and reports a
   assert.match(banner.text, /Last updated 20 minutes ago \(2026-11-14 10:00 UTC\)\. They may be out of date\./);
   assert.equal(vmOld.updatedText, 'Updated 20 minutes ago');
 
-  // The source comes back: fresh numbers, no warning.
+  // The source comes back: it is tried again once its back-off wait has passed, then fresh numbers and no warning.
   state.failSteps = false;
+  c.advance(OVERVIEW_BACKOFF_MAX_MS);
   const back = await load();
   assert.equal(back.freshness.refreshFailed, false);
   assert.equal(back.freshness.stale, false);

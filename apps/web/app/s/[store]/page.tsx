@@ -5,6 +5,12 @@ import { loadPublishedStore, purchaseState } from '../../../lib/aimp/storefront/
 import type { StoreSection } from '../../../lib/aimp/storefront/schema';
 import { storeBase } from './_ui/base';
 import { BundleCard, Cover, ProductCard } from './_ui/parts';
+import { TestPurchaseForm } from './_ui/test-purchase-form';
+import { OptInForm } from './_ui/opt-in-form';
+import { readOptInWording } from './_server/audience';
+import { optInDeps } from './_server/audience-wiring';
+import { offerTestPurchase } from './_server/test-purchase';
+import { testPurchaseDeps } from './_server/wiring';
 
 export async function generateMetadata({ params }: { params: Promise<{ store: string }> }): Promise<Metadata> {
   const store = await loadPublishedStore((await params).store);
@@ -16,6 +22,9 @@ export default async function StoreHome({ params }: { params: Promise<{ store: s
   if (!store) notFound();
   const base = await storeBase(store.slug);
   const state = purchaseState(store);
+  const testOffer = await offerTestPurchase(testPurchaseDeps(), store);
+  // The consent line is read from the store's own stored form; if it cannot be read, the sign-up form is not shown at all.
+  const optInWording = testOffer ? await readOptInWording(optInDeps(), store.slug) : null;
   const featured = store.products.filter((p) => p.featured);
   const hero = featured[0] ?? store.products[0];
   const show = (s: StoreSection) => store.sections.includes(s);
@@ -62,6 +71,9 @@ export default async function StoreHome({ params }: { params: Promise<{ store: s
           <div className="st-grid">{store.products.map((p) => <ProductCard key={p.slug} product={p} base={base} />)}</div>
         </section>
       ) : null}
+
+      {testOffer ? <TestPurchaseForm store={store.slug} label={testOffer.label} /> : null}
+      {testOffer && optInWording ? <OptInForm store={store.slug} wording={optInWording} /> : null}
 
       {show('faq') && store.faq.length > 0 ? (
         <section id="faq" className="st-wrap st-section st-narrow" aria-labelledby="faq-h">

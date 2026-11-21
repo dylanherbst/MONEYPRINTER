@@ -37,7 +37,7 @@ function ProviderCard({ fact }: { fact: Fact }) {
   );
 }
 
-/** No seller account store in this runtime: say exactly that, and do not show a pretend account. */
+/** A runtime with no seller source to read: say exactly that, and do not show a pretend account. */
 export function PaymentsUnavailable({ businessId, vm }: { businessId: string; vm: UnavailableVM }) {
   return (
     <AppLayout width="wide">

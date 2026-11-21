@@ -12,8 +12,10 @@ import {
 import { MISSING_WIRING, loadOrder, loadOrders, ordersSource } from '../app/app/[business]/orders/_server/orders.ts';
 import type { OrdersRuntime, OrdersSource } from '../app/app/[business]/orders/_server/orders.ts';
 import {
-  ACTOR_AUTOMATIC, ACTOR_PERSON, ACTOR_UNKNOWN, ACTOR_YOU, DEMO_NOTE, NO_STORE_TEXT, NO_STORE_TITLE, REFUND_NOTE, actorLabel, buildDetail, buildList, buildRow, emptyCopy, newRequestKey, orderHref, ordersHref, parseCursor, parseFilter,
+  ACTOR_AUTOMATIC, ACTOR_PERSON, ACTOR_UNKNOWN, ACTOR_YOU, DEMO_NOTE, NO_STORE_TEXT, NO_STORE_TITLE, REFUND_NOTE, TEST_ORDER_LABEL, actorLabel, buildDetail, buildList, buildRow, emptyCopy, newRequestKey, orderHref, ordersHref, parseCursor, parseFilter,
 } from '../app/app/[business]/orders/view-model.ts';
+import { orderIsTest } from '../app/start/_server/checkout-runtime.ts';
+import { SAMPLE_SELLER_PREFIX } from '../app/start/_server/orders-runtime.ts';
 import { workspaceNavHref, workspaceNavItems } from '../app/app/[business]/workspace-nav-items.ts';
 import { createFulfilmentWorld } from '../lib/aimp/fulfilment/demo.ts';
 import { signMoneyEvent } from '../lib/aimp/fulfilment/refund-events.ts';
@@ -52,7 +54,8 @@ test('a runtime without order stores has no orders source, so the list says no o
   assert.deepEqual(list, { found: true, available: false });
   assert.deepEqual(await loadOrder(rt, ordersSource(rt), 'biz-a', 'ord_1'), { found: false });
   assert.deepEqual(await loadOrders(rt, null, 'unknown', { filter: 'all', cursor: null }), { found: false }, 'an unknown business is unknown, not "no orders"');
-  assert.match(NO_STORE_TITLE, /No orders can exist in the demo yet/);
+  assert.match(NO_STORE_TITLE, /Orders cannot be read right now/); // AMP-138: wording updated, the runtime has had an order store since AMP-103
+  assert.doesNotMatch(`${NO_STORE_TITLE} ${NO_STORE_TEXT}`, /cannot exist|no checkout|nothing can be bought/i);
   assert.match(NO_STORE_TEXT, /not a count of zero sales/);
   assert.ok(MISSING_WIRING.length >= 3);
 });
@@ -122,7 +125,7 @@ test('AMP-102: after a bad or unknown cursor page 1 is shown, so there is no "Ba
   assert.equal(buildList(a.businessId, real.page, real.cursor).firstPageHref, `/app/${a.businessId}/orders`);
   // The page hands buildList the cursor loadOrders reports, not the one in the address.
   const page = readFileSync(new URL('../app/app/[business]/orders/page.tsx', import.meta.url), 'utf8');
-  assert.match(page, /buildList\(business, found\.page, found\.cursor\)/);
+  assert.match(page, /buildList\(business, found\.page, found\.cursor, found\.testIds\)/);
 });
 
 test('AMP-102: a prototype-key order id is not found by loadOrder: it never throws and never returns an inherited value', async () => {
@@ -166,6 +169,207 @@ test('AMP-102: a zero-decimal currency is not divided by 100: a JPY order of 150
   assert.doesNotMatch(JSON.stringify([row, vm]), /JPY 15(\.00)?"/, 'never 15 yen');
 });
 
+// ---- AMP-138: test orders are labelled, decided on the server ----
+async function seedSampleOrder(w: Awaited<ReturnType<typeof setup>>['w'], workspaceId: string, id: string, sellerAccountId: string) {
+  const { order } = await w.orders.createPending({
+    id, workspaceId, businessId: 'biz-second', storeSlug: 'slug-biz-second', listingId: `lst-${id}`, listingVersion: 1,
+    productId: `prod-${id}`, productVersion: 1, title: `Item ${id}`, amountMinor: 1400, currency: 'AUD', sellerAccountId,
+    buyerEmail: 'seed-buyer@example.test', idempotencyKey: `key-${id}`, createdAt: '2026-11-14T09:00:00Z',
+  });
+  await w.orders.attachSession(order.id, { id: `cs_${id}`, url: 'https://pay.example.test/session' });
+  const paid = await w.orders.applyPaid({ eventId: `evt_${id}`, sessionId: `cs_${id}`, amountMinor: 1400, currency: 'AUD', at: '2026-11-14T09:00:00Z' });
+  assert.equal(paid.outcome, 'paid');
+}
+
+test('AMP-138/AMP-152: an order carrying the stored test flag is labelled on the row and the detail; a real order is not (even with a sample seller id)', async () => {
+  const { w, a, rt, source: base } = await setup();
+  await seedSampleOrder(w, a.workspaceId, 'ord-sample', `${SAMPLE_SELLER_PREFIX}biz-second`);
+  await seedSampleOrder(w, a.workspaceId, 'ord-real', 'acct-biz-second');
+  // The flag is stored when the order is created; the seller id is not what decides.
+  const source: OrdersSource = { ...base, isTest: (id) => id === 'ord-sample' };
+
+  const list = availablePage(await loadOrders(rt, source, 'biz-second', { filter: 'all', cursor: null }));
+  assert.deepEqual(list.testIds, ['ord-sample']);
+  const vm = buildList('biz-second', list.page, list.cursor, list.testIds);
+  assert.equal(vm.rows.find((r) => r.id === 'ord-sample')?.test, true);
+  assert.equal(vm.rows.find((r) => r.id === 'ord-real')?.test, false);
+  assert.match(vm.testNote ?? '', /include test orders/);
+  assert.equal(TEST_ORDER_LABEL, 'Test order: no real payment');
+
+  const sample = await loadOrder(rt, source, 'biz-second', 'ord-sample');
+  const real = await loadOrder(rt, source, 'biz-second', 'ord-real');
+  assert.ok(real.found && !real.test, 'a real order stays unlabelled');
+  assert.ok(sample.found && real.found);
+  assert.equal(sample.test, true);
+  assert.equal(real.test, false);
+  assert.equal(buildDetail('biz-second', sample.order, null, sample.test).test, true);
+  assert.equal(buildDetail('biz-second', real.order, null, real.test).test, false);
+
+  const onlyReal = buildList('biz-second', list.page, list.cursor, []);
+  assert.equal(onlyReal.testNote, null, 'no test order listed, no note');
+  assert.ok(onlyReal.rows.every((r) => !r.test));
+
+  // A sample seller id WITHOUT the flag is not labelled: the flag decides, not the seller id.
+  const unflagged = availablePage(await loadOrders(rt, { ...base, isTest: () => false }, 'biz-second', { filter: 'all', cursor: null }));
+  assert.deepEqual(unflagged.testIds, []);
+});
+
+test('AMP-152: the label makes no second read of the order per row: loadOrders reads the store exactly as the plain list does', async () => {
+  const { w, a, rt, source: base } = await setup();
+  for (let i = 0; i < 3; i++) await w.buy('a');
+  let gets = 0;
+  const orders = { ...base.deps.orders, get: async (...args: Parameters<typeof base.deps.orders.get>) => { gets++; return base.deps.orders.get(...args); } } as typeof base.deps.orders;
+  const source: OrdersSource = { ...base, deps: { ...base.deps, orders }, isTest: () => false };
+  const { listOwnerOrders } = await import('../lib/aimp/owner-orders/index.ts');
+  await listOwnerOrders(source.deps, { workspaceId: a.workspaceId, businessId: a.businessId, actorId: OWNER }, { filter: 'all', cursor: null });
+  const plain = gets;
+  gets = 0;
+  availablePage(await loadOrders(rt, source, a.businessId, { filter: 'all', cursor: null }));
+  assert.equal(gets, plain, 'the label added no read of the order');
+});
+
+test('AMP-152: a label whose flag read fails closed: the order is shown as a test order, never as a real one', async () => {
+  const { w, a, rt, source: base } = await setup();
+  await seedSampleOrder(w, a.workspaceId, 'ord-sample', `${SAMPLE_SELLER_PREFIX}biz-second`);
+  const broken: OrdersSource = { ...base, isTest: () => { throw new Error('flag store down'); } };
+  const list = availablePage(await loadOrders(rt, broken, 'biz-second', { filter: 'all', cursor: null }));
+  assert.deepEqual(list.testIds, ['ord-sample']);
+  const rejecting: OrdersSource = { ...base, isTest: async () => { throw new Error('flag store down'); } };
+  assert.deepEqual(availablePage(await loadOrders(rt, rejecting, 'biz-second', { filter: 'all', cursor: null })).testIds, ['ord-sample']);
+  const detail = await loadOrder(rt, broken, 'biz-second', 'ord-sample');
+  assert.ok(detail.found);
+  assert.equal(detail.test, true);
+  // With no override the flag is read from the stored order.
+  const runtimeRt: OrdersRuntime = { ...rt, orderDemo: { orders: base.deps.orders, fulfilment: base.deps.fulfilment, now: base.deps.now, workspaceId: a.workspaceId, actorId: OWNER } };
+  const real = ordersSource(runtimeRt);
+  assert.ok(real);
+  assert.deepEqual(availablePage(await loadOrders(runtimeRt, real, 'biz-second', { filter: 'all', cursor: null })).testIds, [], 'stored flag is false: not labelled');
+});
+
+test('AMP-163: with the default flag reader, a failing order read is shown as test, and the label reads each order once', async () => {
+  const { w, a, rt, source: base } = await setup();
+  await seedSampleOrder(w, a.workspaceId, 'ord-real', 'acct-biz-second');
+  let gets = 0;
+  const failing = { ...base.deps.orders, get: async () => { gets++; throw new Error('store down'); } } as typeof base.deps.orders;
+  const source: OrdersSource = { ...base, deps: { ...base.deps, orders: failing } };
+  const list = availablePage(await loadOrders(rt, source, 'biz-second', { filter: 'all', cursor: null }));
+  assert.ok(list.page.orders.length > 0);
+  assert.deepEqual(list.testIds.sort(), list.page.orders.map((o) => o.id).sort(), 'every order whose flag cannot be read is shown as test');
+  assert.ok(gets >= list.page.orders.length);
+});
+
+// ---- AMP-162: the flag is stored on the Order record; a record without it never flips real/test the wrong way ----
+test('AMP-162: the memory store writes an explicit test flag at creation: false by default, true only when the server marks it', async () => {
+  const { createMemoryOrderStore } = await import('../lib/aimp/orders/index.ts');
+  const base = {
+    workspaceId: 'ws-1', businessId: 'b-1', storeSlug: 's', listingId: 'l-1', listingVersion: 1, productId: 'p', productVersion: 1, title: 'T', amountMinor: 1000,
+    currency: 'AUD' as const, sellerAccountId: 'acct-real', buyerEmail: 'x@example.test', createdAt: '2026-11-14T09:00:00Z',
+  };
+  const plain = createMemoryOrderStore();
+  assert.equal((await plain.createPending({ ...base, id: 'o1', idempotencyKey: 'k1' })).order.test, false);
+  assert.equal((await plain.createPending({ ...base, id: 'o2', idempotencyKey: 'k2', test: true })).order.test, true);
+  const marked = createMemoryOrderStore({ testOnCreate: (n) => n.idempotencyKey === 'k-test' });
+  assert.equal((await marked.createPending({ ...base, id: 'o3', idempotencyKey: 'k-test' })).order.test, true);
+  assert.equal((await marked.createPending({ ...base, id: 'o4', idempotencyKey: 'k-real' })).order.test, false);
+  const throwing = createMemoryOrderStore({ testOnCreate: () => { throw new Error('x'); } });
+  // AMP-162 F2: a throwing callback does not fail open to a real order; the error propagates and nothing is stored.
+  await assert.rejects(() => throwing.createPending({ ...base, id: 'o5', idempotencyKey: 'k5' }));
+  assert.equal((await throwing.list('ws-1')).length, 0);
+  // A retry of the same order does not change the stored flag.
+  const retry = await marked.createPending({ ...base, id: 'o6', idempotencyKey: 'k-test', test: false });
+  assert.deepEqual([retry.created, retry.order.id, retry.order.test], [false, 'o3', true]);
+  // It survives the later transitions and reads.
+  await marked.attachSession('o3', { id: 'cs_o3', url: 'u' });
+  await marked.applyPaid({ eventId: 'e3', sessionId: 'cs_o3', amountMinor: 1000, currency: 'AUD', at: '2026-11-14T09:00:00Z' });
+  assert.equal((await marked.get('ws-1', 'o3'))?.test, true);
+});
+
+test('AMP-162: a record WITHOUT the stored field reads by seller account only: a real seller is never test, a sample seller is never real; a stored value always wins', () => {
+  const real = { sellerAccountId: 'acct_1RealConnected' };
+  const sample = { sellerAccountId: `${SAMPLE_SELLER_PREFIX}biz-a` };
+  assert.equal(orderIsTest(real), false, 'a real paid order without the field is not labelled test');
+  assert.equal(orderIsTest(sample), true, 'a sample order without the field is not shown as real');
+  assert.equal(orderIsTest({ ...real, test: true }), true);
+  assert.equal(orderIsTest({ ...sample, test: false }), false, 'the stored flag wins over the seller id');
+  for (const bad of [null, undefined, 'true', 1, 0, {}]) {
+    assert.equal(orderIsTest({ ...real, test: bad as unknown as boolean }), false, `junk flag ${String(bad)} on a real seller is not test`);
+    assert.equal(orderIsTest({ ...sample, test: bad as unknown as boolean }), true, `junk flag ${String(bad)} on a sample seller is not real`);
+  }
+  assert.equal(orderIsTest({ sellerAccountId: undefined as unknown as string }), false);
+});
+
+test('AMP-162: the Orders label reads the flag stored on the order when no override is given, in both directions', async () => {
+  const { w, a, rt, source: base } = await setup();
+  await seedSampleOrder(w, a.workspaceId, 'ord-a', 'acct-biz-second');
+  const flagged = await w.orders.createPending({
+    id: 'ord-t', workspaceId: a.workspaceId, businessId: 'biz-second', storeSlug: 'slug-biz-second', listingId: 'lst-t', listingVersion: 1, productId: 'prod-t', productVersion: 1,
+    title: 'T', amountMinor: 1400, currency: 'AUD', sellerAccountId: 'acct-biz-second', buyerEmail: 'seed-buyer@example.test', idempotencyKey: 'key-t', createdAt: '2026-11-14T09:00:00Z', test: true,
+  });
+  assert.equal(flagged.order.test, true);
+  const withRt: OrdersRuntime = { ...rt, orderDemo: { orders: base.deps.orders, fulfilment: base.deps.fulfilment, now: base.deps.now, workspaceId: a.workspaceId, actorId: OWNER } };
+  const src = ordersSource(withRt);
+  assert.ok(src);
+  const list = availablePage(await loadOrders(withRt, src, 'biz-second', { filter: 'all', cursor: null }));
+  assert.deepEqual(list.testIds, ['ord-t'], 'only the stored test order is labelled');
+  // Records that carry NO flag: a store that returns them without the field.
+  const stripped = (id: string, seller: string) => ({ get: async (ws: string, oid: string) => { const o = await base.deps.orders.get(ws, oid); return o && o.id === id ? ({ ...o, sellerAccountId: seller, test: undefined } as typeof o) : o; } });
+  const realNoFlag = { ...src, deps: { ...src.deps, orders: stripped('ord-a', 'acct_real') as unknown as typeof src.deps.orders } };
+  assert.deepEqual(availablePage(await loadOrders(withRt, realNoFlag, 'biz-second', { filter: 'all', cursor: null })).testIds.filter((id) => id === 'ord-a'), [], 'real paid order without the field: not test');
+  const sampleNoFlag = { ...src, deps: { ...src.deps, orders: stripped('ord-a', `${SAMPLE_SELLER_PREFIX}biz-second`) as unknown as typeof src.deps.orders } };
+  assert.ok(availablePage(await loadOrders(withRt, sampleNoFlag, 'biz-second', { filter: 'all', cursor: null })).testIds.includes('ord-a'), 'sample order without the field: not shown as real');
+  const detail = await loadOrder(withRt, src, 'biz-second', 'ord-t');
+  assert.ok(detail.found);
+  assert.equal(detail.test, true);
+});
+
+test('AMP-152: a sample order of a second business never appears in the first business\'s label list', async () => {
+  const { w, a, rt, source: base } = await setup();
+  await seedSampleOrder(w, a.workspaceId, 'ord-sample', `${SAMPLE_SELLER_PREFIX}biz-second`); // business biz-second
+  const mine = await w.buy('a');
+  const source: OrdersSource = { ...base, isTest: (id) => id === 'ord-sample' };
+  const first = availablePage(await loadOrders(rt, source, a.businessId, { filter: 'all', cursor: null }));
+  assert.deepEqual(first.page.orders.map((o) => o.id), [mine.orderId]);
+  assert.deepEqual(first.testIds, [], 'the other business\'s sample order is neither listed nor labelled here');
+  assert.equal(buildList(a.businessId, first.page, first.cursor, first.testIds).testNote, null);
+  const second = availablePage(await loadOrders(rt, source, 'biz-second', { filter: 'all', cursor: null }));
+  assert.deepEqual(second.testIds, ['ord-sample']);
+});
+
+test('AMP-152: paging with a test order keeps the label on the page the test order is on, and only there', async () => {
+  const { w, a, rt, source: base } = await setup();
+  const flagged = new Set<string>();
+  const source: OrdersSource = { ...base, isTest: (id) => flagged.has(id) };
+  const ids: string[] = [];
+  for (let i = 0; i < 3; i++) ids.push((await w.buy('a')).orderId);
+  const { listOwnerOrders } = await import('../lib/aimp/owner-orders/index.ts');
+  const scope = { workspaceId: a.workspaceId, businessId: a.businessId, actorId: OWNER };
+  const one = await listOwnerOrders(source.deps, scope, { limit: 2 });
+  assert.ok(one.nextCursor);
+  const two = await listOwnerOrders(source.deps, scope, { limit: 2, cursor: one.nextCursor });
+  const onSecondPage = two.orders[0].id;
+  flagged.add(onSecondPage);
+  // Page 1 holds no test order: no label there. Page 2 holds it: labelled there.
+  const page2 = availablePage(await loadOrders(rt, source, a.businessId, { filter: 'all', cursor: one.nextCursor }));
+  assert.deepEqual(page2.testIds, [onSecondPage]);
+  assert.equal(buildList(a.businessId, page2.page, page2.cursor, page2.testIds).rows.filter((r) => r.test).length, 1);
+  const vm1 = buildList(a.businessId, one, null, one.orders.map((o) => o.id).filter((id) => flagged.has(id)));
+  assert.equal(vm1.testNote, null);
+  assert.ok(vm1.rows.every((r) => !r.test));
+});
+
+test('AMP-138: the views draw the label as text, the empty state is plain and true, and the pages pass the server flag', () => {
+  const list = readFileSync(new URL('../app/app/[business]/orders/orders-view.tsx', import.meta.url), 'utf8');
+  assert.match(list, /r\.test \?[^\n]*\{TEST_ORDER_LABEL\}/);
+  const detail = readFileSync(new URL('../app/app/[business]/orders/[orderId]/order-detail-view.tsx', import.meta.url), 'utf8');
+  assert.match(detail, /vm\.test \?[^\n]*title=\{TEST_ORDER_LABEL\}/);
+  assert.match(readFileSync(new URL('../app/app/[business]/orders/page.tsx', import.meta.url), 'utf8'), /found\.testIds/);
+  assert.match(readFileSync(new URL('../app/app/[business]/orders/[orderId]/page.tsx', import.meta.url), 'utf8'), /found\.test\)/);
+  const empty = emptyCopy('all', 0);
+  assert.equal(empty.title, 'No orders yet');
+  assert.match(empty.text, /test purchase from your store page/);
+  assert.doesNotMatch(JSON.stringify(empty), /cannot exist|no order store/i);
+});
+
 test('AMP-102: the timeline names the actor the event records: automatic steps, the person looking, another person, or not recorded', async () => {
   const { w, a, rt, source, guard } = await setup();
   const paid = await w.buy('a');
@@ -197,7 +401,7 @@ test('AMP-102: the timeline names the actor the event records: automatic steps, 
   assert.equal(actorLabel(OWNER, ''), ACTOR_PERSON);
   // The page passes the server-side actor of the orders source, never anything from the request.
   const page = readFileSync(new URL('../app/app/[business]/orders/[orderId]/page.tsx', import.meta.url), 'utf8');
-  assert.match(page, /buildDetail\(business, found\.order, viewerId\)/);
+  assert.match(page, /buildDetail\(business, found\.order, viewerId(, found\.test)?\)/);
   assert.match(page, /viewerId = source\?\.actorId \?\? null/);
 });
 

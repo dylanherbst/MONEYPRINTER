@@ -24,6 +24,8 @@ export interface EditorSource {
   listing: CatalogueListing[];
   /** `MAX_REGENERATIONS` from the product service. */
   maxRegenerations: number;
+  /** The shown version has tracker or checklist pages, so a spreadsheet can be made. Computed on the server; default false. */
+  canExportXlsx?: boolean;
 }
 
 export interface FileVM { name: string; size: string; pages: string; shortHash: string; hash: string }
@@ -69,7 +71,13 @@ export interface EditorVM {
   pending: { id: string; version: number } | null;
   regen: { left: number; can: boolean };
   next: NextStep;
+  /** Show the spreadsheet download. The cover image and licence note are always offered when the product has a version. */
+  canExportXlsx: boolean;
 }
+
+/** Download links for the editor page. The route checks everything again; these are only addresses. */
+export const exportHref = (businessId: string, productId: string, format: 'xlsx' | 'png', part?: 'licence'): string =>
+  `/app/${businessId}/products/${productId}/export?format=${format}${part ? `&part=${part}` : ''}`;
 
 export const formatBytes = (n: number | null): string => {
   if (n === null || !Number.isFinite(n) || n < 0) return 'Size not recorded';
@@ -184,6 +192,7 @@ export function buildEditor(src: EditorSource): EditorVM {
     pending,
     regen: { left, can: left > 0 && !archived },
     next: planNext({ archived, latest: latestVm, approvedVersion: approvedV?.version ?? null, listing, canRebuild: left > 0, latestFailures }),
+    canExportXlsx: Boolean(src.canExportXlsx),
   };
 }
 

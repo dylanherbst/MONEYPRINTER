@@ -6,6 +6,7 @@ import { blueprintRegistry } from '../../../../../../lib/aimp/blueprints/index.t
 import { listingIdFor } from '../../../../../../lib/aimp/catalogue/service.ts';
 import type { CatalogueService } from '../../../../../../lib/aimp/catalogue/service.ts';
 import { CatalogueError } from '../../../../../../lib/aimp/catalogue/types.ts';
+import { canExportXlsx } from '../../../../../../lib/aimp/factory/export.ts';
 import { MAX_REGENERATIONS } from '../../../../../../lib/aimp/products/service.ts';
 import type { ProductService } from '../../../../../../lib/aimp/products/service.ts';
 import { ProductError } from '../../../../../../lib/aimp/products/types.ts';
@@ -44,5 +45,7 @@ export async function loadProductEditor(rt: EditorRuntime, ctx: EditorContexts, 
     if (!(e instanceof CatalogueError && e.code === 'not_found')) throw e;
   }
   const typeTitle = blueprintRegistry.find(versions[0].spec.blueprint.id)?.title ?? null;
-  return { found: true, editor: buildEditor({ product, typeTitle, versions, listing, maxRegenerations: MAX_REGENERATIONS }) };
+  // The download section shows a spreadsheet link only when the shown version has tracker or checklist pages (same version the export route reads).
+  const shown = versions.find((v) => v.status === 'approved') ?? versions[versions.length - 1];
+  return { found: true, editor: buildEditor({ product, typeTitle, versions, listing, maxRegenerations: MAX_REGENERATIONS, canExportXlsx: canExportXlsx(shown.spec) }) };
 }

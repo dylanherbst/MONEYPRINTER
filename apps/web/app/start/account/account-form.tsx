@@ -3,10 +3,11 @@ import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { AuthDivider, GlassButton, GlassField, GlassIcon, GlassSurface, OnboardingHeader, OnboardingLayout } from '../../design-system/aimp-glass';
+import Grainient from '../../../components/Grainient';
+import './login-glass.css';
 import { site } from '../../../lib/aimp/site-config';
 import {
-  NETWORK_FAILURE, PASSWORD_MAX, PASSWORD_MIN, authRequestBody, flowStepNumber, flowTotal, interpretAuthResponse, startRoutes, validateCredentials,
+  NETWORK_FAILURE, PASSWORD_MAX, PASSWORD_MIN, authRequestBody, interpretAuthResponse, startRoutes, validateCredentials,
 } from '../flow';
 import type { AuthMode, AuthOutcome, CredentialErrors } from '../flow';
 
@@ -74,107 +75,62 @@ export function AccountForm({ initialMode }: { initialMode: AuthMode }) {
   }
 
   return (
-    <OnboardingLayout
-      align="end"
-      header={
-        <OnboardingHeader
-          backHref={startRoutes.welcome}
-          step={flowStepNumber('account')}
-          totalSteps={flowTotal}
-          skipHref={startRoutes.tour}
-          skipLabel="Skip creating an account for now"
-        />
-      }
-    >
-      <div className="plg-stack" data-gap="2">
-        <h1 className="plg-title">{signup ? `Join ${site.name}` : 'Welcome back'}</h1>
-        <p className="plg-lede">
-          {signup ? 'Create an account to keep your work in one place. You can also skip this and decide later.' : 'Sign in with the email and password you used before.'}
-        </p>
+    <main className="lg-screen">
+      <div className="lg-bg" aria-hidden="true">
+        <Grainient colors={['#9529fa', '#c990ff', '#f8f6fa', '#ffffff', '#ffffff']} angle={55} flow={0.8} silk={0.35} grainAmount={0.08} speed={1.45} />
       </div>
-
-      {outcome ? (
-        <GlassSurface tone="raised" padding="compact" className="start-notice" role={outcome.kind === 'confirm-email' ? 'status' : 'alert'}>
-          <div ref={noticeRef} tabIndex={-1} className="start-notice-body" data-kind={outcome.kind}>
-            <GlassIcon name={outcome.kind === 'confirm-email' ? 'mail' : outcome.kind === 'not-connected' ? 'info' : 'warn'} />
-            <div className="plg-stack" data-gap="2">
-              <p>{outcome.message}</p>
-              {outcome.kind === 'not-connected' ? <p><Link className="plg-link" data-target="large" href={startRoutes.tour}>Continue without an account</Link></p> : null}
-            </div>
-          </div>
-        </GlassSurface>
-      ) : null}
-
-      <form className="plg-stack start-form" data-gap="3" onSubmit={submit} noValidate>
-        <GlassField
-          ref={emailRef}
-          label="Email"
-          name="email"
-          type="email"
-          inputMode="email"
-          autoComplete={signup ? 'email' : 'username'}
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          required
-          maxLength={254}
-          value={email}
-          onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors((x) => ({ ...x, email: undefined })); }}
-          icon={<GlassIcon name="mail" />}
-          error={errors.email}
-        />
-        <GlassField
-          ref={passwordRef}
-          label="Password"
-          name="password"
-          type={showPassword ? 'text' : 'password'}
-          autoComplete={signup ? 'new-password' : 'current-password'}
-          required
-          minLength={PASSWORD_MIN}
-          maxLength={PASSWORD_MAX}
-          value={password}
-          onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors((x) => ({ ...x, password: undefined })); }}
-          icon={<GlassIcon name="lock" />}
-          hint={signup ? `At least ${PASSWORD_MIN} characters. A few random words work well.` : undefined}
-          error={errors.password}
-          trailing={
-            <GlassButton
-              variant="icon"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              aria-pressed={showPassword}
-              onClick={() => setShowPassword((v) => !v)}
-              icon={<GlassIcon name={showPassword ? 'eyeOff' : 'eye'} />}
-            />
-          }
-        />
-        <GlassButton
-          variant="primary"
-          type="submit"
-          loading={busy}
-          loadingLabel={signup ? 'Creating your account…' : 'Signing you in…'}
-          icon={<GlassIcon name="spark" size={22} tone="deep" />}
-          className="start-submit"
-        >
-          {signup ? 'Create account' : 'Sign in'}
-        </GlassButton>
-      </form>
-
-      <p className="plg-note start-switch">
-        {signup ? 'Already have an account?' : 'New here?'}{' '}
-        <button type="button" className="plg-link" data-target="large" onClick={() => switchMode(signup ? 'login' : 'signup')}>
-          {signup ? 'Sign in' : 'Create an account'}
-        </button>
-      </p>
-
-      <div className="plg-stack" data-gap="3">
-        <AuthDivider>Other ways to sign in</AuthDivider>
-        <div className="start-providers">
-          <GlassButton variant="secondary" disabled icon={<GlassIcon name="google" />} note="Coming soon">Google</GlassButton>
-          <GlassButton variant="secondary" disabled icon={<GlassIcon name="apple" />} note="Coming soon">Apple</GlassButton>
+      <section className="lg-card" aria-labelledby="lg-title">
+        <div className="lg-window" aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/aimp-logo.png" alt="" width={132} height={132} />
         </div>
+        <p className="lg-eyebrow">{signup ? 'new here' : 'welcome back'}</p>
+        <h1 id="lg-title" className="lg-title">{signup ? 'Join' : 'Sign in'}</h1>
+        <p className="lg-sub">{signup ? site.name : `to ${site.name}`}</p>
+
+        {outcome ? (
+          <div ref={noticeRef} tabIndex={-1} className="lg-notice" data-kind={outcome.kind} role={outcome.kind === 'confirm-email' ? 'status' : 'alert'}>
+            <p>{outcome.message}</p>
+            {outcome.kind === 'not-connected' ? <p><Link href={startRoutes.tour}>Continue without an account</Link></p> : null}
+          </div>
+        ) : null}
+
+        <form className="lg-form" onSubmit={submit} noValidate>
+          <label className="lg-field">
+            <span className="lg-label">Email</span>
+            <input
+              ref={emailRef} name="email" type="email" inputMode="email" autoComplete={signup ? 'email' : 'username'} autoCapitalize="none" autoCorrect="off"
+              spellCheck={false} required maxLength={254} placeholder="you@example.com" value={email} aria-invalid={errors.email ? true : undefined}
+              onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors((x) => ({ ...x, email: undefined })); }}
+            />
+            {errors.email ? <span className="lg-error" role="alert">{errors.email}</span> : null}
+          </label>
+          <label className="lg-field">
+            <span className="lg-label">Password</span>
+            <span className="lg-pw">
+              <input
+                ref={passwordRef} name="password" type={showPassword ? 'text' : 'password'} autoComplete={signup ? 'new-password' : 'current-password'} required
+                minLength={PASSWORD_MIN} maxLength={PASSWORD_MAX} placeholder="Password" value={password} aria-invalid={errors.password ? true : undefined}
+                onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors((x) => ({ ...x, password: undefined })); }}
+              />
+              <button type="button" className="lg-eye" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword((v) => !v)}>
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </span>
+            {errors.password ? <span className="lg-error" role="alert">{errors.password}</span> : signup ? <span className="lg-hint">At least {PASSWORD_MIN} characters.</span> : null}
+          </label>
+          <button type="submit" className="lg-primary" disabled={busy} aria-busy={busy}>
+            {busy ? (signup ? 'Creating your account…' : 'Signing you in…') : signup ? 'Create account' : 'Sign in'}
+          </button>
+        </form>
+
+        <p className="lg-caption">
+          {signup ? 'Already have an account?' : 'New here?'}{' '}
+          <button type="button" onClick={() => switchMode(signup ? 'login' : 'signup')}>{signup ? 'Sign in' : 'Create an account'}</button>
+        </p>
         {/* Owner request 14 Nov: an obvious way past sign-in. Nothing is created; answers stay on this device. */}
-        <GlassButton variant="secondary" type="button" onClick={() => router.push(startRoutes.tour)}>Continue without an account</GlassButton>
-      </div>
-    </OnboardingLayout>
+        <button type="button" className="lg-skip" onClick={() => router.push(startRoutes.tour)}>Continue without an account</button>
+      </section>
+    </main>
   );
 }

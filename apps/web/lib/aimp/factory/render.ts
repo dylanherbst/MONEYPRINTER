@@ -1,4 +1,5 @@
 // Renders a validated ProductSpec to a PDF per paper size, and bundles PDFs + README into a ZIP (AMP-021).
+import { LICENCE_SENTENCE } from './licence.ts';
 import { PAPER, PdfDocument } from './pdf.ts';
 import type { PaperSize } from './pdf.ts';
 import { allPages, validateProductSpec } from './spec.ts';
@@ -95,7 +96,7 @@ export function buildReadme(spec: ProductSpec, files: readonly string[]): string
     '- Print at 100% (Actual size). Do not choose "Fit to page".',
     '- Print only the pages you need, and reprint any page again.',
     '',
-    'Personal use only. Do not resell or share the files.',
+    LICENCE_SENTENCE,
     '',
   ];
   return lines.join('\n');

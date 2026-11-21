@@ -33,6 +33,8 @@ export interface ApprovalsGuardInput {
   /** Read only after the demo switch has passed, so nothing is touched while demo storage is off. */
   rt: () => ApprovalsRuntime;
   deps: ApprovalsDeps;
+  /** Called with the business id after a decision (approve or reject) went through, never after a refusal or a failure. Must not throw. */
+  onDecided?: (businessId: string) => void;
 }
 
 export type ApprovalsGuard = { ok: false; message: string } | { ok: true; op: ApprovalsOp; businessId: string };
@@ -100,6 +102,8 @@ export async function runApprovalsOp(g: ApprovalsGuardInput, businessId: unknown
     switch (op.kind) {
       case 'decide': {
         const r = await automation.decide(ctx, op.approvalId, op.decision);
+        // The waiting count on the Overview and Dashboard changed, so their saved copy is dropped. A failure here never hides the decision.
+        try { g.onDecided?.(checked.businessId); } catch { /* the saved copy then simply refreshes on its own */ }
         if (r.ran) return { ok: true, message: APPROVED };
         if (!r.alreadyDecided) return { ok: true, message: REJECTED };
         return { ok: true, message: r.approval.status === 'expired' ? 'This request had already expired. It was not run.' : `This was already ${r.approval.status}. Nothing was run again.` };

@@ -13,7 +13,7 @@ import { creativeStoresOf, loadCreative } from '../app/app/[business]/marketing/
 import type { CreativeRuntime } from '../app/app/[business]/marketing/creative/_server/creative.ts';
 import { NOTHING_POSTED, NOT_IN_DEMO, STATE_LABELS, buildPatch, countsLine, regenerateConfirm } from '../app/app/[business]/marketing/creative/view-model.ts';
 import type { AssetView } from '../app/app/[business]/marketing/creative/view-model.ts';
-import { runMarketingOp } from '../app/app/[business]/marketing/_server/marketing-guard.ts';
+import { WENT_WRONG, runMarketingOp } from '../app/app/[business]/marketing/_server/marketing-guard.ts';
 import type { MarketingContexts } from '../app/app/[business]/marketing/_server/marketing.ts';
 import { getApprovedBrand } from '../lib/aimp/branding/service.ts';
 import { createMemoryAssetStore } from '../lib/aimp/campaign-assets/store.ts';
@@ -315,6 +315,36 @@ test('AMP-130 missing stores: the page says "not available" and every action is 
   // A store-shaped object that is missing a method is not a store.
   const { rt } = await makeRt();
   assert.equal(creativeStoresOf({ campaigns: rt.campaigns, campaignAssets: { kind: 'memory', get: rt.campaignAssets!.get } as never }), null);
+});
+
+test('AMP-137 a throwing campaign or asset store gives the same "we do not know if that went through" reply and logs only the error name', async () => {
+  const { rt, campaignId, assets } = await ready();
+  const secret = 'store down: secret-detail asset text';
+  const boom = () => { throw new TypeError(secret); };
+  const broken: CreativeRuntime[] = [
+    { ...rt, campaigns: { ...rt.campaigns!, get: boom } as never },
+    { ...rt, campaignAssets: { ...rt.campaignAssets!, get: boom, mutate: boom } as never },
+  ];
+  const ops = [{ kind: 'generate', campaignId }, { kind: 'approve', campaignId, assetId: 'd1-pinterest:pin', revision: 1 }];
+  for (const bad of broken) {
+    for (const o of ops) {
+      const logged: unknown[][] = [];
+      const r = await runCreativeOp(input(bad), A, o, (...args) => { logged.push(args); });
+      assert.deepEqual(r, no(WENT_WRONG));
+      assert.equal(logged.length, 1);
+      assert.equal(logged[0]![1], 'TypeError');
+      assert.ok(!JSON.stringify(logged).includes('secret-detail'));
+    }
+  }
+  // A thrown non-Error is logged as "unknown error", never its value.
+  const logged: unknown[][] = [];
+  const odd = { ...rt.campaigns!, get: () => { throw 'secret-detail raw string'; } } as never;
+  assert.deepEqual(await runCreativeOp(input({ ...rt, campaigns: odd }), A, ops[0], (...a) => { logged.push(a); }), no(WENT_WRONG));
+  assert.equal(logged[0]![1], 'unknown error');
+  assert.ok(!JSON.stringify(logged).includes('secret-detail'));
+  assert.match(WENT_WRONG, /do not know if that went through/);
+  // The working runtime is untouched: the saved drafts are still there.
+  assert.ok(await assets.get(DEMO_WORKSPACE, A, campaignId));
 });
 
 test('AMP-130 generator: a failure saves nothing and its internal error text is not shown; the write-again limit is enforced', async () => {

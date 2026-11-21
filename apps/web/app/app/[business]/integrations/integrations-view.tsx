@@ -49,7 +49,7 @@ export function IntegrationsView({ businessId, vm }: { businessId: string; vm: I
         <p>{stripe.what}</p>
         {stripe.sampleNote ? <p className="plg-note" data-testid="stripe-sample-note">{stripe.sampleNote}</p> : null}
         <dl className="ain-facts" data-can-pay={stripe.canTakePayments ? 'yes' : 'no'}>
-          <FactRow name="Your Stripe account" fact={stripe.account} testId="stripe-account" />
+          <FactRow name="Your Stripe account" fact={stripe.account} testId="stripe-account" extra={stripe.timing ?? undefined} />
           <FactRow name="Stripe on this site" fact={stripe.site} testId="stripe-site" />
         </dl>
         {stripe.outstanding.length ? (

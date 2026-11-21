@@ -221,6 +221,9 @@
 .amp-footer { padding: 3rem 0 4rem; border-top: 1px solid var(--amp-line); background: var(--amp-bg); }
 .amp-footer-inner { display: grid; gap: .75rem; }
 .amp-footer p { margin: 0; color: var(--amp-ink-2); }
+.amp-footer-links { display: flex; flex-wrap: wrap; gap: 0 1.25rem; }
+.amp-footer-links a { display: inline-flex; align-items: center; min-height: 44px; color: var(--amp-ink-2); text-decoration: none; }
+.amp-footer-links a:hover { color: var(--amp-ink); text-decoration: underline; text-underline-offset: 4px; }
 
 /* still capture mode (?still=p): only the scene */
 .amp-home[data-capture='1'] .amp-header, .amp-home[data-capture='1'] .amp-cue, .amp-home[data-capture='1'] .amp-chapter { visibility: hidden; }
