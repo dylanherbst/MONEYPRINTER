@@ -4,6 +4,10 @@ import { site } from '../../lib/aimp/site-config';
 import { startRoutes } from '../start/flow';
 
 export const START = startRoutes.welcome;
+/** The sign-up page: one line and one button. Every Find my side business button on the public pages leads here. */
+export const SIGNUP = '/signup';
+/** The account form the sign-up page's button opens. */
+export const CREATE_ACCOUNT = startRoutes.account;
 export const SIGN_IN = `${startRoutes.account}?mode=login`;
 export const CTA = 'Find my side business';
 

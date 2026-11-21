@@ -3,7 +3,7 @@ import { site } from '../../lib/aimp/site-config';
 import { startRoutes } from '../start/flow';
 import { fontVars } from '../plant-lab/fonts';
 import { CellsStage } from './cells-stage';
-import { CTA, START } from './content';
+import { CTA, SIGNUP } from './content';
 import './cells.css';
 
 // The public home page (owner approved for production, 16 Nov 2026): the homepage story told with a cloud of cells
@@ -35,7 +35,7 @@ export default function CellsPage() {
         <nav className="cells-nav" aria-label="On this page">
           <a href="#how">How it works</a>
           <a href="/learn">Learn more</a>
-          <a href="/faq">FAQs</a>
+          <a href="/learn#faqs">FAQs</a>
         </nav>
         <a href={`${startRoutes.account}?mode=login`} className="cells-signin">Sign in</a>
       </header>
@@ -47,7 +47,7 @@ export default function CellsPage() {
             <h1 id="cells-h1">Start a side business without spending weeks building it.</h1>
             <p className="cells-lede">AI researches the idea, makes the product and opens your shop. You approve every step before anything goes live.</p>
             <div className="cells-actions">
-              <a className="cells-btn" href={START}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
+              <a className="cells-btn" href={SIGNUP}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
               <a className="cells-link" href="#how">See how it works</a>
             </div>
           </div>
@@ -114,8 +114,8 @@ export default function CellsPage() {
             <h2 id="cells-h-final">Your next business starts with a problem worth solving.</h2>
           </div>
           <div className="cells-copy cells-copy-low">
-            <a className="cells-btn" href={START}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
-            <p className="cells-more"><a href="/learn">Learn more</a><span aria-hidden="true">·</span><a href="/faq">FAQs</a></p>
+            <a className="cells-btn" href={SIGNUP}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
+            <p className="cells-more"><a href="/learn">Learn more</a><span aria-hidden="true">·</span><a href="/learn#faqs">FAQs</a></p>
           </div>
         </section>
 

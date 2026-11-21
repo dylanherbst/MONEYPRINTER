@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { site } from '../../lib/aimp/site-config';
 import { InfoShell } from '../cells/info-shell';
-import { LEAN_TEST, OUTPUTS, ROUTES, START } from '../cells/content';
+import { FAQS, LEAN_TEST, OUTPUTS, ROUTES, SIGNUP } from '../cells/content';
 
 export const metadata: Metadata = {
-  title: `How it works · ${site.name}: ${site.descriptor}`,
+  title: `Learn more and FAQs · ${site.name}: ${site.descriptor}`,
   description: 'Start where you are, test small before you spend more, and leave with an offer, a brand, a shop and launch posts. No promise of earnings.',
   alternates: { canonical: `https://${site.domain}/learn` },
 };
@@ -16,7 +16,7 @@ export default function LearnPage() {
       <section className="cells-sec cells-intro" aria-labelledby="learn-h1">
         <p className="cells-label">Learn more</p>
         <h1 id="learn-h1">How {site.name} works</h1>
-        <p className="cells-body">Start with the customer, then build the business. Here is what that looks like in practice.</p>
+        <p className="cells-body">Start with the customer, then build the business. Here is what that looks like in practice, and answers to common questions.</p>
       </section>
 
       <section className="cells-sec" aria-labelledby="cells-h-routes">
@@ -25,7 +25,7 @@ export default function LearnPage() {
         <ul className="cells-cards cells-cards-3">
           {ROUTES.map((r) => (
             <li key={r.title}>
-              <a href={START} className="cells-card cells-card-link">
+              <a href={SIGNUP} className="cells-card cells-card-link">
                 <b>{r.title}</b>
                 <span>{r.body}</span>
                 <span className="cells-card-go" aria-hidden="true">→</span>
@@ -52,6 +52,18 @@ export default function LearnPage() {
             <li key={o.title} className="cells-card"><b>{o.title}</b><span>{o.body}</span></li>
           ))}
         </ul>
+      </section>
+      <section className="cells-sec" id="faqs" aria-labelledby="faq-h">
+        <p className="cells-label">Questions</p>
+        <h2 id="faq-h">Before you start</h2>
+        <div className="cells-faq">
+          {FAQS.map((f) => (
+            <details key={f.q}>
+              <summary>{f.q}</summary>
+              <p>{f.a}</p>
+            </details>
+          ))}
+        </div>
       </section>
     </InfoShell>
   );
