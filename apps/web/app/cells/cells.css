@@ -227,3 +227,11 @@
 }
 @media (prefers-reduced-motion: reduce) { .cells { transition: none; } }
 .cells [id] { scroll-margin-top: 84px; }
+/* Links under the final button on the home page. */
+.cells-more { display: flex; gap: 10px; justify-content: center; font-size: .95rem !important; }
+.cells-more a { color: var(--cells-ink); font-weight: 600; text-underline-offset: 4px; text-decoration-color: var(--cells-line); }
+/* Learn more and FAQ pages: no canvas, so clear the fixed header and soften the page. */
+.cells-plain { background: linear-gradient(180deg, #f6f2ff 0, var(--cells-bg) 420px); }
+.cells-plain .cells-after { padding-top: 110px; }
+.cells-intro h1 { font-size: clamp(2.3rem, 9vw, 4rem); line-height: 1.02; }
+.cells-foot a { color: inherit; }
