@@ -49,15 +49,20 @@ export const ruleAgent: SetterAgent = {
   async decide({ config: c, latest }): Promise<AgentDecision> {
     const t = latest.toLowerCase();
     const base = { knowledge_source_ids: [] as string[], handoff_reason: null as string | null, cta_id: null as string | null };
-    if (/\b(refund|scam|complain|angry|terrible|chargeback)\b/.test(t)) return { ...base, intent: 'complaint', lead_stage: 'complaint', response_text: '', confidence: 0.9, recommended_action: 'handoff', handoff_reason: 'complaint or refund' };
-    if (/\b(not interested|no thanks|too expensive|can'?t afford)\b/.test(t)) return { ...base, intent: 'not_a_fit', lead_stage: 'not_a_fit', response_text: pick(t, ['All good, no pressure at all. Shout if anything changes.', 'Totally fair. If you ever want it down the track, just message me here.']), confidence: 0.8, recommended_action: 'reply' };
+    if (/\b(scam|complain|angry|terrible|chargeback|never arrived|still waiting|where is my order)\b/.test(t)) return { ...base, intent: 'complaint', lead_stage: 'complaint', response_text: '', confidence: 0.9, recommended_action: 'handoff', handoff_reason: 'complaint or order problem' };
+    const faq = c.knowledge.map((k) => ({ k, s: overlap(t, k.question) })).sort((a, b) => b.s - a.s)[0];
     const offer = c.offers.map((o) => ({ o, s: overlap(t, `${o.name} ${o.description}`) })).sort((a, b) => b.s - a.s)[0];
-    if (/\b(book|call|appointment|chat)\b/.test(t) && c.bookingUrl) return { ...base, intent: 'booking_ready', lead_stage: 'booking_ready', response_text: pick(t, [`Yep! Easiest is to grab a time that suits you here: ${c.bookingUrl}`, `For sure, you can pick a time here: ${c.bookingUrl}`]), confidence: 0.8, recommended_action: 'reply', cta_id: 'booking', knowledge_source_ids: ['booking'] };
-    if (/\b(buy|price|cost|how much|link|sign up|purchase)\b/.test(t) && offer) {
-      const o = offer.o;
+    const wantsBuy = /\b(buy|price|cost|how much|link|order|purchase|get one|i'?ll take)\b/.test(t);
+    // A price objection is answered with the prepared comparison, not treated as a "no".
+    if (/\b(expensive|cheaper|kmart|amazon|temu|worth it)\b/.test(t) && faq && faq.s > 0) return { ...base, intent: 'needs_more_information', lead_stage: 'needs_more_information', response_text: faq.k.answer, confidence: 0.75, recommended_action: 'reply', knowledge_source_ids: [faq.k.id] };
+    if (/\b(not interested|no thanks|nah|can'?t afford|maybe later)\b/.test(t)) return { ...base, intent: 'not_a_fit', lead_stage: 'not_a_fit', response_text: pick(t, ['All good, no pressure at all. Shout if anything changes.', 'Totally fair. If you ever want it down the track, just message me here.']), confidence: 0.8, recommended_action: 'reply' };
+    if (/\b(book|call|appointment)\b/.test(t) && c.bookingUrl) return { ...base, intent: 'booking_ready', lead_stage: 'booking_ready', response_text: pick(t, [`Yep! Easiest is to grab a time that suits you here: ${c.bookingUrl}`, `For sure, you can pick a time here: ${c.bookingUrl}`]), confidence: 0.8, recommended_action: 'reply', cta_id: 'booking', knowledge_source_ids: ['booking'] };
+    // A clear product question (2+ matching words) is answered before any pitch.
+    if (faq && faq.s >= 2 && !(wantsBuy && (offer?.s ?? 0) >= faq.s)) return { ...base, intent: 'needs_more_information', lead_stage: 'needs_more_information', response_text: faq.k.answer, confidence: 0.75, recommended_action: 'reply', knowledge_source_ids: [faq.k.id] };
+    if (wantsBuy && offer) {
+      const o = /\b(2|two)[ -]?pack|bundle|both|two of\b/.test(t) ? c.offers.find((x) => /2-pack|bundle/i.test(x.name)) ?? offer.o : offer.o;
       return { ...base, intent: 'purchase_ready', lead_stage: 'purchase_ready', response_text: `It's ${price(o.priceMinor)} for the ${o.name}${o.description ? `, ${lcFirst(o.description).replace(/[.!]+$/, '')}` : ''}. ${pick(t, ["Here's the link if you want it:", 'You can grab it here:', 'Link is here whenever you want it:'])} ${o.ctaUrl}`, confidence: 0.75, recommended_action: 'reply', cta_id: o.id, knowledge_source_ids: [o.id] };
     }
-    const faq = c.knowledge.map((k) => ({ k, s: overlap(t, k.question) })).sort((a, b) => b.s - a.s)[0];
     if (faq && faq.s > 0) return { ...base, intent: 'needs_more_information', lead_stage: 'needs_more_information', response_text: faq.k.answer, confidence: 0.7, recommended_action: 'reply', knowledge_source_ids: [faq.k.id] };
     if (c.qualifyingQuestion) return { ...base, intent: 'interested', lead_stage: 'interested', response_text: `${pick(t, ['Hey! ', 'Hi! ', 'Hey, thanks for the message. '])}${c.qualifyingQuestion}`, confidence: 0.6, recommended_action: 'reply' };
     return { ...base, intent: 'needs_more_information', lead_stage: 'needs_more_information', response_text: '', confidence: 0.2, recommended_action: 'handoff', handoff_reason: 'no matching fact' };
