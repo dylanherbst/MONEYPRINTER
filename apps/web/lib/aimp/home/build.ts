@@ -2,6 +2,7 @@
 // Pure: it only rewords the overview read model plus the Inbox counts. Every number comes from real records; an unknown number says so.
 import { formatMoneyList, plural } from '../overview/format.ts';
 import type { BusinessOverview } from '../overview/types.ts';
+import { buildGuide, type BusinessPath, type Guide } from './path.ts';
 
 export interface InboxCounts { waiting: number; sent: number; needYou: number }
 
@@ -13,6 +14,8 @@ export interface HomeInput {
   base: string;
   /** True for a path that exists as a page. Anything else is shown as plain text, never a dead link. */
   canLink: (href: string) => boolean;
+  /** Which entry path the business chose. Default 'existing' so older callers see the full workspace. */
+  path?: BusinessPath;
 }
 
 export interface HomeItem { text: string; href: string | null }
@@ -22,6 +25,8 @@ export interface HomeView {
   headline: string;
   /** The whole path from idea to first order, in order, with the step to do now marked. */
   checklist: { steps: ChecklistStep[]; done: number; total: number };
+  /** Two-path guidance: which pages are open and which step glows. */
+  guide: Guide;
   next: HomeNext;
   ready: HomeItem[];
   needsMe: HomeItem[];
@@ -77,7 +82,7 @@ export function buildHome(i: HomeInput): HomeView {
     steps: o.launchProgress.steps.map((st) => ({ label: st.label, done: st.done, current: st.id === o.launchProgress.nextStep?.id, href: link(st.href) })),
     done: o.launchProgress.done, total: o.launchProgress.total,
   };
-  return { headline, checklist, next, ready, needsMe, happened, weeklyBrief: { title: `Weekly brief: ${i.businessName}`, lines } };
+  return { headline, checklist, guide: buildGuide(i.path ?? 'existing', checklist.steps, i.base), next, ready, needsMe, happened, weeklyBrief: { title: `Weekly brief: ${i.businessName}`, lines } };
 }
 
 /** The plain-text email for "Send my weekly brief". Only the brief lines; nothing private is added. */
