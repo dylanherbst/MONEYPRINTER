@@ -67,6 +67,7 @@ export function CellsStage({ tuneByDefault = true }: { tuneByDefault?: boolean }
     const paid = document.getElementById('cells-h-paid');
     const logoChapter = chapters.findIndex((c) => c.dataset.chapter === 'horizon');
     let paidCentreY = Number.NaN;
+    let afterTop = 0;
     const measure = () => {
       const w = window.innerWidth;
       const tallest = Math.max(
@@ -83,6 +84,8 @@ export function CellsStage({ tuneByDefault = true }: { tuneByDefault?: boolean }
         scene.resize(w, sizedH);
       }
       tops = chapters.map((c) => c.getBoundingClientRect().top + window.scrollY);
+      const after = document.querySelector<HTMLElement>('.cells-after');
+      afterTop = after ? after.getBoundingClientRect().top + window.scrollY : 0;
       if (paid) {
         const r = paid.getBoundingClientRect();
         // Scroll position at which the Getting paid heading is a little below the middle of the screen (68% down):
@@ -129,6 +132,17 @@ export function CellsStage({ tuneByDefault = true }: { tuneByDefault?: boolean }
       last = now;
       if (!reduced) clock += dt * settingsRef.current.speed;
       scene.render(progress(), clock, ending());
+      // Once the story is over, fade the cells out so the sections after it read on a plain page.
+      if (afterTop > 0) {
+        const vh = window.innerHeight;
+        const fade = smooth(0, 1, (window.scrollY + vh - afterTop - 0.15 * vh) / (0.55 * vh));
+        const o = String(Math.round((1 - fade) * 1000) / 1000);
+        if (canvas.style.opacity !== o) canvas.style.opacity = o;
+        // Give the header a frosted backing once plain sections scroll under it.
+        const solid = window.scrollY > afterTop - 80 ? '1' : '';
+        const top = document.querySelector<HTMLElement>('.cells-top');
+        if (top && (top.dataset.solid ?? '') !== solid) { if (solid) top.dataset.solid = solid; else delete top.dataset.solid; }
+      }
       raf = requestAnimationFrame(frame);
     };
     raf = requestAnimationFrame(frame);
