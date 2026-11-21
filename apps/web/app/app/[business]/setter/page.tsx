@@ -19,7 +19,7 @@ export default async function SetterPage({ params }: { params: Promise<{ busines
   const oauthMissing = ['INSTAGRAM_APP_ID', 'INSTAGRAM_APP_SECRET', 'INSTAGRAM_REDIRECT_URI', 'SETTER_STATE_SECRET'].filter((k) => !process.env[k]);
   return (
     <AppLayout width="regular">
-      <AppIntro title="AI Setter"><p>Answers people who message your Instagram, qualifies them and sends your checkout or booking link. Replies are written in your voice and are drafts for you to approve until you switch on automatic replies. If someone asks whether they are talking to a bot, it hands the chat to you.</p></AppIntro>
+      <AppIntro title="AI Setter"><p>Answers people who message your Instagram, qualifies them and sends your checkout or booking link. Replies are written in your voice and are drafts for you to approve until you switch on automatic replies. It only says it is automated if someone asks.</p></AppIntro>
       <GlassNotice tone="warn" title="Test lab: nothing here reaches Instagram">
         <p>Messages below are simulated. Connecting a real Instagram account needs a Meta app and App Review.{oauthMissing.length || missing.length ? ` Missing settings: ${[...oauthMissing, ...missing].join(', ')}.` : ''}</p>
         {oauthMissing.length === 0 ? <p><a href={`/api/integrations/instagram/start?business=${business}`}>Connect Instagram</a></p> : null}
