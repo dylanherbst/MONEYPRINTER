@@ -47,29 +47,30 @@ export function SetterClient({ business, initial }: { business: string; initial:
             <p className="st-muted">Sends a simulated, signed Instagram message through the real pipeline.</p>
             <div className="st-row"><label><input type="radio" checked={person === 'a'} onChange={() => setPerson('a')} /> Person A</label><label><input type="radio" checked={person === 'b'} onChange={() => setPerson('b')} /> Person B</label></div>
             <textarea rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder='e.g. "how much is it?" or "stop"' />
-            <button type="button" disabled={busy || !text.trim()} onClick={async () => { const r = await run(simulateAction(business, text, person), (x) => `Result: ${x.result}`); if (r.view?.conversations[0]) setOpen(r.view.conversations[0].id); setText(''); }}>Send as customer</button>
+            <button type="button" className="st-primary" disabled={busy || !text.trim()} onClick={async () => { const r = await run(simulateAction(business, text, person), (x) => `Result: ${x.result}`); if (r.view?.conversations[0]) setOpen(r.view.conversations[0].id); setText(''); }}>Send as customer</button>
           </div>
           <div className="st-card">
             <h2>Conversations</h2>
             {v.conversations.length === 0 ? <p className="st-muted">No messages yet.</p> : (
               <ul className="st-convs">{v.conversations.map((x) => (
                 <li key={x.id}><button type="button" aria-pressed={open === x.id} onClick={() => setOpen(x.id)}>
-                  <strong>{x.igsid.endsWith('2') ? 'Person B' : 'Person A'}</strong> <span className="st-pill">{x.lead?.stage ?? 'new'}</span>{x.humanTakeover ? <span className="st-pill st-warn">You</span> : null}{x.state === 'awaiting_approval' ? <span className="st-pill st-glow">Needs approval</span> : null}
+                  <span className="st-conv-name">{x.igsid.endsWith('2') ? 'Person B' : 'Person A'}</span>
+                  <span className="st-conv-tags"><span className="st-pill">{(x.lead?.stage ?? 'new').replace(/_/g, ' ')}</span>{x.humanTakeover ? <span className="st-pill st-warn">You are replying</span> : null}{x.state === 'awaiting_approval' ? <span className="st-pill st-glow">Needs approval</span> : null}</span>
                 </button></li>))}</ul>)}
           </div>
           {conv ? (
             <div className="st-card st-wide">
               <div className="st-row st-between"><h2>Conversation</h2>
                 <button type="button" disabled={busy} onClick={() => run(inboxAction(business, { kind: conv.humanTakeover ? 'release' : 'takeover', id: conv.id }), (r) => r.message)}>{conv.humanTakeover ? 'Let the AI reply again' : 'Take over'}</button></div>
-              {conv.lead ? <p className="st-muted">Lead: {conv.lead.stage}. Why: “{conv.lead.reason}”</p> : null}
+              {conv.lead ? <p className="st-muted">Lead: {conv.lead.stage.replace(/_/g, ' ')}. Why: “{conv.lead.reason}”</p> : null}
               <ol className="st-thread">{conv.messages.map((m) => (
                 <li key={m.id} className={m.direction === 'in' ? 'st-in' : 'st-out'}>
                   <div className="st-meta">{m.direction === 'in' ? 'Customer' : m.author === 'ai' ? 'AI' : 'You'} · {m.status}{m.intent ? ` · ${m.intent} (${m.confidence})` : ''}</div>
                   {m.status === 'draft' ? (
                     <>
-                      <textarea rows={3} value={edit[m.id] ?? m.text} onChange={(e) => setEdit({ ...edit, [m.id]: e.target.value })} />
+                      <textarea rows={5} aria-label="Draft reply" value={edit[m.id] ?? m.text} onChange={(e) => setEdit({ ...edit, [m.id]: e.target.value })} />
                       <div className="st-row">
-                        <button type="button" disabled={busy} onClick={() => run(inboxAction(business, { kind: 'approve', id: m.id, text: edit[m.id] }), (r) => r.message)}>Approve and send</button>
+                        <button type="button" className="st-primary" disabled={busy} onClick={() => run(inboxAction(business, { kind: 'approve', id: m.id, text: edit[m.id] }), (r) => r.message)}>Approve and send</button>
                         <button type="button" disabled={busy} onClick={() => run(inboxAction(business, { kind: 'reject', id: m.id }), (r) => r.message)}>Discard</button>
                       </div>
                     </>
@@ -78,7 +79,7 @@ export function SetterClient({ business, initial }: { business: string; initial:
                   {m.error ? <p className="st-err">{m.error}</p> : null}
                 </li>))}</ol>
               <div className="st-row"><input value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Write your own reply" aria-label="Your reply" />
-                <button type="button" disabled={busy || !reply.trim()} onClick={async () => { await run(inboxAction(business, { kind: 'reply', id: conv.id, text: reply }), (r) => r.message); setReply(''); }}>Send</button></div>
+                <button type="button" className="st-primary" disabled={busy || !reply.trim()} onClick={async () => { await run(inboxAction(business, { kind: 'reply', id: conv.id, text: reply }), (r) => r.message); setReply(''); }}>Send</button></div>
             </div>
           ) : null}
         </section>
@@ -114,7 +115,7 @@ export function SetterClient({ business, initial }: { business: string; initial:
           <label><input type="radio" checked={form.mode === 'off'} onChange={() => setForm({ ...form, mode: 'off' })} /> Off</label>
           {form.mode === 'auto' ? <label><input type="checkbox" checked={form.confirmAuto} onChange={(e) => setForm({ ...form, confirmAuto: e.target.checked })} /> I understand the AI will reply on my behalf, only within 24 hours of a person messaging me, and only with the facts above.</label> : null}
           <label><input type="checkbox" checked={form.paused} onChange={(e) => setForm({ ...form, paused: e.target.checked })} /> Pause the AI</label>
-          <button type="button" disabled={busy} onClick={() => run(saveConfigAction(business, form), (r) => r.message)}>Save</button>
+          <button type="button" className="st-primary" disabled={busy} onClick={() => run(saveConfigAction(business, form), (r) => r.message)}>Save</button>
         </section>
       ) : null}
 
