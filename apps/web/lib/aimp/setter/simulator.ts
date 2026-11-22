@@ -17,11 +17,11 @@ export function sampleConfig(workspaceId: string, now: Date): AgentConfig {
   const k = (id: string, question: string, answer: string) => ({ id, question, answer });
   return {
     ...defaultConfig(workspaceId, now),
-    businessName: 'Glow Haven', idealCustomer: 'people who want a cosy, aesthetic bedroom, content creators, or someone buying a gift',
+    businessName: 'Glow Haven', about: 'A small Australian online store for cosy, aesthetic room lighting. Orders are packed and shipped by our fulfilment partner.', idealCustomer: 'people who want a cosy, aesthetic bedroom, content creators, or someone buying a gift',
     brandVoice: 'warm, casual, short, like a friend texting', qualifyingQuestion: 'Is it for your own room or a gift?',
     offers: [
-      { id: 'offer-lamp', name: 'Sunset Lamp', priceMinor: 3900, currency: 'AUD', description: 'A projector lamp with 16 colours plus the classic sunset glow, a remote with an auto-off timer, and a 180 degree rotating head.', ctaUrl: 'https://glowhaven.example.com/sunset-lamp', ctaKind: 'checkout' },
-      { id: 'offer-bundle', name: 'Sunset Lamp 2-pack', priceMinor: 6900, currency: 'AUD', description: 'Two Sunset Lamps, handy for gifting or a bigger glow.', ctaUrl: 'https://glowhaven.example.com/sunset-lamp-2-pack', ctaKind: 'checkout' },
+      { id: 'offer-lamp', name: 'Sunset Lamp', priceMinor: 3900, currency: 'AUD', description: 'A projector lamp with 16 colours plus the classic sunset glow, a remote with an auto-off timer, and a 180 degree rotating head.', details: 'About 26 cm tall, aluminium body. 16 colours plus sunset, sunset red, rainbow and sun modes. Remote controls colour, brightness and a 30 or 60 minute auto-off timer (coin battery included). Head rotates 180 degrees to move the glow up the wall or onto the ceiling. USB powered with a 1.8 m cable; any USB phone plug works (plug not included). The glow grows with distance: about 1 to 2 m from the wall gives a big sunset circle. Looks best in a dim room or at night. In the box: lamp, remote, USB cable, instructions.', bestFor: 'Bedrooms, gaming setups, golden-hour photos and gifts. Not for someone wanting a bright reading lamp or a health or light-therapy device.', ctaUrl: 'https://glowhaven.example.com/sunset-lamp', ctaKind: 'checkout' },
+      { id: 'offer-bundle', name: 'Sunset Lamp 2-pack', priceMinor: 6900, currency: 'AUD', description: 'Two Sunset Lamps, handy for gifting or a bigger glow.', details: 'Two of the same Sunset Lamp, each with its own remote and USB cable. Saves $9 compared with buying two singles. Can ship both to one address.', bestFor: 'Gifts, or one lamp for each of two rooms.', ctaUrl: 'https://glowhaven.example.com/sunset-lamp-2-pack', ctaKind: 'checkout' },
     ],
     knowledge: [
       k('faq-shipping', 'How long does shipping take? When will it arrive? Delivery time? How long to get here?', 'Orders ship within 1 to 2 business days and usually land in 7 to 12 business days. You get a tracking link by email as soon as it ships.'),
@@ -41,6 +41,18 @@ export function sampleConfig(workspaceId: string, now: Date): AgentConfig {
       k('faq-sleep', 'Does it help you sleep? Is it light therapy? Health benefits?', "It's a decor light for a cosy vibe, not a health device, so I can't promise anything like that."),
     ],
     refundPolicy: '30-day returns on unused items for a full refund. Faulty or damaged: replaced free within the 12 month warranty.',
+    shipping: 'Free shipping anywhere in Australia. Ships within 1 to 2 business days, usually arrives in 7 to 12 business days, tracking link emailed when it ships.',
+    returns: '30 days from delivery to return it unused for a full refund. Message us to start a return.',
+    warranty: '12 months. If it stops working or arrives damaged, send a photo or video and we replace it free.',
+    sellingPoints: ['Instantly makes a room feel warm and cosy', '16 colours plus the classic sunset, so it suits any mood', 'Remote with auto-off timer, so you can fall asleep with it on', 'Free shipping, 30-day returns and a 12 month warranty, so there is no risk trying it'],
+    objections: [
+      { id: 'obj-price', objection: 'it is a bit pricey / not sure it fits my budget', answer: 'Totally fair. It is a one-off buy that changes the whole feel of the room every night, and with free shipping and 30-day returns you can try it and send it back if it is not for you.' },
+      { id: 'obj-think', objection: 'I need to think about it / maybe later', answer: 'No rush at all. If it helps, the 30-day returns mean you are not locked in, and I am here if any questions come up.' },
+      { id: 'obj-trust', objection: 'is this legit / is it a scam / will it actually arrive', answer: 'Fair to check. Every order gets a tracking link by email, and if anything goes wrong you are covered by the 30-day returns and 12 month warranty.' },
+    ],
+    testimonials: [],
+    upsell: 'The 2-pack ($69) saves $9 versus two singles: great if it is a gift or they want one for two rooms.',
+    botQuestion: 'honest',
     prohibitedClaims: ['improves sleep', 'helps you sleep', 'cures', 'treats', 'therapy', 'only a few left', 'selling out'],
     bookingUrl: '', minConfidence: 0.6, discloseAi: false,
   };

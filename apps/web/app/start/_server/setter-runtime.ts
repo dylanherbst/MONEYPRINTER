@@ -24,7 +24,7 @@ export function setterStripe() {
 }
 
 type Live = { setter: Setter; store: SetterStore; liveSend: boolean };
-type G = typeof globalThis & { __aimpSetterLive?: Live | null; __aimpSetterSandboxesV5?: Map<string, ReturnType<typeof createSandbox>> };
+type G = typeof globalThis & { __aimpSetterLive?: Live | null; __aimpSetterSandboxesV6?: Map<string, ReturnType<typeof createSandbox>> };
 const g = globalThis as G;
 
 export const SETTER_ENV = ['META_APP_SECRET', 'META_WEBHOOK_VERIFY_TOKEN', 'SETTER_TOKEN_KEY', 'SETTER_CLICK_SECRET'] as const;
@@ -44,7 +44,7 @@ export function live(): Live | null {
 const MAX_SANDBOXES = 200;
 /** Clears the test conversations, leads, results and activity for one business. Its setup (offers, FAQs, mode) is kept. */
 export function resetSandbox(business: string): ReturnType<typeof createSandbox> | null {
-  const m = (g.__aimpSetterSandboxesV5 ??= new Map());
+  const m = (g.__aimpSetterSandboxesV6 ??= new Map());
   const old = m.get(business);
   const cfg = old?.store.config(old.ws) ?? null;
   m.delete(business);
@@ -54,7 +54,7 @@ export function resetSandbox(business: string): ReturnType<typeof createSandbox>
 }
 
 export function sandbox(business: string): ReturnType<typeof createSandbox> | null {
-  const m = (g.__aimpSetterSandboxesV5 ??= new Map());
+  const m = (g.__aimpSetterSandboxesV6 ??= new Map());
   const cur = m.get(business);
   if (cur) return cur;
   if (m.size >= MAX_SANDBOXES) return null;

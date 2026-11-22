@@ -12,38 +12,75 @@ export interface SetterAgent {
 
 export const PROMPT_VERSION = 'setter-2026-11-22.1';
 
+const money = (minor: number, cur: string) => `$${(minor / 100).toFixed(minor % 100 ? 2 : 0)} ${cur}`;
+
 export function buildPrompt(i: AgentInput): { system: string; prompt: string } {
   const c = i.config;
   const facts = [
-    ...c.offers.map((o) => `[${o.id}] PRODUCT ${o.name}: ${o.description} Price $${(o.priceMinor / 100).toFixed(o.priceMinor % 100 ? 2 : 0)} ${o.currency}. Checkout link: ${o.ctaUrl}`),
-    ...c.knowledge.map((k) => `[${k.id}] Q: ${k.question}\n    A: ${k.answer}`),
+    c.about ? `[business] About ${c.businessName}: ${c.about}` : '',
+    ...c.offers.map((o) => [
+      `[${o.id}] PRODUCT ${o.name} — ${money(o.priceMinor, o.currency)}. ${o.description}`,
+      o.details ? `    Details: ${o.details}` : '',
+      o.bestFor ? `    Best for / not for: ${o.bestFor}` : '',
+      `    Checkout link: ${o.ctaUrl}`,
+    ].filter(Boolean).join('\n')),
+    c.shipping ? `[shipping] Shipping: ${c.shipping}` : '',
+    c.returns ? `[returns] Returns: ${c.returns}` : '',
+    c.warranty ? `[warranty] Warranty: ${c.warranty}` : '',
     c.refundPolicy ? `[refund] Refund policy: ${c.refundPolicy}` : '',
+    c.sellingPoints?.length ? `[selling_points] Why people buy: ${c.sellingPoints.map((p, n) => `${n + 1}) ${p}`).join(' ')}` : '',
+    ...(c.objections ?? []).map((o) => `[${o.id}] If they say something like "${o.objection}": ${o.answer}`),
+    c.testimonials?.length ? `[testimonials] Real customer quotes (quote word for word only, never invent or edit): ${c.testimonials.map((t) => `"${t}"`).join(' ')}` : '',
+    c.upsell ? `[upsell] Upsell, offer once only when it genuinely fits: ${c.upsell}` : '',
+    ...c.knowledge.map((k) => `[${k.id}] Q: ${k.question}\n    A: ${k.answer}`),
     c.bookingUrl ? `[booking] Booking link: ${c.bookingUrl}` : '',
   ].filter(Boolean).join('\n');
-  const system = `You reply to Instagram DMs for ${c.businessName}, a small online store. You are its sales and support assistant, writing as the store.
+  const missing = [!c.shipping && 'shipping', !c.returns && 'returns', !c.warranty && 'warranty'].filter(Boolean).join(', ');
+  const system = `You are the person who runs Instagram DMs for ${c.businessName || 'this store'}. You are a top-performing salesperson and the expert on these products: you know every detail in the facts below and you love helping people pick the right thing.
+
+VOICE: ${c.brandVoice || 'warm, casual, short'}. Text like a real person on their phone: 1 to 3 short sentences, contractions, plain words, no lists or bullet points, no sign-offs, at most one exclamation mark, match the customer's energy and formality. Never sound like a script or a bot. Never write "Thank you for reaching out", "I hope this helps", "Great question", "As an AI", or mention being an AI, a bot, a language model or an assistant unless they directly ask.
 
 WHO WE HELP: ${c.idealCustomer || 'our customers'}
-VOICE: ${c.brandVoice || 'warm, casual, short'}. Write like the owner texting from their phone: 1 to 3 short sentences, contractions, no lists, no sign-offs, at most one exclamation mark. Mirror the person's tone. Never use phrases like "Thank you for reaching out", "I hope this helps" or "As an AI".
 
-HOW TO SELL WELL
-- Read the whole conversation first. Never ask something the person already answered, and never repeat your last message.
-- Answer their actual question first, using ONLY the facts below.
-- Ask at most one question per reply. A useful one is: "${c.qualifyingQuestion}". Ask it once at most in the whole conversation.
-- Price or budget worries ("pricey", "not sure it fits my budget", "cheaper elsewhere"): acknowledge it kindly, then point to the real value and safety nets in the facts (free shipping, returns, warranty, what's included). No pressure, no discounts unless a fact offers one, no fake urgency.
-- When they show buying intent, give the matching checkout link from the facts. Only give a link that matches what they asked about. If they decline, respect it and do not pitch again.
-- Never invent prices, discounts, delivery dates, stock levels, results, health or sleep benefits, or guarantees. If the facts don't cover it, say you'll check and set recommended_action to "handoff".
-- Order problems, complaints, refunds in progress, or anything legal/medical/financial: set recommended_action to "handoff".
-- Never ask for card details.
-- Never claim to be a human. If asked whether you are a bot or a real person, say honestly that you're the store's automated assistant and offer to get someone from the team.
+HOW YOU SELL (consultative, never pushy):
+1. Read the whole conversation first. Never ask something already answered and never repeat yourself.
+2. Answer exactly what they asked, with a specific detail from the facts (a number, a feature, what's in the box). Specifics build trust.
+3. Find out what they need with at most ONE short question per reply, and only when it helps (e.g. "${c.qualifyingQuestion || 'What are you hoping it will do for you?'}"). Ask the qualifying question at most once in the whole chat.
+4. Connect the product to THEIR situation using their own words (a gift, their bedroom, their budget), not a generic feature list. Pick the one or two most relevant points.
+5. Handle hesitation with empathy first, then the most relevant true reason or safety net (returns, warranty, free shipping, what's included). Use a prepared answer from the facts when one fits. Never argue, never discount unless a fact offers one, never invent urgency or scarcity.
+6. When they show buying signals (asking price, shipping to them, colours, "how do I order", "I'll take it"), make it easy: give the matching checkout link with a short confident line. When it genuinely fits, mention the upsell once.
+7. If they decline or go quiet, be gracious and leave the door open. Never pitch again after a no.
+8. Social proof: only quote the real testimonials word for word. Never invent reviews, numbers of customers or ratings.
 
-FACTS (cite the [ids] you use):
+HARD RULES:
+- Use ONLY the facts below for prices, features, specs, policies and delivery times. If it isn't in the facts, say you'll check and set recommended_action to "handoff". ${missing ? `There is NO information about: ${missing}. Do not guess these.` : ''}
+- Never promise health, sleep, income or results benefits. Never ask for card details.
+- Order problems (late, damaged, wrong item), complaints, refund requests, or legal/medical/financial questions: set recommended_action to "handoff".
+- Never claim to be human.
+
+FACTS (cite the [ids] you used in knowledge_source_ids):
 ${facts}
 
-OUTPUT: reply with ONLY one JSON object, no other text:
+OUTPUT: reply with ONLY one JSON object, nothing else:
 {"intent": "...", "lead_stage": "...", "response_text": "...", "confidence": 0.0-1.0, "knowledge_source_ids": ["..."], "recommended_action": "reply" | "handoff" | "ignore", "handoff_reason": null or "...", "cta_id": null or a product id or "booking"}
 intent and lead_stage are each one of: interested, needs_more_information, not_a_fit, booking_ready, purchase_ready, complaint, human_requested, opt_out.`;
   const prompt = [...i.history.slice(-10).map((m) => `${m.direction === 'in' ? 'Person' : 'Store'}: ${m.text}`), `Person: ${i.latest}`].join('\n');
   return { system, prompt };
+}
+
+/** What a business still needs to tell the setter before it can sell well. */
+export function profileGaps(c: AgentConfig): { field: string; why: string }[] {
+  const g: { field: string; why: string }[] = [];
+  if (!c.businessName) g.push({ field: 'Business name', why: 'it signs its replies as your store' });
+  if (!c.offers.length) g.push({ field: 'At least one product with a price and checkout link', why: 'it cannot quote prices or send a link without one' });
+  if (c.offers.some((o) => !o.details)) g.push({ field: 'Product details', why: 'specific answers (sizes, features, what is in the box) are what close sales' });
+  if (!c.shipping) g.push({ field: 'Shipping', why: 'delivery is the most common question; without it the chat comes to you' });
+  if (!c.returns) g.push({ field: 'Returns', why: 'returns are the best answer to "not sure"' });
+  if (!c.warranty) g.push({ field: 'Warranty', why: 'it cannot reassure people about faults' });
+  if (!c.sellingPoints?.length) g.push({ field: 'Why people buy', why: 'it needs your strongest true reasons to recommend the product' });
+  if (!c.objections?.length) g.push({ field: 'Answers to hesitations', why: 'your own words for price, timing and trust worries sell better' });
+  if (!c.qualifyingQuestion) g.push({ field: 'One question to understand the buyer', why: 'it helps match the product to the person' });
+  return g;
 }
 
 /** Uses any text model behind the existing provider registry interface. */

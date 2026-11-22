@@ -28,6 +28,7 @@ export interface SetterDeps {
 export const defaultConfig = (workspaceId: string, now: Date): AgentConfig => ({
   workspaceId, mode: 'draft_only', paused: false, businessName: '', idealCustomer: '', brandVoice: 'friendly, short, natural', offers: [], knowledge: [],
   prohibitedClaims: [], refundPolicy: '', bookingUrl: '', qualifyingQuestion: '', timezone: 'Australia/Perth', minConfidence: 0.6, discloseAi: false,
+  about: '', shipping: '', returns: '', warranty: '', sellingPoints: [], objections: [], testimonials: [], upsell: '', botQuestion: 'honest',
   promptVersion: '', updatedAt: now.toISOString(),
 });
 
@@ -101,6 +102,12 @@ export function createSetter(d: SetterDeps) {
       if (!el.canDraft) { audit(ws, 'not_eligible', `${conv.id}: ${el.blocks.join(', ')}`); return `blocked:${el.blocks.join(',')}`; }
       const cfg = s.config(ws)!;
       // Asked directly whether this is automated: answer honestly, never deny it (owner decision: only say so when asked).
+      if (asksIfAutomated(ev.text) && cfg.botQuestion === 'handoff') {
+        setLead(ws, conv, 'human_requested', ev.text);
+        s.saveConversation({ ...conv, humanTakeover: true, state: 'human' });
+        audit(ws, 'handoff', `${conv.id} asked if they are talking to a bot; handed to you.`);
+        return 'handoff';
+      }
       if (asksIfAutomated(ev.text)) {
         const send = cfg.mode === 'auto' && el.canSend;
         const m: DmMessage = { id: `msg-${newId()}`, workspaceId: ws, conversationId: conv.id, direction: 'out', author: 'ai', text: honestAnswer(cfg.businessName), status: send ? 'queued' : 'draft', mid: null, error: null, createdAt: iso(), policyNotes: ['Asked if this is automated: answered honestly.'] };
@@ -125,7 +132,7 @@ export function createSetter(d: SetterDeps) {
       const dec = v.decision;
       setLead(ws, conv, dec.lead_stage, ev.text);
       if (dec.intent === 'not_a_fit') conv = { ...conv, pitchesDeclined: conv.pitchesDeclined + 1 };
-      const out = applyPolicy(dec, cfg, conv, el);
+      const out = applyPolicy(dec, cfg, conv, el, { askedIfBot: asksIfAutomated(ev.text) });
       if (out.action === 'ignore') { s.saveConversation(conv); return 'ignored'; }
       if (out.action === 'handoff') {
         s.saveConversation({ ...conv, humanTakeover: true, state: 'human' });

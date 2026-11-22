@@ -7,6 +7,7 @@ export interface SetterView {
   config: AgentConfig;
   /** Which agent writes replies: a Claude model id, or 'rules' when no AI key is set. */
   agentName: string;
+  gaps: { field: string; why: string }[];
   metered: boolean;
   usage: ReturnType<typeof usageSummary>;
   canBuy: boolean;

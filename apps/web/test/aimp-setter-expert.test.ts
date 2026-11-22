@@ -61,7 +61,7 @@ test('Claude agent: sends the conversation as alternating turns and its JSON goe
   assert.equal(calls[0]!.body.model, 'claude-haiku-5-5');
   const msgs = calls[1]!.body.messages as { role: string; content: string }[];
   assert.deepEqual(msgs.map((m) => m.role), ['user', 'assistant', 'user']);
-  assert.match(String(calls[1]!.body.system), /Never ask something the person already answered/);
+  assert.match(String(calls[1]!.body.system), /Never ask something already answered/);
   assert.deepEqual(r.results, ['sent']);
   assert.match(sb.sender.sent.at(-1)!.text, /30-day returns/);
   assert.deepEqual(toMessages({ config: sb.store.config(sb.ws)!, history: [{ direction: 'out', text: 'hi' }, { direction: 'in', text: 'a' }, { direction: 'in', text: 'b' }], latest: 'c' }).map((m) => m.content), ['a\nb\nc']);

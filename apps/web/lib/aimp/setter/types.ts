@@ -20,7 +20,17 @@ export interface InstagramConnection {
   connectedAt: string;
 }
 
-export interface Offer { id: string; name: string; priceMinor: number; currency: string; description: string; ctaUrl: string; ctaKind: 'checkout' | 'booking' }
+export interface Offer {
+  id: string; name: string; priceMinor: number; currency: string;
+  /** One-line summary. */
+  description: string;
+  /** Full product knowledge: features, specs, sizes, materials, what's in the box, how to use, care. The setter answers from this. */
+  details?: string;
+  /** Who it's great for, and who it is NOT for (honest fit helps selling). */
+  bestFor?: string;
+  ctaUrl: string; ctaKind: 'checkout' | 'booking';
+}
+export interface ObjectionAnswer { id: string; objection: string; answer: string }
 export interface KnowledgeItem { id: string; question: string; answer: string }
 
 export interface AgentConfig {
@@ -28,7 +38,23 @@ export interface AgentConfig {
   mode: SetterMode;
   paused: boolean;
   businessName: string;
+  /** What the business is, in the owner's words (story, location, why customers buy from them). */
+  about: string;
   idealCustomer: string;
+  /** Policies the setter quotes. Empty = it will not make one up. */
+  shipping: string;
+  returns: string;
+  warranty: string;
+  /** Why people buy: the strongest true reasons, in order. */
+  sellingPoints: string[];
+  /** Prepared answers to common hesitations (price, timing, trust, "need to think"). */
+  objections: ObjectionAnswer[];
+  /** REAL customer quotes the owner confirms are genuine. The setter may quote only these, word for word. */
+  testimonials: string[];
+  /** Upsell or bundle suggestion, offered once when it genuinely fits. */
+  upsell: string;
+  /** When someone asks "are you a bot?": answer honestly that it is the store's assistant, or hand the chat to the owner. */
+  botQuestion: 'honest' | 'handoff';
   brandVoice: string;
   offers: Offer[];
   knowledge: KnowledgeItem[];

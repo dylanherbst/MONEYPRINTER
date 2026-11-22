@@ -2,7 +2,10 @@
 // AI Setter test lab actions. Everything runs on the per-business SANDBOX: simulated Instagram, fake sender, nothing leaves the server.
 import { availability, checkBusiness } from '../../../start/_server/runtime';
 import { resetSandbox, sandbox, setterStripe, live } from '../../../start/_server/setter-runtime';
-import { setterMetrics, usageSummary, type AgentConfig, type Offer, type KnowledgeItem } from '../../../../lib/aimp/setter/index';
+import { profileGaps, setterMetrics, usageSummary, type AgentConfig, type Offer, type KnowledgeItem, type ObjectionAnswer } from '../../../../lib/aimp/setter/index';
+import { catalogueCtx, runtime } from '../../../start/_server/runtime';
+import { getOfferState } from '../../../../lib/aimp/offers/store';
+import { buyerGets } from '../../../../lib/aimp/offers/build';
 import type { SetterView } from './view';
 
 function sb(business: string) {
@@ -20,6 +23,7 @@ function view(s: NonNullable<ReturnType<typeof sb>>): SetterView {
   return {
     config: s.store.config(ws)!,
     agentName: s.agentName,
+    gaps: profileGaps(s.store.config(ws)!),
     metered: s.metered,
     usage: usageSummary(s.store, ws),
     canBuy: !!setterStripe() && !!live(),
@@ -40,17 +44,25 @@ export async function saveConfigAction(business: string, raw: unknown): Promise<
   const cur = s.store.config(s.ws)!;
   const offers: Offer[] = (Array.isArray(o.offers) ? o.offers : []).slice(0, 10).map((x, i) => {
     const r = (x ?? {}) as Record<string, unknown>;
-    return { id: `offer-${i + 1}`, name: str(r.name, 80), description: str(r.description, 300), priceMinor: Math.round(Number(r.price) * 100), currency: 'AUD', ctaUrl: https(r.ctaUrl), ctaKind: 'checkout' as const };
-  }).filter((x) => x.name && Number.isInteger(x.priceMinor) && x.priceMinor > 0 && x.ctaUrl);
+    return { id: `offer-${i + 1}`, name: str(r.name, 80), description: str(r.description, 300), details: str(r.details, 3000), bestFor: str(r.bestFor, 400), priceMinor: Math.round(Number(r.price) * 100), currency: 'AUD', ctaUrl: https(r.ctaUrl), ctaKind: 'checkout' as const };
+  }).filter((x) => x.name && Number.isInteger(x.priceMinor) && x.priceMinor > 0);
   const knowledge: KnowledgeItem[] = (Array.isArray(o.knowledge) ? o.knowledge : []).slice(0, 30).map((x, i) => {
     const r = (x ?? {}) as Record<string, unknown>;
     return { id: `faq-${i + 1}`, question: str(r.question, 200), answer: str(r.answer, 600) };
   }).filter((k) => k.question && k.answer);
+  const objections: ObjectionAnswer[] = (Array.isArray(o.objections) ? o.objections : []).slice(0, 20).map((x, i) => {
+    const r = (x ?? {}) as Record<string, unknown>;
+    return { id: `obj-${i + 1}`, objection: str(r.objection, 200), answer: str(r.answer, 600) };
+  }).filter((x) => x.objection && x.answer);
+  const lines = (v: unknown, n: number, len: number) => str(v, n * len).split('\n').map((x) => x.trim().slice(0, len)).filter(Boolean).slice(0, n);
   const mode = o.mode === 'auto' || o.mode === 'off' ? o.mode : 'draft_only';
   if (mode === 'auto' && o.confirmAuto !== true) return { ok: false, message: 'Tick the box to confirm automatic replies.', view: view(s) };
   const next: AgentConfig = {
     ...cur, mode, paused: o.paused === true, discloseAi: o.discloseAi === true, businessName: str(o.businessName, 80), idealCustomer: str(o.idealCustomer, 200), brandVoice: str(o.brandVoice, 120) || cur.brandVoice,
     qualifyingQuestion: str(o.qualifyingQuestion, 200), refundPolicy: str(o.refundPolicy, 400), bookingUrl: https(o.bookingUrl), offers, knowledge,
+    about: str(o.about, 800), shipping: str(o.shipping, 500), returns: str(o.returns, 500), warranty: str(o.warranty, 500),
+    sellingPoints: lines(o.sellingPoints, 10, 200), objections, testimonials: o.testimonialsConfirmed === true ? lines(o.testimonials, 10, 300) : [],
+    upsell: str(o.upsell, 300), botQuestion: o.botQuestion === 'handoff' ? 'handoff' : 'honest',
     prohibitedClaims: str(o.prohibitedClaims, 600).split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 20), updatedAt: new Date().toISOString(),
   };
   s.store.saveConfig(next);
@@ -82,4 +94,26 @@ export async function inboxAction(business: string, op: unknown): Promise<{ ok: 
   else if (o.kind === 'kill') { s.store.setKillSwitch(s.ws, o.on === true); ok = true; message = o.on === true ? 'All sending stopped.' : 'Sending allowed again.'; }
   else message = 'Unknown action.';
   return { ok, message, view: view(s) };
+}
+
+/** Pull what AIMoneyPrinter already knows about this business (approved shop listings and the Offer builder product) into the setter.
+ *  Existing setter entries are kept; imported products are added once (matched by name). Checkout links must be added by the owner. */
+export async function importFromShopAction(business: string): Promise<{ ok: boolean; message: string; view: SetterView | null }> {
+  const s = sb(business);
+  if (!s) return { ok: false, message: 'Not available here.', view: null };
+  const cfg = s.store.config(s.ws)!;
+  const found: Offer[] = [];
+  try {
+    const rt = runtime();
+    for (const l of await rt.catalogue.listApprovedForBusiness(catalogueCtx(business), business)) {
+      found.push({ id: '', name: l.title, priceMinor: l.priceMinor, currency: l.currency, description: l.shortDescription, details: l.longDescription, ctaUrl: '', ctaKind: 'checkout' });
+    }
+  } catch { /* no catalogue for this business */ }
+  const approved = getOfferState(business).approved;
+  if (approved) found.push({ id: '', name: approved.spec.title, priceMinor: approved.priceMinor, currency: 'AUD', description: approved.spec.subtitle, details: `Digital PDF download. What you get: ${buyerGets(approved.spec).join('; ')}.`, ctaUrl: '', ctaKind: 'checkout' });
+  const have = new Set(cfg.offers.map((o) => o.name.toLowerCase()));
+  const add = found.filter((f) => !have.has(f.name.toLowerCase()));
+  const offers = [...cfg.offers, ...add].slice(0, 10).map((o, i) => ({ ...o, id: o.id || `offer-${i + 1}` }));
+  s.store.saveConfig({ ...cfg, offers, updatedAt: new Date().toISOString() });
+  return { ok: true, message: add.length ? `Imported ${add.length} product${add.length === 1 ? '' : 's'} from your shop. Add a checkout link and details to each.` : 'Nothing new to import: your shop products are already here.', view: view(s) };
 }

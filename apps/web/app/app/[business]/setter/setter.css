@@ -70,3 +70,7 @@
 .st-metrics div { padding: 10px; border-radius: 12px; background: color-mix(in srgb, var(--st-accent) 8%, transparent); }
 .st-metrics dt { font-size: .75rem; color: var(--st-muted); }
 .st-metrics dd { margin: 0; font-size: 1.3rem; font-weight: 700; }
+
+.st-gaps { padding: 12px; border-radius: 12px; background: color-mix(in srgb, var(--amg-peach, #ffb48e) 22%, transparent); font-size: .875rem; }
+.st-gaps ul { margin: 6px 0 0; padding-left: 18px; }
+.st-ok { margin: 0; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--amg-done, #35a872) 15%, transparent); font-size: .875rem; }

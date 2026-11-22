@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { inboxAction, saveConfigAction, simulateAction } from './actions';
+import { importFromShopAction, inboxAction, saveConfigAction, simulateAction } from './actions';
 import type { SetterView } from './view';
 import './setter.css';
 
@@ -18,12 +18,16 @@ export function SetterClient({ business, initial }: { business: string; initial:
   const [edit, setEdit] = useState<Record<string, string>>({});
   const [reply, setReply] = useState('');
   const c = v.config;
-  const [form, setForm] = useState({
-    businessName: c.businessName, idealCustomer: c.idealCustomer, brandVoice: c.brandVoice, qualifyingQuestion: c.qualifyingQuestion, refundPolicy: c.refundPolicy,
-    bookingUrl: c.bookingUrl, discloseAi: c.discloseAi, prohibitedClaims: c.prohibitedClaims.join('\n'), mode: c.mode, paused: c.paused, confirmAuto: false,
-    offers: c.offers.map((o) => ({ name: o.name, description: o.description, price: dollars(o.priceMinor), ctaUrl: o.ctaUrl })),
+  const toForm = (c: SetterView['config']) => ({
+    businessName: c.businessName, about: c.about ?? '', idealCustomer: c.idealCustomer, brandVoice: c.brandVoice, qualifyingQuestion: c.qualifyingQuestion,
+    shipping: c.shipping ?? '', returns: c.returns ?? '', warranty: c.warranty ?? '', refundPolicy: c.refundPolicy, bookingUrl: c.bookingUrl,
+    sellingPoints: (c.sellingPoints ?? []).join('\n'), upsell: c.upsell ?? '', testimonials: (c.testimonials ?? []).join('\n'), testimonialsConfirmed: (c.testimonials ?? []).length > 0,
+    objections: (c.objections ?? []).map((o) => ({ objection: o.objection, answer: o.answer })),
+    botQuestion: c.botQuestion ?? 'honest', discloseAi: c.discloseAi, prohibitedClaims: c.prohibitedClaims.join('\n'), mode: c.mode, paused: c.paused, confirmAuto: false,
+    offers: c.offers.map((o) => ({ name: o.name, description: o.description, details: o.details ?? '', bestFor: o.bestFor ?? '', price: dollars(o.priceMinor), ctaUrl: o.ctaUrl })),
     knowledge: c.knowledge.map((k) => ({ question: k.question, answer: k.answer })),
   });
+  const [form, setForm] = useState(toForm(c));
   const run = async <T extends { view: SetterView | null }>(p: Promise<T>, say: (r: T) => string) => {
     setBusy(true); const r = await p; setBusy(false); if (r.view) setV(r.view); setMsg(say(r)); return r;
   };
@@ -90,34 +94,77 @@ export function SetterClient({ business, initial }: { business: string; initial:
 
       {tab === 'setup' ? (
         <section className="st-card st-form">
-          <h2>What the AI knows</h2>
-          {(['businessName', 'idealCustomer', 'brandVoice', 'qualifyingQuestion', 'bookingUrl'] as const).map((k) => (
-            <label key={k}>{({ businessName: 'Business name', idealCustomer: 'Who you help', brandVoice: 'How you sound', qualifyingQuestion: 'One question to qualify people', bookingUrl: 'Booking link (https, optional)' })[k]}
-              <input value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} /></label>))}
-          <label>Refund policy<textarea rows={2} value={form.refundPolicy} onChange={(e) => setForm({ ...form, refundPolicy: e.target.value })} /></label>
-          <label>Things the AI must never say (one per line)<textarea rows={3} value={form.prohibitedClaims} onChange={(e) => setForm({ ...form, prohibitedClaims: e.target.value })} /></label>
-          <h3>Offers</h3>
-          {form.offers.map((o, i) => (
-            <fieldset key={i}><legend>Offer {i + 1}</legend>
-              <input placeholder="Name" value={o.name} onChange={(e) => { const x = [...form.offers]; x[i] = { ...o, name: e.target.value }; setForm({ ...form, offers: x }); }} />
-              <input placeholder="Price in dollars" inputMode="decimal" value={o.price} onChange={(e) => { const x = [...form.offers]; x[i] = { ...o, price: e.target.value }; setForm({ ...form, offers: x }); }} />
-              <input placeholder="Checkout link (https)" value={o.ctaUrl} onChange={(e) => { const x = [...form.offers]; x[i] = { ...o, ctaUrl: e.target.value }; setForm({ ...form, offers: x }); }} />
-              <textarea rows={2} placeholder="What it is" value={o.description} onChange={(e) => { const x = [...form.offers]; x[i] = { ...o, description: e.target.value }; setForm({ ...form, offers: x }); }} />
-            </fieldset>))}
-          <button type="button" onClick={() => setForm({ ...form, offers: [...form.offers, { name: '', description: '', price: '', ctaUrl: '' }] })}>Add offer</button>
+          <div className="st-row st-between"><h2>Teach it your business</h2>
+            <button type="button" disabled={busy} onClick={async () => { const r = await run(importFromShopAction(business), (x) => x.message); if (r.view) setForm(toForm(r.view.config)); }}>Import from my shop</button></div>
+          {v.gaps.length ? (
+            <div className="st-gaps"><strong>Still missing ({v.gaps.length})</strong><ul>{v.gaps.map((g) => <li key={g.field}><b>{g.field}</b>: {g.why}.</li>)}</ul></div>
+          ) : <p className="st-ok">Everything it needs is filled in.</p>}
+
+          <h3>Your business</h3>
+          <label>Business name<input value={form.businessName} onChange={(e) => setForm({ ...form, businessName: e.target.value })} /></label>
+          <label>About the business (who you are, why people buy from you)<textarea rows={3} value={form.about} onChange={(e) => setForm({ ...form, about: e.target.value })} /></label>
+          <label>Who you help<input value={form.idealCustomer} onChange={(e) => setForm({ ...form, idealCustomer: e.target.value })} /></label>
+          <label>How you sound (e.g. warm, casual, like a friend texting)<input value={form.brandVoice} onChange={(e) => setForm({ ...form, brandVoice: e.target.value })} /></label>
+
+          <h3>Products</h3>
+          <p className="st-muted">The more detail here, the better it sells. Sizes, features, what is in the box, how to use it.</p>
+          {form.offers.map((o, i) => {
+            const set = (patch: Partial<typeof o>) => { const x = [...form.offers]; x[i] = { ...o, ...patch }; setForm({ ...form, offers: x }); };
+            return (
+              <fieldset key={i}><legend>Product {i + 1}</legend>
+                <input placeholder="Name" value={o.name} onChange={(e) => set({ name: e.target.value })} />
+                <input placeholder="Price in dollars" inputMode="decimal" value={o.price} onChange={(e) => set({ price: e.target.value })} />
+                <input placeholder="Checkout link (https)" value={o.ctaUrl} onChange={(e) => set({ ctaUrl: e.target.value })} />
+                <textarea rows={2} placeholder="One-line summary" value={o.description} onChange={(e) => set({ description: e.target.value })} />
+                <textarea rows={5} placeholder="Full details: features, specs, size, materials, what's in the box, how to use, care" value={o.details} onChange={(e) => set({ details: e.target.value })} />
+                <textarea rows={2} placeholder="Best for, and who it's NOT for" value={o.bestFor} onChange={(e) => set({ bestFor: e.target.value })} />
+              </fieldset>
+            );
+          })}
+          <button type="button" onClick={() => setForm({ ...form, offers: [...form.offers, { name: '', description: '', details: '', bestFor: '', price: '', ctaUrl: '' }] })}>Add product</button>
+
+          <h3>Policies</h3>
+          <label>Shipping (cost, how long, tracking)<textarea rows={2} value={form.shipping} onChange={(e) => setForm({ ...form, shipping: e.target.value })} /></label>
+          <label>Returns<textarea rows={2} value={form.returns} onChange={(e) => setForm({ ...form, returns: e.target.value })} /></label>
+          <label>Warranty and faulty items<textarea rows={2} value={form.warranty} onChange={(e) => setForm({ ...form, warranty: e.target.value })} /></label>
+          <label>Booking link (https, optional)<input value={form.bookingUrl} onChange={(e) => setForm({ ...form, bookingUrl: e.target.value })} /></label>
+
+          <h3>How to sell it</h3>
+          <label>Why people buy (one reason per line, strongest first)<textarea rows={4} value={form.sellingPoints} onChange={(e) => setForm({ ...form, sellingPoints: e.target.value })} /></label>
+          <label>One question to understand the buyer<input value={form.qualifyingQuestion} onChange={(e) => setForm({ ...form, qualifyingQuestion: e.target.value })} /></label>
+          <label>Upsell or bundle (offered once, only when it fits)<input value={form.upsell} onChange={(e) => setForm({ ...form, upsell: e.target.value })} /></label>
+          <p className="st-muted">Your answers to common hesitations. It uses your words when someone is unsure.</p>
+          {form.objections.map((o, i) => {
+            const set = (patch: Partial<typeof o>) => { const x = [...form.objections]; x[i] = { ...o, ...patch }; setForm({ ...form, objections: x }); };
+            return (
+              <fieldset key={i}><legend>Hesitation {i + 1}</legend>
+                <input placeholder='What they say, e.g. "too expensive"' value={o.objection} onChange={(e) => set({ objection: e.target.value })} />
+                <textarea rows={2} placeholder="How you answer it" value={o.answer} onChange={(e) => set({ answer: e.target.value })} />
+              </fieldset>
+            );
+          })}
+          <button type="button" onClick={() => setForm({ ...form, objections: [...form.objections, { objection: '', answer: '' }] })}>Add hesitation</button>
+          <label>Customer reviews it may quote (one per line, word for word)<textarea rows={3} value={form.testimonials} onChange={(e) => setForm({ ...form, testimonials: e.target.value })} /></label>
+          <label><input type="checkbox" checked={form.testimonialsConfirmed} onChange={(e) => setForm({ ...form, testimonialsConfirmed: e.target.checked })} /> These are real reviews from real customers. (Reviews are only saved when this is ticked.)</label>
+
           <h3>Questions people ask</h3>
           {form.knowledge.map((k, i) => (
-            <fieldset key={i}><legend>FAQ {i + 1}</legend>
+            <fieldset key={i}><legend>Question {i + 1}</legend>
               <input placeholder="Question" value={k.question} onChange={(e) => { const x = [...form.knowledge]; x[i] = { ...k, question: e.target.value }; setForm({ ...form, knowledge: x }); }} />
               <textarea rows={2} placeholder="Your answer" value={k.answer} onChange={(e) => { const x = [...form.knowledge]; x[i] = { ...k, answer: e.target.value }; setForm({ ...form, knowledge: x }); }} />
             </fieldset>))}
           <button type="button" onClick={() => setForm({ ...form, knowledge: [...form.knowledge, { question: '', answer: '' }] })}>Add question</button>
+          <label>Things it must never say (one per line)<textarea rows={3} value={form.prohibitedClaims} onChange={(e) => setForm({ ...form, prohibitedClaims: e.target.value })} /></label>
+
           <h3>Replies</h3>
           <label><input type="radio" checked={form.mode === 'draft_only'} onChange={() => setForm({ ...form, mode: 'draft_only' })} /> Drafts only: I approve every reply</label>
           <label><input type="radio" checked={form.mode === 'auto'} onChange={() => setForm({ ...form, mode: 'auto' })} /> Automatic replies when it is allowed</label>
           <label><input type="radio" checked={form.mode === 'off'} onChange={() => setForm({ ...form, mode: 'off' })} /> Off</label>
-          {form.mode === 'auto' ? <label><input type="checkbox" checked={form.confirmAuto} onChange={(e) => setForm({ ...form, confirmAuto: e.target.checked })} /> I understand the AI will reply on my behalf, only within 24 hours of a person messaging me, and only with the facts above.</label> : null}
-          <label><input type="checkbox" checked={form.discloseAi} onChange={(e) => setForm({ ...form, discloseAi: e.target.checked })} /> Say the first reply is automated. Off by default. Some places (for example California and Germany) may require this by law, so check where your customers are.</label>
+          {form.mode === 'auto' ? <label><input type="checkbox" checked={form.confirmAuto} onChange={(e) => setForm({ ...form, confirmAuto: e.target.checked })} /> I understand it will reply on my behalf, only within 24 hours of a person messaging me, and only with the facts above.</label> : null}
+          <p className="st-muted">It never says it is AI on its own. If someone asks "are you a bot?":</p>
+          <label><input type="radio" checked={form.botQuestion === 'honest'} onChange={() => setForm({ ...form, botQuestion: 'honest' })} /> Answer honestly that it is the store's assistant and offer a person</label>
+          <label><input type="radio" checked={form.botQuestion === 'handoff'} onChange={() => setForm({ ...form, botQuestion: 'handoff' })} /> Do not answer: hand the chat to me</label>
+          <label><input type="checkbox" checked={form.discloseAi} onChange={(e) => setForm({ ...form, discloseAi: e.target.checked })} /> Say the first reply is automated. Off by default. Some places (for example California and Germany) may require this by law.</label>
           <label><input type="checkbox" checked={form.paused} onChange={(e) => setForm({ ...form, paused: e.target.checked })} /> Pause the AI</label>
           <button type="button" className="st-primary" disabled={busy} onClick={() => run(saveConfigAction(business, form), (r) => r.message)}>Save</button>
         </section>

@@ -16,7 +16,10 @@ export type Outcome = { action: 'send' | 'draft' | 'handoff' | 'ignore'; text: s
 const urlsIn = (t: string): string[] => t.match(/https?:\/\/[^\s)>\]]+/gi) ?? [];
 const moneyIn = (t: string): number[] => (t.match(/\$\s?\d[\d,]*(\.\d{1,2})?/g) ?? []).map((m) => Math.round(Number(m.replace(/[$,\s]/g, '')) * 100));
 
-export function applyPolicy(d: AgentDecision, cfg: AgentConfig, conv: DmConversation, opts: { canSend: boolean; canDraft: boolean }): Outcome {
+// Self-references the setter never makes unprompted (owner decision: it does not say it is AI unless asked).
+const SELF_AI = /\b(as an ai|i'?m an? (ai|bot|chatbot|virtual assistant|language model|automated)|i am an? (ai|bot|chatbot|virtual assistant|language model)|language model|chatbot|artificial intelligence)\b/i;
+
+export function applyPolicy(d: AgentDecision, cfg: AgentConfig, conv: DmConversation, opts: { canSend: boolean; canDraft: boolean }, ctx: { askedIfBot?: boolean } = {}): Outcome {
   const notes: string[] = [];
   if (!opts.canDraft) return { action: 'ignore', text: '', notes: ['Not eligible to reply or draft.'], ctaId: null };
   if (d.recommended_action === 'ignore') return { action: 'ignore', text: '', notes: ['Model suggested no reply.'], ctaId: null };
@@ -27,7 +30,7 @@ export function applyPolicy(d: AgentDecision, cfg: AgentConfig, conv: DmConversa
   let forceDraft = false;
   if (!text) return { action: 'handoff', text: '', notes: ['Empty reply; a person should answer.'], ctaId: null };
 
-  const known = new Set(cfg.knowledge.map((k) => k.id).concat(cfg.offers.map((o) => o.id)));
+  const known = new Set([...cfg.knowledge.map((k) => k.id), ...cfg.offers.map((o) => o.id), ...(cfg.objections ?? []).map((o) => o.id), 'business', 'shipping', 'returns', 'warranty', 'selling_points', 'testimonials', 'upsell', 'refund', 'booking']);
   const unknownSrc = d.knowledge_source_ids.filter((id) => !known.has(id));
   if (unknownSrc.length) { forceDraft = true; notes.push(`Cited facts that do not exist (${unknownSrc.join(', ')}).`); }
 
@@ -35,13 +38,20 @@ export function applyPolicy(d: AgentDecision, cfg: AgentConfig, conv: DmConversa
   const badUrls = urlsIn(text).filter((u) => !allowedUrls.has(u.replace(/[.,!?]+$/, '')));
   if (badUrls.length) return { action: 'handoff', text: '', notes: [`Reply contained a link that is not one of the business's links: ${badUrls.join(' ')}`], ctaId: null };
 
-  const prices = new Set(cfg.offers.map((o) => o.priceMinor));
+  // Allowed amounts: product prices plus any dollar amount the owner wrote in their own facts (e.g. "saves $9").
+  const ownText = [cfg.about, cfg.shipping, cfg.returns, cfg.warranty, cfg.upsell, cfg.refundPolicy, ...(cfg.sellingPoints ?? []), ...(cfg.objections ?? []).map((o) => o.answer), ...cfg.offers.flatMap((o) => [o.description, o.details ?? '']), ...cfg.knowledge.map((k) => k.answer)].join(' ');
+  const prices = new Set([...cfg.offers.map((o) => o.priceMinor), ...moneyIn(ownText ?? '')]);
   const badPrices = moneyIn(text).filter((p) => !prices.has(p));
   if (badPrices.length) return { action: 'handoff', text: '', notes: ['Reply stated a price that is not in the offer list.'], ctaId: null };
 
   const hits = BANNED.filter((r) => r.test(text)).map((r) => r.source);
   const custom = cfg.prohibitedClaims.filter((c) => c.trim() && text.toLowerCase().includes(c.trim().toLowerCase()));
   if (hits.length || custom.length) return { action: 'handoff', text: '', notes: ['Reply contained a claim that is not allowed.'], ctaId: null };
+
+  if (!ctx.askedIfBot && SELF_AI.test(text)) { forceDraft = true; notes.push('The reply mentioned being an AI without being asked; check the wording.'); }
+  // Testimonials: only word-for-word quotes the owner entered.
+  const quoted = text.match(/["“]([^"”]{12,})["”]/g) ?? [];
+  if (quoted.some((q) => !cfg.testimonials.some((t) => t.includes(q.replace(/^["“]|["”]$/g, ''))))) return { action: 'handoff', text: '', notes: ['Reply quoted a review that is not one of your saved testimonials.'], ctaId: null };
 
   let ctaId = d.cta_id;
   if (ctaId && !cfg.offers.some((o) => o.id === ctaId) && ctaId !== 'booking') { notes.push('Unknown call to action dropped.'); ctaId = null; }
