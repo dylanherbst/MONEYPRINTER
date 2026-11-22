@@ -154,7 +154,7 @@ test('policy: no invented prices, links, guarantees or card requests; unknown so
   const conv = { id: 'c', workspaceId: 'w', igAccountId: '1', igsid: '2', state: 'open' as const, humanTakeover: false, lastInboundAt: T0.toISOString(), lastActivityAt: T0.toISOString(), unread: 0, aiDisclosed: true, pitchesDeclined: 0 };
   const el = { canSend: true, canDraft: true };
   assert.equal(applyPolicy(dec({}), cfg, conv, el).action, 'send');
-  assert.equal(applyPolicy(dec({ response_text: 'Only $9 today!' }), cfg, conv, el).action, 'handoff');
+  assert.equal(applyPolicy(dec({ response_text: 'Only $5 today!' }), cfg, conv, el).action, 'handoff');
   assert.equal(applyPolicy(dec({ response_text: 'Buy at https://evil.example.com/x' }), cfg, conv, el).action, 'handoff');
   assert.equal(applyPolicy(dec({ response_text: 'Results guaranteed.' }), cfg, conv, el).action, 'handoff');
   assert.equal(applyPolicy(dec({ response_text: 'Send me your card number' }), cfg, conv, el).action, 'handoff');
