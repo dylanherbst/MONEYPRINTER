@@ -1,9 +1,12 @@
 import { site } from '../../lib/aimp/site-config';
 import { SIGN_IN } from './content';
 
+/** Where the logo and the Home link go: the same address, so they always match. */
+export const HOME_HREF = '/';
+
 /** The public site's pages, in header order. */
 export const NAV = [
-  { href: '/', label: 'Home' },
+  { href: HOME_HREF, label: 'Home' },
   { href: '/how-it-works', label: 'How it works' },
   { href: '/faq', label: 'FAQs' },
   { href: '/about', label: 'About us' },
@@ -16,7 +19,7 @@ export const NAV = [
 export function SiteHeader({ solid = false, current }: { solid?: boolean; current?: string }) {
   return (
     <header className="cells-top" data-solid={solid ? '1' : undefined}>
-      <a href="/" className="cells-logo" aria-label={`${site.name} home`}>
+      <a href={HOME_HREF} className="cells-logo" aria-label={`${site.name} home`}>
         <img src="/brand/aimp-logo.webp" alt="" width={36} height={36} />
       </a>
       <nav className="cells-nav" aria-label="Site">
