@@ -23,8 +23,8 @@ export function InfoShell({ children, closing, current }: { children: ReactNode;
           </section>
         )}
         <footer className="cells-foot">
-          <p><a href="/">{site.name}</a>: {site.descriptor} · <a href="/how-it-works">How it works</a> · <a href="/faq">FAQs</a> · <a href="/about">About us</a></p>
-          <p>{site.name} helps people research, build and market a business. It does not promise earnings or business success. Connected tools depend on each provider&apos;s availability and the permissions you give.</p>
+          <p><a href="/">{site.name}</a>: {site.descriptor} · <a href="/how-it-works">How it works</a> · <a href="/faq">FAQs</a> · <a href="/about">About us</a> · <a href="/policies">Policies</a></p>
+          <p>{site.name} helps people research, build and market a business. It does not promise earnings or business success and does not give financial advice. Connected tools depend on each provider&apos;s availability and the permissions you give.</p>
         </footer>
       </main>
     </div>

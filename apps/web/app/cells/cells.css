@@ -269,3 +269,16 @@
 @media (min-width: 900px) { .cells-info .cells-sec { padding: 32px 36px; } .cells-info .cells-close { padding: 72px 40px; } }
 .cells-signup-main { position: relative; z-index: 1; }
 .cells-signup-main h1 { text-shadow: 0 0 22px var(--cells-bg), 0 0 8px var(--cells-bg); }
+/* Policies page: long-form text. */
+.cells-policy h2 { font-size: clamp(1.5rem, 6vw, 2.1rem); }
+.cells-policy p, .cells-policy li { font-size: 1.02rem; line-height: 1.6; color: var(--cells-ink-2); max-width: 46rem; }
+.cells-policy p b, .cells-policy li b { color: var(--cells-ink); }
+.cells-policy ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 8px; }
+.cells-policy a { color: var(--cells-accent); font-weight: 600; }
+.cells-toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.cells-toc a { font-size: .88rem; font-weight: 600; color: var(--cells-ink); text-decoration: none; padding: 8px 12px; border-radius: 999px;
+  border: 1px solid var(--cells-line); background: color-mix(in srgb, var(--cells-bg) 85%, transparent); }
+.cells-info:has(.cells-policy) { gap: 28px; }
+@media (min-width: 900px) { .cells-info:has(.cells-policy) { gap: 36px; } }
+.cells-note a { color: inherit; font-weight: 600; }
+.cells-policy p.cells-label { color: var(--cells-accent); font-size: 1.12rem; }

@@ -105,7 +105,7 @@ export default function CellsPage() {
           </div>
           <div className="cells-copy cells-copy-low">
             <a className="cells-btn" href={SIGNUP}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
-            <p className="cells-more"><a href="/how-it-works">How it works</a><span aria-hidden="true">·</span><a href="/faq">FAQs</a><span aria-hidden="true">·</span><a href="/about">About us</a></p>
+            <p className="cells-more"><a href="/how-it-works">How it works</a><span aria-hidden="true">·</span><a href="/faq">FAQs</a><span aria-hidden="true">·</span><a href="/about">About us</a><span aria-hidden="true">·</span><a href="/policies">Policies</a></p>
           </div>
         </section>
 

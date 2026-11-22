@@ -9,6 +9,9 @@ export const site = {
   workingName: false,
   domain: 'aimoneyprinter.com',
   supportEmail: 'hello@aiventra.com.au',
+  // Who runs AiMoneyPrinter, for the Policies page. Empty until the owner confirms them (22 Nov 2026); the page shows
+  // a clear placeholder instead of guessing.
+  legal: { entityName: '', abn: '', contactEmail: '', state: 'Western Australia' },
   // Draft pricing hypotheses from the business plan §13.1, to be validated with pilot users. Never shown as final.
   plans: [
     { id: 'discover', name: 'Discover', priceAud: 0, blurb: 'Five researched business ideas and a sample preview.', includes: ['5 opportunity suggestions', 'Sample business preview', 'No card needed'] },
