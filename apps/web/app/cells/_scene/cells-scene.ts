@@ -23,7 +23,8 @@ const vertex = /* glsl */ `
 
   void main() {
     float t = clamp((uMix - aRand.z * 0.35) / 0.65, 0.0, 1.0);
-    t = t * t * (3.0 - 2.0 * t);
+    // Half eased, half straight: cells still glide, but the cloud never slows to a stop between formations.
+    t = mix(t, t * t * (3.0 - 2.0 * t), 0.5);
     vec3 a = place(position, uTime * uSpinA + sin(uTime * 0.45) * uSwayA, uTiltA, uLiftA);
     vec3 b = place(aTarget, uTime * uSpinB + sin(uTime * 0.45) * uSwayB, uTiltB, uLiftB);
     vec3 p = mix(a, b, t);

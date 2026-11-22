@@ -104,15 +104,17 @@ export function CellsStage({ tuneByDefault = true }: { tuneByDefault?: boolean }
       while (i < tops.length - 1 && y >= tops[i + 1]) i++;
       if (i >= scene.formationCount - 1) return scene.formationCount - 1;
       const vh = window.innerHeight;
-      // The cells finish forming the logo as the Getting paid heading comes up towards the middle of the screen.
-      if (i === logoChapter && Number.isFinite(paidCentreY)) {
-        return i + smooth(0, 1, (y - (paidCentreY - 0.55 * vh)) / (0.55 * vh));
+      const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+      // The cells keep moving the whole time you scroll: progress runs straight through each chapter with no hold.
+      // The logo chapter ends exactly as the Getting paid heading reaches its point on screen.
+      if (i === logoChapter && Number.isFinite(paidCentreY) && paidCentreY > tops[i]) {
+        return i + clamp01((y - tops[i]) / (paidCentreY - tops[i]));
       }
       const span = (tops[i + 1] ?? tops[i] + vh) - tops[i];
       const u = span > 0 ? (y - tops[i]) / span : 0;
-      // A chapter can morph earlier than the default with data-morph="from,to" (fractions of its scroll).
-      const [from, to] = morphs[i] ?? [0.3, 0.92];
-      return i + smooth(from, to, u);
+      // A chapter can still be given its own range with data-morph="from,to" (fractions of its scroll).
+      const m = morphs[i];
+      return i + (m ? smooth(m[0], m[1], u) : clamp01(u));
     };
 
     // From that same moment the logo turns solid purple straight away, within a sixth of a screen of scrolling,
@@ -121,7 +123,8 @@ export function CellsStage({ tuneByDefault = true }: { tuneByDefault?: boolean }
       if (!Number.isFinite(paidCentreY) || pinned !== null) return undefined;
       const vh = window.innerHeight;
       const d = window.scrollY - paidCentreY;
-      return { fuse: smooth(0, 1, d / (0.17 * vh)), brand: smooth(0, 1, (d - 0.3 * vh) / (0.45 * vh)) };
+      // The brand colours start the moment the logo is solid, so there is no still moment in between.
+      return { fuse: smooth(0, 1, d / (0.17 * vh)), brand: smooth(0, 1, (d - 0.17 * vh) / (0.5 * vh)) };
     };
 
     let raf = 0;
