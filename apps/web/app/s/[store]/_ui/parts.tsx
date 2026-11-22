@@ -3,17 +3,20 @@ import { bundleItems, formatPrice, type PurchaseState } from '../../../../lib/ai
 
 /** Deterministic product cover drawn in the store's own palette. Replaced by real rendered covers from the factory. */
 export function Cover({ style, label, large = false }: { style: CoverStyle; label: string; large?: boolean }) {
-  const lines = Array.from({ length: 9 }, (_, i) => i);
+  const n = Array.from({ length: 10 }, (_, i) => i);
+  // A printed page: a coloured title band, then the page's own pattern, so each product type is recognisable at a glance.
   return (
     <div className={`st-cover${large ? ' st-cover-lg' : ''}`} aria-hidden="true">
       <svg viewBox="0 0 300 380" preserveAspectRatio="xMidYMid slice">
         <rect width="300" height="380" fill="var(--st-soft)" />
-        <rect x="46" y="38" width="208" height="304" rx="6" fill="var(--st-surface)" stroke="var(--st-line)" />
-        {style === 'grid' && lines.slice(0, 7).map((i) => <rect key={i} x="66" y={96 + i * 32} width="168" height="22" rx="3" fill="none" stroke="var(--st-line)" />)}
-        {style === 'lines' && lines.map((i) => <line key={i} x1="66" x2="234" y1={100 + i * 24} y2={100 + i * 24} stroke="var(--st-line)" strokeWidth="2" />)}
-        {style === 'dots' && lines.slice(0, 8).flatMap((r) => lines.slice(0, 7).map((c) => <circle key={`${r}-${c}`} cx={72 + c * 26} cy={104 + r * 26} r="5" fill="none" stroke="var(--st-accent)" strokeOpacity="0.45" />))}
-        {style === 'arch' && <path d="M90 300V170a60 60 0 0 1 120 0v130" fill="var(--st-soft)" stroke="var(--st-accent)" strokeOpacity="0.5" strokeWidth="2" />}
-        <text x="150" y="76" textAnchor="middle" fontSize="17" fontWeight="600" fill="var(--st-ink)" style={{ fontFamily: 'var(--st-font)' }}>{label}</text>
+        <rect x="44" y="34" width="216" height="318" fill="var(--st-ink)" opacity="0.08" transform="translate(5 6)" />
+        <rect x="44" y="34" width="216" height="318" fill="var(--st-surface)" />
+        <rect x="44" y="34" width="216" height="92" fill="var(--st-accent)" />
+        <text x="62" y="92" fontSize={Math.max(13, Math.min(24, Math.floor(330 / Math.max(label.length, 1))))} fill="var(--st-accent-ink)" style={{ fontFamily: 'var(--st-font)' }}>{label}</text>
+        {style === 'grid' && n.slice(0, 6).map((i) => <rect key={i} x="62" y={146 + i * 32} width="180" height="22" fill="none" stroke="var(--st-line)" strokeWidth="1.5" />)}
+        {style === 'lines' && n.map((i) => <line key={i} x1="62" x2="242" y1={152 + i * 19} y2={152 + i * 19} stroke="var(--st-line)" strokeWidth="1.5" />)}
+        {style === 'dots' && n.slice(0, 7).flatMap((r) => n.slice(0, 7).map((c) => <circle key={`${r}-${c}`} cx={70 + c * 27} cy={152 + r * 27} r="3.2" fill="var(--st-accent)" fillOpacity="0.35" />))}
+        {style === 'arch' && <path d="M100 330V222a52 52 0 0 1 104 0v108" fill="var(--st-soft)" stroke="var(--st-accent)" strokeWidth="2" />}
       </svg>
     </div>
   );
@@ -47,7 +50,7 @@ export function ProductCard({ product, base }: { product: StoreProduct; base: st
     <a className="st-card" href={`${base}/products/${product.slug}`}>
       <Cover style={product.cover.style} label={product.cover.label} />
       <span className="st-card-body">
-        <span className="st-card-meta">{product.format}{product.pages ? ` · ${product.pages} pages` : ''}</span>
+        <span className="st-card-meta">{product.format}{product.pages ? `, ${product.pages} pages` : ''}</span>
         <span className="st-card-title">{product.title}</span>
         <span className="st-card-summary">{product.summary}</span>
         <Price minor={product.priceMinor} compareAt={product.compareAtMinor} />
@@ -65,7 +68,7 @@ export function BundleCard({ store, bundle, base, state }: { store: StoreConfig;
         {items.slice(0, 3).map((p) => <Cover key={p.slug} style={p.cover.style} label={p.cover.label} />)}
       </div>
       <div className="st-bundle-body">
-        <p className="st-eyebrow">Bundle · save {formatPrice(total - bundle.priceMinor)}</p>
+        <p className="st-save">Save {formatPrice(total - bundle.priceMinor)} together</p>
         <h3>{bundle.title}</h3>
         <p className="st-muted">{bundle.summary}</p>
         <ul className="st-list">

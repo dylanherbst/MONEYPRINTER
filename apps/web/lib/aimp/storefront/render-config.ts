@@ -1,6 +1,6 @@
 // Pure render configuration shared by every store: the same function turns any validated StoreConfig into theme variables.
 import { storeThemes, type StoreConfig, type StoreFont } from './schema.ts';
-import { templateById, resolvePalette, layoutAttrs } from './templates.ts';
+import { templateById, resolvePalette, layoutAttrs, typeVars } from './templates.ts';
 
 export const fontStacks: Record<StoreFont, string> = {
   serif: "'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif",
@@ -28,6 +28,7 @@ export function renderConfig(store: StoreConfig): RenderConfig {
     cssVars: {
       '--st-bg': t.bg, '--st-surface': t.surface, '--st-ink': t.ink, '--st-muted': t.muted, '--st-line': t.line,
       '--st-accent': t.accent, '--st-accent-ink': t.accentInk, '--st-soft': t.soft, '--st-font': fontStacks[store.brand.font],
+      ...(tpl ? typeVars(tpl, fontStacks) : {}),
     },
     brandName: store.brand.name,
     demo: store.demo,

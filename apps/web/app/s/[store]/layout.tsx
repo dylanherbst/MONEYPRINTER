@@ -6,6 +6,8 @@ import { loadPublishedStore, policyPages } from '../../../lib/aimp/storefront/lo
 import { renderConfig } from '../../../lib/aimp/storefront/render-config';
 import { storeBase } from './_ui/base';
 import './store.css';
+import './store-templates.css';
+import { storeFontVars } from './_ui/fonts';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +34,7 @@ export default async function StoreLayout({ children, params }: Props) {
   const vars = rc.cssVars as CSSProperties;
   const year = new Date().getUTCFullYear();
   return (
-    <div className="st" style={vars} {...rc.attrs}>
+    <div className={`st ${storeFontVars}`} style={vars} {...rc.attrs}>
       <a className="st-skip" href="#st-main">Skip to content</a>
       {store.demo ? <p className="st-demo" role="note"><strong>DEMO STORE</strong> Sample products and policies. Checkout is turned off.</p> : null}
       <header className="st-header">
@@ -57,7 +59,7 @@ export default async function StoreLayout({ children, params }: Props) {
             <a href={`${base}/contact`}>Contact</a>
           </nav>
           <p className="st-small st-muted">
-            © {year} {store.contact.businessName}{store.contact.abn ? ` · ABN ${store.contact.abn}` : ''}. Prices in AUD.
+            © {year} {store.contact.businessName}{store.contact.abn ? `, ABN ${store.contact.abn}` : ''}. Prices in AUD.
             <br />Store built with AiMoneyPrinter.
           </p>
         </div>

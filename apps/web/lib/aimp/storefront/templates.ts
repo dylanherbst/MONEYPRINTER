@@ -22,51 +22,95 @@ export const radii = ['sharp', 'soft', 'round'] as const;
 export type Radius = (typeof radii)[number];
 
 export interface Palette { bg: string; surface: string; ink: string; muted: string; line: string; accent: string; accentInk: string; soft: string }
+
+/** Typeface pairs. The CSS variables are defined by next/font in app/s/[store]/_ui/fonts.ts; the fallback is used until they load. */
+export const TYPE_PAIRS = {
+  bricolage: { display: '--stf-bricolage', body: '--stf-bricolage', fallback: 'sans' },
+  fraunces: { display: '--stf-fraunces', body: '--stf-worksans', fallback: 'serif' },
+  youngserif: { display: '--stf-youngserif', body: '--stf-figtree', fallback: 'serif' },
+  syne: { display: '--stf-syne', body: '--stf-manrope', fallback: 'sans' },
+  caslon: { display: '--stf-caslon', body: '--stf-karla', fallback: 'serif' },
+  unbounded: { display: '--stf-unbounded', body: '--stf-rubik', fallback: 'sans' },
+  archivo: { display: '--stf-archivo', body: '--stf-archivo', fallback: 'sans' },
+  gloock: { display: '--stf-gloock', body: '--stf-schibsted', fallback: 'serif' },
+  instrument: { display: '--stf-instrumentserif', body: '--stf-instrumentsans', fallback: 'serif' },
+  fredoka: { display: '--stf-fredoka', body: '--stf-nunitosans', fallback: 'rounded' },
+  dmserif: { display: '--stf-dmserif', body: '--stf-dmsans', fallback: 'serif' },
+  nunito: { display: '--stf-nunito', body: '--stf-nunito', fallback: 'rounded' },
+  cormorant: { display: '--stf-cormorant', body: '--stf-mulish', fallback: 'serif' },
+  sora: { display: '--stf-sora', body: '--stf-sora', fallback: 'sans' },
+  epilogue: { display: '--stf-epilogue', body: '--stf-epilogue', fallback: 'sans' },
+} as const;
+export type TypePair = keyof typeof TYPE_PAIRS;
+
+/** Each template spends its boldness on ONE signature element (store-templates.css). */
+export const signatures = ['big-price', 'tilted-cover', 'sticker', 'fanned-covers', 'contents', 'colour-block', 'graph-paper', 'tape', 'frame', 'tilted-cards', 'notebook', 'shelf', 'certificate', 'banner-strip', 'arch'] as const;
+export type Signature = (typeof signatures)[number];
+
 export interface StoreTemplate {
   id: string; name: string;
   /** Who it suits, in plain words. */
   bestFor: string;
   /** The conversion idea this layout is built on. */
   pattern: string;
-  palette: Palette; font: StoreFont; hero: HeroLayout; grid: Grid; head: Head; flow: Flow; trust: Trust; cards: CardStyle; radius: Radius;
+  palette: Palette; font: StoreFont; type: TypePair; signature: Signature;
+  hero: HeroLayout; grid: Grid; head: Head; flow: Flow; trust: Trust; cards: CardStyle; radius: Radius;
   sections: readonly StoreSection[];
 }
 
 const ALL: readonly StoreSection[] = ['trust', 'featured', 'bundles', 'catalogue', 'faq', 'newsletter'];
 const LEAN: readonly StoreSection[] = ['trust', 'featured', 'catalogue', 'faq'];
 const DEAL: readonly StoreSection[] = ['featured', 'bundles', 'trust', 'catalogue', 'faq'];
+const P = (bg: string, surface: string, ink: string, muted: string, line: string, accent: string, accentInk: string, soft: string): Palette => ({ bg, surface, ink, muted, line, accent, accentInk, soft });
 
+// Rebuilt 22 Nov 2026 with the frontend-design brief: every template has its own typeface pair, palette and one signature element, and
+// avoids the generated-page defaults (cream + terracotta, black + acid accent, identical soft cards, all-caps eyebrows, gradient washes).
 export const templates: readonly StoreTemplate[] = [
-  { id: 'clean-launch', name: 'Clean Launch', bestFor: 'A first product with one clear message', pattern: 'One headline, one button, trust points straight under the hero.',
-    palette: { bg: '#fbfaf8', surface: '#ffffff', ink: '#1d1b26', muted: '#625f70', line: '#e9e6ef', accent: '#5b3fc4', accentInk: '#ffffff', soft: '#efeafc' }, font: 'sans', hero: 'center', grid: 'three', head: 'center', flow: 'proof', trust: 'cards', cards: 'soft', radius: 'soft', sections: LEAN },
-  { id: 'sage-studio', name: 'Sage Studio', bestFor: 'Planners, wellness and calm organisation', pattern: 'Split hero with the product cover beside the promise, so buyers see what they get at once.',
-    palette: { bg: '#f7f8f4', surface: '#ffffff', ink: '#1f2a22', muted: '#566259', line: '#e2e7df', accent: '#2f6b49', accentInk: '#ffffff', soft: '#e6f0e8' }, font: 'sans', hero: 'split', grid: 'two', head: 'left', flow: 'proof', trust: 'strip', cards: 'soft', radius: 'soft', sections: ALL },
-  { id: 'blush-boutique', name: 'Blush Boutique', bestFor: 'Journals, gratitude pages and gift printables', pattern: 'Warm, rounded and friendly, with a free-sample sign-up to win the first email.',
-    palette: { bg: '#fdf8f6', surface: '#ffffff', ink: '#2b1f22', muted: '#6e5b5f', line: '#f0e3e0', accent: '#b8445a', accentInk: '#ffffff', soft: '#fbe9ec' }, font: 'rounded', hero: 'split-rev', grid: 'three', head: 'center', flow: 'proof', trust: 'plain', cards: 'raised', radius: 'round', sections: ALL },
-  { id: 'midnight-shop', name: 'Midnight Shop', bestFor: 'Notion, spreadsheet and digital template products', pattern: 'Dark, high-contrast page where the button is the brightest thing on screen.',
-    palette: { bg: '#121117', surface: '#1b1a22', ink: '#f4f2f8', muted: '#aaa6b8', line: '#2d2b36', accent: '#c7b6ff', accentInk: '#16131f', soft: '#262236' }, font: 'sans', hero: 'left', grid: 'four', head: 'left', flow: 'products', trust: 'strip', cards: 'outline', radius: 'soft', sections: LEAN },
-  { id: 'paper-and-ink', name: 'Paper & Ink', bestFor: 'Writers, teachers and long-form guides', pattern: 'Editorial reading layout: a strong headline, then answers that build trust before the price.',
-    palette: { bg: '#faf7f0', surface: '#ffffff', ink: '#222018', muted: '#625d4f', line: '#e8e2d3', accent: '#8a3b12', accentInk: '#ffffff', soft: '#f3e7d8' }, font: 'serif', hero: 'minimal', grid: 'list', head: 'center', flow: 'story', trust: 'plain', cards: 'flat', radius: 'sharp', sections: ['trust', 'featured', 'catalogue', 'faq', 'newsletter'] },
-  { id: 'sunny-bundle', name: 'Sunny Bundle', bestFor: 'Several products sold as a bundle or deal', pattern: 'Bundle first: the saving is shown before single products, which lifts basket size.',
-    palette: { bg: '#fffbef', surface: '#ffffff', ink: '#2a2208', muted: '#645a32', line: '#f2e8bf', accent: '#a85a00', accentInk: '#ffffff', soft: '#fff1c2' }, font: 'rounded', hero: 'banner', grid: 'three', head: 'left', flow: 'deal', trust: 'cards', cards: 'raised', radius: 'round', sections: DEAL },
-  { id: 'ocean-planner', name: 'Ocean Planner', bestFor: 'Budget, business and productivity trackers', pattern: 'Confident blue with proof points and an FAQ that answers the money questions.',
-    palette: { bg: '#f5f9fc', surface: '#ffffff', ink: '#13233a', muted: '#52647a', line: '#dce7f1', accent: '#1b64c4', accentInk: '#ffffff', soft: '#e1eefb' }, font: 'sans', hero: 'split', grid: 'mag', head: 'bar', flow: 'proof', trust: 'strip', cards: 'soft', radius: 'soft', sections: ALL },
-  { id: 'terracotta-craft', name: 'Terracotta Craft', bestFor: 'Home, craft and DIY printables', pattern: 'Earthy and handmade-feeling, with large product covers so the work sells itself.',
-    palette: { bg: '#fcf6f1', surface: '#ffffff', ink: '#2e1f17', muted: '#6c5547', line: '#f0e0d4', accent: '#a8431f', accentInk: '#ffffff', soft: '#f9e4d8' }, font: 'serif', hero: 'split-rev', grid: 'two', head: 'left', flow: 'products', trust: 'cards', cards: 'soft', radius: 'soft', sections: ALL },
-  { id: 'mono-minimal', name: 'Mono Minimal', bestFor: 'Premium, design-led products', pattern: 'Black and white with sharp edges: fewer things on the page, so the one button gets the attention.',
-    palette: { bg: '#ffffff', surface: '#ffffff', ink: '#111111', muted: '#5a5a5a', line: '#e3e3e3', accent: '#111111', accentInk: '#ffffff', soft: '#f1f1f1' }, font: 'sans', hero: 'minimal', grid: 'four', head: 'bar', flow: 'products', trust: 'plain', cards: 'outline', radius: 'sharp', sections: ['featured', 'catalogue', 'faq'] },
-  { id: 'berry-pop', name: 'Berry Pop', bestFor: 'Kids, teachers and classroom printables', pattern: 'Bright, playful and rounded, with big tap targets for parents buying on a phone.',
-    palette: { bg: '#fff6fa', surface: '#ffffff', ink: '#2a1020', muted: '#6e4a5e', line: '#f6dce9', accent: '#b0206a', accentInk: '#ffffff', soft: '#fde0ee' }, font: 'rounded', hero: 'stack', grid: 'two', head: 'center', flow: 'deal', trust: 'cards', cards: 'raised', radius: 'round', sections: ALL },
-  { id: 'forest-study', name: 'Forest Study', bestFor: 'Study guides and student resources', pattern: 'Focused and trustworthy: a clear outcome statement, then proof and a detailed FAQ.',
-    palette: { bg: '#f4f8f5', surface: '#ffffff', ink: '#14281d', muted: '#4f6657', line: '#d9e6dd', accent: '#1f6b3d', accentInk: '#ffffff', soft: '#dff0e5' }, font: 'serif', hero: 'left', grid: 'list', head: 'left', flow: 'story', trust: 'strip', cards: 'flat', radius: 'soft', sections: ['trust', 'featured', 'catalogue', 'faq', 'newsletter'] },
-  { id: 'sky-soft', name: 'Sky Soft', bestFor: 'Habit trackers and gentle self-care', pattern: 'Light and airy with generous space; one product is shown large above the fold.',
-    palette: { bg: '#f6faff', surface: '#ffffff', ink: '#17263d', muted: '#566a85', line: '#dfe9f6', accent: '#2f67c9', accentInk: '#ffffff', soft: '#e4eefc' }, font: 'rounded', hero: 'stack', grid: 'three', head: 'center', flow: 'products', trust: 'plain', cards: 'soft', radius: 'round', sections: LEAN },
-  { id: 'gold-standard', name: 'Gold Standard', bestFor: 'Finance and premium professional templates', pattern: 'Dark navy with a gold button, signalling quality; trust points sit right next to the price.',
-    palette: { bg: '#0f1a2e', surface: '#16243d', ink: '#f6f1e3', muted: '#b4b9c6', line: '#26385a', accent: '#e2b55a', accentInk: '#1a1405', soft: '#1d2d4a' }, font: 'serif', hero: 'banner', grid: 'mag', head: 'bar', flow: 'proof', trust: 'strip', cards: 'outline', radius: 'sharp', sections: ALL },
-  { id: 'lemon-fresh', name: 'Lemon Fresh', bestFor: 'Fitness, meal plans and healthy habits', pattern: 'Energetic and clear: a short promise, a before-you-buy sample and fast mobile checkout.',
-    palette: { bg: '#fbfdf2', surface: '#ffffff', ink: '#1b2408', muted: '#56613a', line: '#e6eccd', accent: '#4d7a0a', accentInk: '#ffffff', soft: '#eaf5c9' }, font: 'sans', hero: 'overlap', grid: 'three', head: 'left', flow: 'deal', trust: 'cards', cards: 'raised', radius: 'soft', sections: DEAL },
-  { id: 'lavender-glow', name: 'Lavender Glow', bestFor: 'A soft, modern look for almost any product', pattern: 'The AiMoneyPrinter house style: lavender and peach with rounded cards and one bold button.',
-    palette: { bg: '#faf8ff', surface: '#ffffff', ink: '#221b3a', muted: '#625b7c', line: '#e8e2f6', accent: '#6a47d6', accentInk: '#ffffff', soft: '#ece6fb' }, font: 'rounded', hero: 'split', grid: 'mag', head: 'center', flow: 'story', trust: 'cards', cards: 'soft', radius: 'round', sections: ALL },
+  { id: 'clean-launch', name: 'Clean Launch', bestFor: 'A first product with one clear message', pattern: 'The price is set huge beside the headline, so nobody has to hunt for it.',
+    palette: P('#ffffff', '#ffffff', '#14161b', '#5a5f6b', '#e4e6ea', '#2346d1', '#ffffff', '#eef1fc'), font: 'sans', type: 'bricolage', signature: 'big-price',
+    hero: 'left', grid: 'three', head: 'left', flow: 'proof', trust: 'plain', cards: 'flat', radius: 'soft', sections: LEAN },
+  { id: 'sage-studio', name: 'Sage Studio', bestFor: 'Planners, wellness and calm organisation', pattern: 'The product cover sits large and slightly turned, like a planner left on a desk.',
+    palette: P('#eef1ea', '#f8faf6', '#1d2a21', '#55635a', '#d6ddd2', '#2f5d3e', '#ffffff', '#dfe7dc'), font: 'serif', type: 'fraunces', signature: 'tilted-cover',
+    hero: 'split', grid: 'two', head: 'left', flow: 'proof', trust: 'strip', cards: 'soft', radius: 'soft', sections: ALL },
+  { id: 'blush-boutique', name: 'Blush Boutique', bestFor: 'Journals, gratitude pages and gift printables', pattern: 'A round "instant download" sticker answers the first question a gift buyer has.',
+    palette: P('#fbeef0', '#fff9fa', '#3a1d27', '#7a5a64', '#efd5db', '#a3214a', '#ffffff', '#f6dbe1'), font: 'serif', type: 'youngserif', signature: 'sticker',
+    hero: 'split-rev', grid: 'three', head: 'center', flow: 'proof', trust: 'plain', cards: 'raised', radius: 'round', sections: ALL },
+  { id: 'midnight-shop', name: 'Midnight Shop', bestFor: 'Notion, spreadsheet and digital template products', pattern: 'Dark like the apps these products live in, with covers fanned out to show range.',
+    palette: P('#16181d', '#1f2229', '#eef0f4', '#a3a9b6', '#2e333d', '#9fb4ff', '#121521', '#242a3a'), font: 'sans', type: 'syne', signature: 'fanned-covers',
+    hero: 'left', grid: 'four', head: 'left', flow: 'products', trust: 'strip', cards: 'outline', radius: 'soft', sections: LEAN },
+  { id: 'paper-and-ink', name: 'Paper & Ink', bestFor: 'Writers, teachers and long-form guides', pattern: 'Products are listed like a book\'s contents page, which suits readers who scan.',
+    palette: P('#f7f7f4', '#ffffff', '#1c2540', '#59607a', '#dcdfe6', '#1f3f9a', '#ffffff', '#e7eaf3'), font: 'serif', type: 'caslon', signature: 'contents',
+    hero: 'minimal', grid: 'list', head: 'center', flow: 'story', trust: 'plain', cards: 'flat', radius: 'sharp', sections: ['trust', 'featured', 'catalogue', 'faq', 'newsletter'] },
+  { id: 'sunny-bundle', name: 'Sunny Bundle', bestFor: 'Several products sold as a bundle or deal', pattern: 'A bold colour block behind the products makes the bundle the first thing you see.',
+    palette: P('#fff4c7', '#fffbe8', '#2a2306', '#655a2b', '#eadb9c', '#c8341b', '#ffffff', '#ffe98a'), font: 'rounded', type: 'unbounded', signature: 'colour-block',
+    hero: 'split', grid: 'three', head: 'left', flow: 'deal', trust: 'cards', cards: 'raised', radius: 'round', sections: DEAL },
+  { id: 'ocean-planner', name: 'Ocean Planner', bestFor: 'Budget, business and productivity trackers', pattern: 'Graph paper behind the hero says "organised" before a word is read.',
+    palette: P('#eef4fb', '#ffffff', '#0f2340', '#4f6380', '#d3e0ef', '#0b5ed7', '#ffffff', '#dceafa'), font: 'sans', type: 'archivo', signature: 'graph-paper',
+    hero: 'split', grid: 'mag', head: 'bar', flow: 'proof', trust: 'strip', cards: 'outline', radius: 'sharp', sections: ALL },
+  { id: 'terracotta-craft', name: 'Kraft & Stamp', bestFor: 'Home, craft and DIY printables', pattern: 'Kraft paper and taped-down covers give a handmade feel, so the work feels personal.',
+    palette: P('#e9dcc6', '#f6efe2', '#2b2117', '#62523f', '#d3c2a4', '#a3261c', '#ffffff', '#dfcfb3'), font: 'serif', type: 'gloock', signature: 'tape',
+    hero: 'split-rev', grid: 'two', head: 'left', flow: 'products', trust: 'plain', cards: 'flat', radius: 'sharp', sections: ALL },
+  { id: 'mono-minimal', name: 'Mono Minimal', bestFor: 'Premium, design-led products', pattern: 'A heavy black frame and large type: fewer things on the page, so the one button gets the attention.',
+    palette: P('#ffffff', '#ffffff', '#000000', '#4d4d4d', '#000000', '#000000', '#ffffff', '#f2f2f2'), font: 'serif', type: 'instrument', signature: 'frame',
+    hero: 'minimal', grid: 'four', head: 'bar', flow: 'products', trust: 'plain', cards: 'outline', radius: 'sharp', sections: ['featured', 'catalogue', 'faq'] },
+  { id: 'berry-pop', name: 'Berry Pop', bestFor: 'Kids, teachers and classroom printables', pattern: 'Cards sit at playful angles like worksheets on a classroom wall, with big tap targets.',
+    palette: P('#fff0f6', '#ffffff', '#2c0f22', '#6c4a5e', '#f5d3e4', '#c2187a', '#ffffff', '#ffd6ea'), font: 'rounded', type: 'fredoka', signature: 'tilted-cards',
+    hero: 'stack', grid: 'two', head: 'center', flow: 'deal', trust: 'cards', cards: 'raised', radius: 'round', sections: ALL },
+  { id: 'forest-study', name: 'Forest Study', bestFor: 'Study guides and student resources', pattern: 'A ruled notebook page with a margin line: instantly reads as study material.',
+    palette: P('#f1f4ef', '#fbfcfa', '#13261b', '#4e6457', '#cfdcd3', '#1d5c3a', '#ffffff', '#dceadf'), font: 'serif', type: 'dmserif', signature: 'notebook',
+    hero: 'left', grid: 'list', head: 'left', flow: 'story', trust: 'strip', cards: 'flat', radius: 'soft', sections: ['trust', 'featured', 'catalogue', 'faq', 'newsletter'] },
+  { id: 'sky-soft', name: 'Sky Soft', bestFor: 'Habit trackers and gentle self-care', pattern: 'One product stands on a shelf above the fold, calm and uncluttered.',
+    palette: P('#f2f7ff', '#ffffff', '#18243a', '#55657f', '#d9e4f4', '#3460d6', '#ffffff', '#e1ebfd'), font: 'rounded', type: 'nunito', signature: 'shelf',
+    hero: 'stack', grid: 'three', head: 'center', flow: 'products', trust: 'plain', cards: 'soft', radius: 'round', sections: LEAN },
+  { id: 'gold-standard', name: 'Gold Standard', bestFor: 'Finance and premium professional templates', pattern: 'A double-ruled certificate border around the offer signals care and quality.',
+    palette: P('#0e1a2b', '#142338', '#f4efe2', '#b9bdc8', '#2a3d5c', '#d8b25a', '#1a1405', '#1b2c46'), font: 'serif', type: 'cormorant', signature: 'certificate',
+    hero: 'center', grid: 'mag', head: 'bar', flow: 'proof', trust: 'strip', cards: 'outline', radius: 'sharp', sections: ALL },
+  { id: 'lemon-fresh', name: 'Lemon Fresh', bestFor: 'Fitness, meal plans and healthy habits', pattern: 'A bold strip of reasons to buy runs straight under the hero, energetic and quick to scan.',
+    palette: P('#f7fbe6', '#ffffff', '#17210a', '#55603d', '#dfe8bf', '#3b6d00', '#ffffff', '#eef7b8'), font: 'sans', type: 'sora', signature: 'banner-strip',
+    hero: 'overlap', grid: 'three', head: 'left', flow: 'deal', trust: 'strip', cards: 'raised', radius: 'soft', sections: DEAL },
+  { id: 'lavender-glow', name: 'Lavender Glow', bestFor: 'A soft, modern look for almost any product', pattern: 'The AiMoneyPrinter house style: the product framed in an arched window.',
+    palette: P('#f6f3ff', '#ffffff', '#211a3b', '#5e5779', '#e3dcf6', '#6a47d6', '#ffffff', '#e9e2fb'), font: 'rounded', type: 'epilogue', signature: 'arch',
+    hero: 'split', grid: 'mag', head: 'center', flow: 'story', trust: 'cards', cards: 'soft', radius: 'round', sections: ALL },
 ] as const;
 
 export const templateIds = templates.map((t) => t.id);
@@ -135,5 +179,11 @@ export function applyTemplate(config: StoreConfig, templateId: string, custom: C
 
 /** The data attributes the stylesheet reads. One place, so the shop, the picker preview and the gallery always agree. */
 export function layoutAttrs(t: StoreTemplate): Record<string, string> {
-  return { 'data-hero': t.hero, 'data-grid': t.grid, 'data-head': t.head, 'data-flow': t.flow, 'data-trust': t.trust, 'data-cards': t.cards, 'data-radius': t.radius };
+  return { 'data-tpl': t.id, 'data-sig': t.signature, 'data-hero': t.hero, 'data-grid': t.grid, 'data-head': t.head, 'data-flow': t.flow, 'data-trust': t.trust, 'data-cards': t.cards, 'data-radius': t.radius };
+}
+
+/** CSS font variables for a template: the next/font face first, then the plain system fallback. */
+export function typeVars(t: StoreTemplate, stacks: Record<StoreFont, string>): Record<string, string> {
+  const p = TYPE_PAIRS[t.type];
+  return { '--st-font': `var(${p.display}), ${stacks[p.fallback]}`, '--st-body': `var(${p.body}), ${stacks[p.fallback === 'serif' ? 'sans' : p.fallback]}` };
 }

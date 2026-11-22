@@ -5,6 +5,7 @@ import { loadPublishedStore, purchaseState } from '../../../lib/aimp/storefront/
 import type { StoreSection } from '../../../lib/aimp/storefront/schema';
 import { storeBase } from './_ui/base';
 import { BundleCard, Cover, ProductCard } from './_ui/parts';
+import { formatPrice } from '../../../lib/aimp/storefront/load';
 import { TestPurchaseForm } from './_ui/test-purchase-form';
 import { OptInForm } from './_ui/opt-in-form';
 import { readOptInWording } from './_server/audience';
@@ -27,6 +28,7 @@ export default async function StoreHome({ params }: { params: Promise<{ store: s
   const optInWording = testOffer ? await readOptInWording(optInDeps(), store.slug) : null;
   const featured = store.products.filter((p) => p.featured);
   const hero = featured[0] ?? store.products[0];
+  const heroCovers = [hero, ...store.products.filter((p) => p !== hero)].slice(0, 3);
   const show = (s: StoreSection) => store.sections.includes(s);
 
   return (
@@ -34,13 +36,17 @@ export default async function StoreHome({ params }: { params: Promise<{ store: s
       <section className="st-hero">
         <div className="st-wrap st-hero-inner">
           <div className="st-hero-copy">
-            <p className="st-eyebrow">{store.hero.eyebrow}</p>
+            {store.hero.eyebrow ? <p className="st-eyebrow">{store.hero.eyebrow}</p> : null}
             <h1>{store.hero.heading}</h1>
             <p className="st-lead">{store.hero.subheading}</p>
-            <a className="st-btn st-btn-primary" href="#catalogue">{store.hero.ctaLabel}</a>
+            <div className="st-hero-actions">
+              <a className="st-btn st-btn-primary" href="#catalogue">{store.hero.ctaLabel}</a>
+              <p className="st-hero-price"><span className="st-hero-price-num">{formatPrice(hero.priceMinor)}</span> <span className="st-hero-price-what">{hero.title}, {hero.format}{hero.pages ? `, ${hero.pages} pages` : ''}</span></p>
+            </div>
           </div>
           <div className="st-hero-art">
-            <Cover style={hero.cover.style} label={hero.cover.label} large />
+            {heroCovers.map((p, i) => <Cover key={p.slug} style={p.cover.style} label={p.cover.label} large={i === 0} />)}
+            <span className="st-sticker" aria-hidden="true">Instant download</span>
           </div>
         </div>
       </section>

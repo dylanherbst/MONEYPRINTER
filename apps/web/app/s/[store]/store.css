@@ -1,9 +1,11 @@
 /* AiMoneyPrinter tenant storefront. Every rule is scoped under .st so the app's global styles never leak in or out. */
-.st { min-height: 100vh; background: var(--st-bg); color: var(--st-ink); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, sans-serif; font-size: 1rem; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.st { min-height: 100vh; background: var(--st-bg); color: var(--st-ink); font-family: var(--st-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif); font-size: 1rem; line-height: 1.6; -webkit-font-smoothing: antialiased; }
 .st *, .st *::before, .st *::after { box-sizing: border-box; }
 .st a { color: inherit; }
 .st h1, .st h2, .st .st-h3, .st h3, .st .st-logo { font-family: var(--st-font); font-weight: 600; letter-spacing: -0.01em; color: var(--st-ink); margin: 0; }
-.st h1 { font-size: clamp(2.1rem, 6vw, 3.4rem); line-height: 1.08; }
+.st h1 { font-size: var(--st-h1, clamp(2.1rem, 6vw, 3.4rem)); line-height: var(--st-h1-lh, 1.06); text-wrap: balance; max-width: 18ch; }
+.st h2 { text-wrap: balance; }
+.st-lead { text-wrap: pretty; }
 .st h2 { font-size: clamp(1.45rem, 3.4vw, 1.9rem); line-height: 1.2; margin-bottom: 1.25rem; }
 .st .st-h3, .st h3 { font-size: 1.12rem; line-height: 1.3; margin: 0 0 .35rem; }
 .st :where(p) { margin: 0 0 1rem; max-width: none; color: inherit; }
@@ -11,7 +13,7 @@
 .st-narrow { max-width: 720px; }
 .st-muted { color: var(--st-muted); }
 .st-small { font-size: .82rem; }
-.st-eyebrow { font-size: .78rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--st-accent); margin-bottom: .6rem !important; }
+.st-eyebrow { font-size: 1rem; font-weight: 500; color: var(--st-muted); margin-bottom: .75rem !important; }
 .st-lead { font-size: 1.1rem; color: var(--st-muted); max-width: 34rem; }
 .st-note { font-size: .85rem; color: var(--st-muted); margin: .5rem 0 0; }
 .st-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -35,10 +37,16 @@
 .st .st-btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
 .st .st-btn-primary:disabled { background: var(--st-accent); border-color: var(--st-accent); color: var(--st-accent-ink); }
 
-.st-hero { padding: clamp(2.5rem, 7vw, 5.5rem) 0 clamp(2rem, 5vw, 4rem); background: radial-gradient(60% 80% at 85% 20%, var(--st-soft), transparent 70%); }
+.st-hero { padding: clamp(2.5rem, 7vw, 5.5rem) 0 clamp(2rem, 5vw, 4rem); }
 .st-hero-inner { display: grid; gap: 2.5rem; align-items: center; }
 .st-hero-copy h1 { margin-bottom: 1rem; }
-.st-hero-art { max-width: 360px; justify-self: center; width: 100%; }
+.st-hero-art { max-width: 360px; justify-self: center; width: 100%; position: relative; }
+.st-hero-art > .st-cover + .st-cover { display: none; }
+.st-sticker { display: none; }
+.st-hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem; }
+.st-hero-price { margin: 0 !important; color: var(--st-muted); font-size: .95rem; }
+.st-hero-price-num { color: var(--st-ink); font-weight: 600; }
+.st-save { margin: 0 0 .4rem !important; font-weight: 600; color: var(--st-accent); }
 
 .st-cover { aspect-ratio: 300 / 380; border-radius: 14px; overflow: hidden; border: 1px solid var(--st-line); background: var(--st-soft); }
 .st-cover svg { display: block; width: 100%; height: 100%; }
@@ -50,11 +58,11 @@
 
 .st-section { padding-top: clamp(2rem, 5vw, 3.5rem); padding-bottom: clamp(1rem, 3vw, 2rem); }
 .st-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-.st-card { display: flex; flex-direction: column; text-decoration: none; background: var(--st-surface); border: 1px solid var(--st-line); border-radius: 16px; overflow: hidden; transition: transform .2s ease, border-color .2s ease; }
+.st-card { display: flex; flex-direction: column; text-decoration: none; background: var(--st-surface); border: 1px solid var(--st-line); border-radius: 16px; overflow: hidden; }
 .st-card .st-cover { border: 0; border-radius: 0; }
-.st-card:hover { transform: translateY(-2px); border-color: var(--st-accent); }
+.st-card:hover .st-card-title { text-decoration: underline; text-underline-offset: 3px; }
 .st-card-body { display: flex; flex-direction: column; gap: .3rem; padding: .85rem .95rem 1rem; flex: 1; }
-.st-card-meta { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--st-muted); }
+.st-card-meta { font-size: .8rem; color: var(--st-muted); }
 .st-card-title { font-family: var(--st-font); font-weight: 600; font-size: 1rem; line-height: 1.3; }
 .st-card-summary { font-size: .85rem; color: var(--st-muted); display: none; }
 .st-price { font-weight: 600; display: inline-flex; gap: .5rem; align-items: baseline; margin-top: auto; }
@@ -115,7 +123,7 @@
   .st-product-art { position: sticky; top: 88px; }
   .st-bundle { grid-template-columns: .9fr 1.1fr; align-items: center; padding: 1.5rem; }
 }
-@media (prefers-reduced-motion: reduce) { .st-card { transition: none; } .st-card:hover { transform: none; } }
+
 
 /* Templates (templates.ts): palette comes in through the variables above; these switches change the shape. */
 .st-logo { display: inline-flex; align-items: center; gap: .55rem; }

@@ -81,3 +81,19 @@ test('no two templates share the same layout, and all hero styles are used', () 
   // Two templates may look alike in one respect, but never in hero + grid + header together.
   assert.equal(new Set(templates.map((t) => [t.hero, t.grid, t.head].join('|'))).size, 15);
 });
+
+test('rebuild: every template has its own typeface pair and signature, and each font variable is defined in fonts.ts', async () => {
+  const { TYPE_PAIRS, signatures, templates: all } = await import('../lib/aimp/storefront/templates.ts');
+  const { readFileSync } = await import('node:fs');
+  const fonts = readFileSync(new URL('../app/s/[store]/_ui/fonts.ts', import.meta.url), 'utf8');
+  assert.equal(new Set(all.map((t) => t.type)).size, all.length, 'each template has its own type pair');
+  assert.equal(new Set(all.map((t) => t.signature)).size, all.length, 'each template has its own signature element');
+  for (const t of all) assert.ok(signatures.includes(t.signature), t.id);
+  for (const p of Object.values(TYPE_PAIRS)) for (const v of [p.display, p.body]) assert.ok(fonts.includes(`variable: '${v}'`), v);
+  const css = readFileSync(new URL('../app/s/[store]/store-templates.css', import.meta.url), 'utf8');
+  for (const sig of signatures) assert.ok(css.includes(`[data-sig='${sig}']`), `CSS for ${sig}`);
+  // Generated-page tells removed from the shop stylesheet.
+  const base = readFileSync(new URL('../app/s/[store]/store.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(base, /text-transform:\s*uppercase/);
+  assert.doesNotMatch(base, /radial-gradient/);
+});
