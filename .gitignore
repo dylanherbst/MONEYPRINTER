@@ -59,3 +59,5 @@ coverage/
 # AiMoneyPrinter: generated 3D build outputs and the old VENTRA worktree link backup
 assets-src/plant/out/
 .git-ventra-worktree-link.bak
+# The plant-lab build PAGE is source code, not build output (it was caught by the build/ rule above).
+!apps/web/app/plant-lab/build/
