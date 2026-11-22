@@ -11,6 +11,7 @@ import type { DmSender } from './sender.ts';
 import type { SetterStore } from './store.ts';
 import type { AgentConfig, DmConversation, DmMessage, LeadStage } from './types.ts';
 import { parseInstagramPayload, verifySignature, type NormalizedEvent } from './webhook.ts';
+import { DEFAULT_REPLY_DELAY, replyDelayMs } from './delay.ts';
 
 export interface SetterDeps {
   store: SetterStore;
@@ -23,12 +24,16 @@ export interface SetterDeps {
   newId?: () => string;
   sleep?: (ms: number) => Promise<void>;
   maxAttempts?: number;
+  /** Runs a task later. Absent = replies go out immediately (tests). The server passes setTimeout; production needs a durable job queue. */
+  schedule?: (task: () => void, ms: number) => void;
+  random?: () => number;
 }
 
 export const defaultConfig = (workspaceId: string, now: Date): AgentConfig => ({
   workspaceId, mode: 'draft_only', paused: false, businessName: '', idealCustomer: '', brandVoice: 'friendly, short, natural', offers: [], knowledge: [],
   prohibitedClaims: [], refundPolicy: '', bookingUrl: '', qualifyingQuestion: '', timezone: 'Australia/Perth', minConfidence: 0.6, discloseAi: false,
   about: '', shipping: '', returns: '', warranty: '', sellingPoints: [], objections: [], testimonials: [], upsell: '', botQuestion: 'honest',
+  replyDelay: { ...DEFAULT_REPLY_DELAY },
   promptVersion: '', updatedAt: now.toISOString(),
 });
 
@@ -82,6 +87,8 @@ export function createSetter(d: SetterDeps) {
         audit(ws, 'human_reply_seen', `Owner replied in Instagram; automation paused for ${conv.id}.`);
         return 'human_echo';
       }
+      // A new message makes any reply still waiting to go out stale: cancel it and answer with the full context instead.
+      for (const m of s.messages(ws, conv.id)) if (m.direction === 'out' && m.status === 'queued' && m.sendAt) s.saveMessage({ ...m, status: 'rejected', error: 'Replaced: the person sent another message before this went out.' });
       conv = { ...conv, lastInboundAt: ev.at, lastActivityAt: ev.at, unread: conv.unread + 1 };
       s.saveConversation(conv);
       s.saveMessage({ id: `msg-${newId()}`, workspaceId: ws, conversationId: conv.id, direction: 'in', author: 'person', text: ev.text, status: 'received', mid: ev.eventId, error: null, createdAt: ev.at });
@@ -114,8 +121,7 @@ export function createSetter(d: SetterDeps) {
         s.saveMessage(m);
         s.saveConversation({ ...conv, state: send ? 'open' : 'awaiting_approval' });
         if (!send) return 'draft';
-        const r = await deliverLocked(ws, m.id, 'ai');
-        return r.ok ? 'sent' : `send_failed:${r.reason}`;
+        return sendLater(ws, m, cfg);
       }
       // Pay-per-chat: a metered (real AI) agent needs a credit first. Out of credits = the AI stops and the owner answers.
       if (d.agent.metered && s.creditBalance(ws) <= 0) {
@@ -143,9 +149,23 @@ export function createSetter(d: SetterDeps) {
       s.saveMessage(msg);
       s.saveConversation({ ...conv, state: out.action === 'send' ? 'open' : 'awaiting_approval' });
       if (out.action === 'draft') return 'draft';
-      const r = await deliverLocked(ws, msg.id, 'ai');
-      return r.ok ? 'sent' : `send_failed:${r.reason}`;
+      return sendLater(ws, msg, cfg);
     });
+  }
+
+  /** Automatic replies wait a random, human-like time (max 7 min). Eligibility is re-checked when the time comes. */
+  async function sendLater(ws: string, msg: DmMessage, cfg: AgentConfig): Promise<string> {
+    const ms = d.schedule ? replyDelayMs(msg.text, cfg.replyDelay ?? DEFAULT_REPLY_DELAY, d.random) : 0;
+    if (ms <= 0) { const r = await deliverLocked(ws, msg.id, 'ai'); return r.ok ? 'sent' : `send_failed:${r.reason}`; }
+    s.saveMessage({ ...msg, sendAt: new Date(now().getTime() + ms).toISOString() });
+    const conv = s.conversation(ws, msg.conversationId)!;
+    d.schedule!(() => { void serial(`${ws}|${conv.igsid}`, () => sendIfDue(ws, msg.id)); }, ms);
+    return 'scheduled';
+  }
+  async function sendIfDue(ws: string, id: string) {
+    const m = s.message(ws, id);
+    if (!m || m.status !== 'queued') return; // cancelled, replaced or already sent
+    await deliverLocked(ws, id, 'ai');
   }
 
   const HUMAN_MAY_IGNORE: Block[] = ['mode_off', 'paused', 'human_takeover'];
@@ -204,6 +224,15 @@ export function createSetter(d: SetterDeps) {
       const results: string[] = [];
       for (const ev of p.events) results.push(await handleEvent(ev));
       return { status: 200, results };
+    },
+
+    /** Sends queued replies whose time has passed (call on a timer and after a restart; in-process timers are lost on restart). */
+    async flushDue(ws: string): Promise<number> {
+      let n = 0;
+      for (const c of s.conversations(ws)) for (const m of s.messages(ws, c.id)) {
+        if (m.direction === 'out' && m.status === 'queued' && m.sendAt && Date.parse(m.sendAt) <= now().getTime()) { await serial(`${ws}|${c.igsid}`, () => sendIfDue(ws, m.id)); n++; }
+      }
+      return n;
     },
 
     /** Owner actions from the inbox. All scoped by the workspace the server resolved from the session. */

@@ -2,7 +2,7 @@
 // AI Setter test lab actions. Everything runs on the per-business SANDBOX: simulated Instagram, fake sender, nothing leaves the server.
 import { availability, checkBusiness } from '../../../start/_server/runtime';
 import { resetSandbox, sandbox, setterStripe, live } from '../../../start/_server/setter-runtime';
-import { profileGaps, setterMetrics, usageSummary, type AgentConfig, type Offer, type KnowledgeItem, type ObjectionAnswer } from '../../../../lib/aimp/setter/index';
+import { cleanDelay, profileGaps, setterMetrics, usageSummary, type AgentConfig, type Offer, type KnowledgeItem, type ObjectionAnswer } from '../../../../lib/aimp/setter/index';
 import { catalogueCtx, runtime } from '../../../start/_server/runtime';
 import { getOfferState } from '../../../../lib/aimp/offers/store';
 import { buyerGets } from '../../../../lib/aimp/offers/build';
@@ -15,6 +15,7 @@ function sb(business: string) {
 
 export async function loadSetterAction(business: string): Promise<SetterView | null> {
   const s = sb(business);
+  if (s) await s.setter.flushDue(s.ws);
   return s ? view(s) : null;
 }
 
@@ -28,7 +29,7 @@ function view(s: NonNullable<ReturnType<typeof sb>>): SetterView {
     usage: usageSummary(s.store, ws),
     canBuy: !!setterStripe() && !!live(),
     killSwitch: s.store.killSwitch(ws),
-    conversations: s.store.conversations(ws).map((c) => ({ ...c, lead: s.store.lead(ws, c.id), messages: s.store.messages(ws, c.id).map((m) => ({ id: m.id, direction: m.direction, author: m.author, text: m.text, status: m.status, error: m.error, notes: m.policyNotes ?? [], intent: m.decision?.intent ?? null, confidence: m.decision?.confidence ?? null })) })),
+    conversations: s.store.conversations(ws).map((c) => ({ ...c, lead: s.store.lead(ws, c.id), messages: s.store.messages(ws, c.id).map((m) => ({ id: m.id, direction: m.direction, author: m.author, text: m.text, status: m.status, sendAt: m.sendAt ?? null, error: m.error, notes: m.policyNotes ?? [], intent: m.decision?.intent ?? null, confidence: m.decision?.confidence ?? null })) })),
     metrics: setterMetrics(s.store, ws),
     audit: s.store.audits(ws).slice(-15).reverse(),
   };
@@ -62,6 +63,7 @@ export async function saveConfigAction(business: string, raw: unknown): Promise<
     qualifyingQuestion: str(o.qualifyingQuestion, 200), refundPolicy: str(o.refundPolicy, 400), bookingUrl: https(o.bookingUrl), offers, knowledge,
     about: str(o.about, 800), shipping: str(o.shipping, 500), returns: str(o.returns, 500), warranty: str(o.warranty, 500),
     sellingPoints: lines(o.sellingPoints, 10, 200), objections, testimonials: o.testimonialsConfirmed === true ? lines(o.testimonials, 10, 300) : [],
+    replyDelay: cleanDelay({ enabled: o.delayEnabled !== false, minSeconds: Number(o.delayMin), maxSeconds: Number(o.delayMax) }),
     upsell: str(o.upsell, 300), botQuestion: o.botQuestion === 'handoff' ? 'handoff' : 'honest',
     prohibitedClaims: str(o.prohibitedClaims, 600).split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 20), updatedAt: new Date().toISOString(),
   };

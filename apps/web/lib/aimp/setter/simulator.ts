@@ -53,19 +53,20 @@ export function sampleConfig(workspaceId: string, now: Date): AgentConfig {
     testimonials: [],
     upsell: 'The 2-pack ($69) saves $9 versus two singles: great if it is a gift or they want one for two rooms.',
     botQuestion: 'honest',
+    replyDelay: { enabled: true, minSeconds: 45, maxSeconds: 420 },
     prohibitedClaims: ['improves sleep', 'helps you sleep', 'cures', 'treats', 'therapy', 'only a few left', 'selling out'],
     bookingUrl: '', minConfidence: 0.6, discloseAi: false,
   };
 }
 
-export function createSandbox(opts: { workspaceId?: string; store?: SetterStore; agent?: SetterAgent; now?: () => Date; failTimes?: number } = {}) {
+export function createSandbox(opts: { workspaceId?: string; store?: SetterStore; agent?: SetterAgent; now?: () => Date; failTimes?: number; schedule?: (task: () => void, ms: number) => void; random?: () => number } = {}) {
   const ws = opts.workspaceId ?? 'sandbox-ws';
   const store = opts.store ?? createMemorySetterStore();
   const now = opts.now ?? (() => new Date());
   const appSecret = 'sandbox-app-secret';
   const keyHex = randomBytes(32).toString('hex');
   const sender = createFakeSender({ failTimes: opts.failTimes });
-  const setter = createSetter({ store, agent: opts.agent ?? ruleAgent, sender, appSecret, tokenKeyHex: keyHex, clickSecret: 'sandbox-click', now, sleep: async () => {} });
+  const setter = createSetter({ store, agent: opts.agent ?? ruleAgent, sender, appSecret, tokenKeyHex: keyHex, clickSecret: 'sandbox-click', now, sleep: async () => {}, schedule: opts.schedule, random: opts.random });
   const account = `1784140000${Math.floor(Math.random() * 1e7).toString().padStart(7, '0')}`;
   store.saveConnection({
     workspaceId: ws, igAccountId: opts.workspaceId ? account : SIM_ACCOUNT, username: 'sandbox_shop', tokenSealed: seal(Buffer.from(keyHex, 'hex'), 'SANDBOX-TOKEN'),

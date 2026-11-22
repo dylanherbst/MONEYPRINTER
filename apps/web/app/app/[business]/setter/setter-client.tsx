@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { importFromShopAction, inboxAction, saveConfigAction, simulateAction } from './actions';
+import { useEffect, useState } from 'react';
+import { importFromShopAction, inboxAction, loadSetterAction, saveConfigAction, simulateAction } from './actions';
 import type { SetterView } from './view';
 import './setter.css';
 
@@ -23,6 +23,7 @@ export function SetterClient({ business, initial }: { business: string; initial:
     shipping: c.shipping ?? '', returns: c.returns ?? '', warranty: c.warranty ?? '', refundPolicy: c.refundPolicy, bookingUrl: c.bookingUrl,
     sellingPoints: (c.sellingPoints ?? []).join('\n'), upsell: c.upsell ?? '', testimonials: (c.testimonials ?? []).join('\n'), testimonialsConfirmed: (c.testimonials ?? []).length > 0,
     objections: (c.objections ?? []).map((o) => ({ objection: o.objection, answer: o.answer })),
+    delayEnabled: c.replyDelay?.enabled ?? true, delayMin: c.replyDelay?.minSeconds ?? 45, delayMax: c.replyDelay?.maxSeconds ?? 420,
     botQuestion: c.botQuestion ?? 'honest', discloseAi: c.discloseAi, prohibitedClaims: c.prohibitedClaims.join('\n'), mode: c.mode, paused: c.paused, confirmAuto: false,
     offers: c.offers.map((o) => ({ name: o.name, description: o.description, details: o.details ?? '', bestFor: o.bestFor ?? '', price: dollars(o.priceMinor), ctaUrl: o.ctaUrl })),
     knowledge: c.knowledge.map((k) => ({ question: k.question, answer: k.answer })),
@@ -32,6 +33,16 @@ export function SetterClient({ business, initial }: { business: string; initial:
     setBusy(true); const r = await p; setBusy(false); if (r.view) setV(r.view); setMsg(say(r)); return r;
   };
   const conv = v.conversations.find((x) => x.id === open) ?? null;
+  // While a reply is waiting to go out, tick every second and refresh from the server every 5 seconds.
+  const [clock, setClock] = useState(() => Date.now());
+  const waiting = v.conversations.some((x) => x.messages.some((m) => m.status === 'queued' && m.sendAt));
+  useEffect(() => {
+    if (!waiting) return;
+    const t = setInterval(() => setClock(Date.now()), 1000);
+    const r = setInterval(async () => { const nv = await loadSetterAction(business); if (nv) setV(nv); }, 5000);
+    return () => { clearInterval(t); clearInterval(r); };
+  }, [waiting, business]);
+  const left = (iso: string) => { const sec = Math.max(0, Math.round((Date.parse(iso) - clock) / 1000)); return `${Math.floor(sec / 60)}m ${String(sec % 60).padStart(2, '0')}s`; };
 
   return (
     <div className="st-setter">
@@ -72,7 +83,7 @@ export function SetterClient({ business, initial }: { business: string; initial:
               {conv.lead ? <p className="st-muted">Lead: {conv.lead.stage.replace(/_/g, ' ')}. Why: “{conv.lead.reason}”</p> : null}
               <ol className="st-thread">{conv.messages.map((m) => (
                 <li key={m.id} className={m.direction === 'in' ? 'st-in' : 'st-out'}>
-                  <div className="st-meta">{m.direction === 'in' ? 'Customer' : m.author === 'ai' ? 'AI' : 'You'} · {m.status}{m.intent ? ` · ${m.intent} (${m.confidence})` : ''}</div>
+                  <div className="st-meta">{m.direction === 'in' ? 'Customer' : m.author === 'ai' ? 'AI' : 'You'} · {m.status === 'queued' && m.sendAt ? `sending in ${left(m.sendAt)} (human-like delay)` : m.status}{m.intent ? ` · ${m.intent} (${m.confidence})` : ''}</div>
                   {m.status === 'draft' ? (
                     <>
                       <textarea rows={5} aria-label="Draft reply" value={edit[m.id] ?? m.text} onChange={(e) => setEdit({ ...edit, [m.id]: e.target.value })} />
@@ -165,6 +176,15 @@ export function SetterClient({ business, initial }: { business: string; initial:
           <label><input type="radio" checked={form.botQuestion === 'honest'} onChange={() => setForm({ ...form, botQuestion: 'honest' })} /> Answer honestly that it is the store's assistant and offer a person</label>
           <label><input type="radio" checked={form.botQuestion === 'handoff'} onChange={() => setForm({ ...form, botQuestion: 'handoff' })} /> Do not answer: hand the chat to me</label>
           <label><input type="checkbox" checked={form.discloseAi} onChange={(e) => setForm({ ...form, discloseAi: e.target.checked })} /> Say the first reply is automated. Off by default. Some places (for example California and Germany) may require this by law.</label>
+          <h3>Reply timing</h3>
+          <label><input type="checkbox" checked={form.delayEnabled} onChange={(e) => setForm({ ...form, delayEnabled: e.target.checked })} /> Wait a random, human-like time before automatic replies (never more than 7 minutes)</label>
+          {form.delayEnabled ? (
+            <div className="st-row">
+              <label>Shortest wait (seconds)<input type="number" min={0} max={420} value={form.delayMin} onChange={(e) => setForm({ ...form, delayMin: Number(e.target.value) })} /></label>
+              <label>Longest wait (seconds, max 420)<input type="number" min={0} max={420} value={form.delayMax} onChange={(e) => setForm({ ...form, delayMax: Math.min(420, Number(e.target.value)) })} /></label>
+            </div>
+          ) : null}
+          <p className="st-muted">Approved drafts and your own replies go out straight away. If the person sends another message while a reply is waiting, it is replaced with a fresh one.</p>
           <label><input type="checkbox" checked={form.paused} onChange={(e) => setForm({ ...form, paused: e.target.checked })} /> Pause the AI</label>
           <button type="button" className="st-primary" disabled={busy} onClick={() => run(saveConfigAction(business, form), (r) => r.message)}>Save</button>
         </section>

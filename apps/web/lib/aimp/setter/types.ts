@@ -55,6 +55,8 @@ export interface AgentConfig {
   upsell: string;
   /** When someone asks "are you a bot?": answer honestly that it is the store's assistant, or hand the chat to the owner. */
   botQuestion: 'honest' | 'handoff';
+  /** Human-like reply timing for automatic replies (never over 7 minutes). */
+  replyDelay: { enabled: boolean; minSeconds: number; maxSeconds: number };
   brandVoice: string;
   offers: Offer[];
   knowledge: KnowledgeItem[];
@@ -122,6 +124,8 @@ export interface DmMessage {
   createdAt: string;
   decision?: AgentDecision;
   policyNotes?: string[];
+  /** For a queued automatic reply: when it is due to send. */
+  sendAt?: string;
 }
 
 export interface CrmLead {
