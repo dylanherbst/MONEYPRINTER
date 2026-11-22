@@ -94,7 +94,7 @@ test('safe proposal projection exposes only allowlisted client-facing summary fi
   assert.equal('workflowNotes' in preview, false);
 });
 
-test('source drift and missing proposal are detected; snapshot refresh requires explicit acknowledgement', () => {
+test('source drift and missing proposal are detected; snapshot refresh requires explicit acknowledgement', async () => {
   const saved = saveServiceClientPortalDraft(portalInput, profile.id, [proposal], null);
   assert.equal(evaluatePortalProposalDrift(saved, [proposal]).proposalChanged, false);
   const edited = saveProposal({ ...editProposal(proposal), title: 'Updated title' }, identity);
@@ -104,6 +104,7 @@ test('source drift and missing proposal are detected; snapshot refresh requires 
     () => saveServiceClientPortalDraft(portalInput, profile.id, [edited], saved),
     /changed since this portal snapshot/,
   );
+  await new Promise((r) => setTimeout(r, 3)); // the snapshot time is per millisecond; make sure the refresh is a later one
   const refreshed = saveServiceClientPortalDraft(portalInput, profile.id, [edited], saved, {
     acknowledgeProposalChange: true,
   });

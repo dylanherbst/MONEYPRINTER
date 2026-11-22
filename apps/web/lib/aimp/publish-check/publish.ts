@@ -66,7 +66,7 @@ async function exclusive(key: string, fn: (ctl: Control) => Promise<PublishWithC
   const run = before.then(() => new Promise<PublishWithCheckResult>((resolve, reject) => {
     const ctl: Control = { abandoned: false };
     const timer = setTimeout(() => { ctl.abandoned = true; resolve(timedOut(ctl.version)); }, timeoutMs);
-    (timer as { unref?: () => void }).unref?.();
+    // Not unref'd: the timer is bounded by timeoutMs, and an unref'd timer let the process (and tests) exit with the publish still pending.
     fn(ctl).then((v) => { clearTimeout(timer); resolve(v); }, (e) => { clearTimeout(timer); reject(e); });
   }));
   const tail = run.then(() => undefined, () => undefined);
