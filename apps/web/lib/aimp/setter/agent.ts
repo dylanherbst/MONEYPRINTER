@@ -2,8 +2,13 @@
 // `ruleAgent` is a deterministic fallback used by the simulator, by tests, and when no AI key is set.
 import type { AgentConfig, AgentDecision, DmMessage } from './types.ts';
 
-export interface AgentInput { config: AgentConfig; history: Pick<DmMessage, 'direction' | 'text'>[]; latest: string }
-export interface SetterAgent { name: string; decide(i: AgentInput): Promise<unknown> }
+export interface AgentInput { config: AgentConfig; history: Pick<DmMessage, 'direction' | 'text'>[]; latest: string; conversationId?: string }
+export interface SetterAgent {
+  name: string;
+  /** True when each decision costs money (a real model): the pipeline then needs a credit before calling it and spends one after. */
+  metered?: boolean;
+  decide(i: AgentInput): Promise<unknown>;
+}
 
 export const PROMPT_VERSION = 'setter-2026-11-22.1';
 

@@ -130,6 +130,16 @@ export function SetterClient({ business, initial }: { business: string; initial:
             {Object.entries({ Conversations: v.metrics.conversations, 'Qualified leads': v.metrics.qualified, 'Handed to you': v.metrics.handoffs, 'Opted out': v.metrics.optOuts, 'Checkout clicks': v.metrics.checkoutClicks, 'Verified purchases': v.metrics.verifiedPurchases, 'Verified bookings': v.metrics.verifiedBookings, 'Median reply time': v.metrics.medianReplyMs === null ? 'not yet' : `${Math.round(v.metrics.medianReplyMs / 1000)}s`, 'Blocked sends': v.metrics.blockedSends, 'Failed after retries': v.metrics.deadLetters }).map(([k, val]) => <div key={k}><dt>{k}</dt><dd>{String(val)}</dd></div>)}
           </dl>
           <p className="st-muted">Purchases and bookings count only when Stripe or the booking tool confirms them, never because the AI said so.</p>
+          <h3>AI reply credits</h3>
+          <dl className="st-metrics">
+            {Object.entries({ 'Credits left': v.usage.creditsLeft, 'AI replies used': v.usage.aiReplies, 'Your AI cost (USD)': `$${v.usage.platformCostUsd.toFixed(4)}`, 'Cost per conversation': v.usage.costPerConversationUsd === null ? 'not yet' : `$${v.usage.costPerConversationUsd.toFixed(4)}` }).map(([k, val]) => <div key={k}><dt>{k}</dt><dd>{String(val)}</dd></div>)}
+          </dl>
+          <p className="st-muted">{v.metered ? '1 credit = 1 reply written by Claude. With no credits left, the AI stops and chats come to you.' : 'Credits are only used when Claude writes the replies. Right now the basic rules are answering, which costs nothing.'}{v.usage.low ? ' Credits are running low.' : ''}</p>
+          <div className="st-row">
+            {v.usage.packs.map((p) => <span key={p.id} className="st-pill">{p.label}: ${(p.priceMinor / 100).toFixed(0)} {p.currency.toUpperCase()}</span>)}
+          </div>
+          <p className="st-muted">{v.canBuy ? 'Buying credits opens Stripe checkout.' : 'Buying credits needs Stripe keys, so it is off here.'}</p>
+          <button type="button" disabled={busy} onClick={() => run(inboxAction(business, { kind: 'test_credits' }), (r) => r.message)}>Add 500 test credits</button>
           <h3>Recent activity</h3>
           <ul className="st-notes">{v.audit.map((a, i) => <li key={i}>{a.kind}: {a.detail}</li>)}</ul>
         </section>

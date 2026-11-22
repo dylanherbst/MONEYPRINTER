@@ -1,5 +1,6 @@
 // In-memory repository. Same methods a database adapter will implement (supabase/migrations/*_ai_sales_setter.sql). Every read and
 // write is keyed by workspaceId; a conversation id from another workspace simply is not found.
+import type { CreditEntry, CreditPurchase, UsageRecord } from './credits.ts';
 import type { AgentConfig, AuditEvent, ConversionEvent, CrmLead, DmConversation, DmMessage, InstagramConnection, OutboundAttempt } from './types.ts';
 
 export interface SetterStore {
@@ -30,6 +31,14 @@ export interface SetterStore {
   conversions(workspaceId: string): ConversionEvent[];
   audit(e: AuditEvent): void;
   audits(workspaceId: string): AuditEvent[];
+  /** Credit balance = sum of ledger entries. Entries are append-only; `ref` is unique per workspace, so a replay adds nothing. */
+  creditBalance(workspaceId: string): number;
+  addCredit(e: CreditEntry): boolean;
+  creditEntries(workspaceId: string): CreditEntry[];
+  addUsage(u: UsageRecord): void;
+  usage(workspaceId: string): UsageRecord[];
+  purchase(id: string): CreditPurchase | null;
+  savePurchase(p: CreditPurchase): void;
   killSwitch(workspaceId: string): boolean;
   setKillSwitch(workspaceId: string, on: boolean): void;
 }
@@ -46,6 +55,9 @@ export function createMemorySetterStore(limits = { eventsPerAccount: 5000, audit
   const conversions: ConversionEvent[] = [];
   const audits: AuditEvent[] = [];
   const kill = new Set<string>();
+  const ledger: CreditEntry[] = [];
+  const usageRecs: UsageRecord[] = [];
+  const purchases = new Map<string, CreditPurchase>();
   const k = (...p: string[]) => p.join('|');
   const clone = <T>(v: T): T => structuredClone(v);
   return {
@@ -85,6 +97,18 @@ export function createMemorySetterStore(limits = { eventsPerAccount: 5000, audit
     conversions: (ws) => conversions.filter((e) => e.workspaceId === ws).map(clone),
     audit: (e) => { audits.push(clone(e)); const mine = audits.filter((a) => a.workspaceId === e.workspaceId); if (mine.length > limits.auditsPerWorkspace) audits.splice(audits.indexOf(mine[0]!), 1); },
     audits: (ws) => audits.filter((a) => a.workspaceId === ws).map(clone),
+    creditBalance: (ws) => ledger.reduce((n, e) => (e.workspaceId === ws ? n + e.delta : n), 0),
+    addCredit(e) {
+      if (!Number.isInteger(e.delta) || e.delta === 0) return false;
+      if (ledger.some((x) => x.workspaceId === e.workspaceId && x.ref === e.ref)) return false;
+      ledger.push(clone(e));
+      return true;
+    },
+    creditEntries: (ws) => ledger.filter((e) => e.workspaceId === ws).map(clone),
+    addUsage: (u) => { usageRecs.push(clone(u)); if (usageRecs.length > 100_000) usageRecs.shift(); },
+    usage: (ws) => usageRecs.filter((u) => u.workspaceId === ws).map(clone),
+    purchase: (id) => { const p = purchases.get(id); return p ? clone(p) : null; },
+    savePurchase: (p) => { purchases.set(p.id, clone(p)); },
     killSwitch: (ws) => kill.has(ws),
     setKillSwitch: (ws, on) => { if (on) kill.add(ws); else kill.delete(ws); },
   };

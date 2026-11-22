@@ -64,7 +64,7 @@ export function createSandbox(opts: { workspaceId?: string; store?: SetterStore;
   const igAccountId = store.connectionFor(ws)!.igAccountId;
   let mid = 0;
   return {
-    ws, store, setter, sender, appSecret, igAccountId, agentName: (opts.agent ?? ruleAgent).name,
+    ws, store, setter, sender, appSecret, igAccountId, agentName: (opts.agent ?? ruleAgent).name, metered: !!(opts.agent ?? ruleAgent).metered,
     /** A person messages the business. Returns what the pipeline did. */
     async inbound(text: string, igsid = '900000000000001', id?: string) {
       const raw = simulatedPayload(igAccountId, [{ from: igsid, text, mid: id ?? `sim-in-${++mid}-${Date.now()}`, ts: now().getTime() }]);

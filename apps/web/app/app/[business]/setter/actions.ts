@@ -1,8 +1,8 @@
 'use server';
 // AI Setter test lab actions. Everything runs on the per-business SANDBOX: simulated Instagram, fake sender, nothing leaves the server.
 import { availability, checkBusiness } from '../../../start/_server/runtime';
-import { resetSandbox, sandbox } from '../../../start/_server/setter-runtime';
-import { setterMetrics, type AgentConfig, type Offer, type KnowledgeItem } from '../../../../lib/aimp/setter/index';
+import { resetSandbox, sandbox, setterStripe, live } from '../../../start/_server/setter-runtime';
+import { setterMetrics, usageSummary, type AgentConfig, type Offer, type KnowledgeItem } from '../../../../lib/aimp/setter/index';
 import type { SetterView } from './view';
 
 function sb(business: string) {
@@ -20,6 +20,9 @@ function view(s: NonNullable<ReturnType<typeof sb>>): SetterView {
   return {
     config: s.store.config(ws)!,
     agentName: s.agentName,
+    metered: s.metered,
+    usage: usageSummary(s.store, ws),
+    canBuy: !!setterStripe() && !!live(),
     killSwitch: s.store.killSwitch(ws),
     conversations: s.store.conversations(ws).map((c) => ({ ...c, lead: s.store.lead(ws, c.id), messages: s.store.messages(ws, c.id).map((m) => ({ id: m.id, direction: m.direction, author: m.author, text: m.text, status: m.status, error: m.error, notes: m.policyNotes ?? [], intent: m.decision?.intent ?? null, confidence: m.decision?.confidence ?? null })) })),
     metrics: setterMetrics(s.store, ws),
@@ -75,6 +78,7 @@ export async function inboxAction(business: string, op: unknown): Promise<{ ok: 
   else if (o.kind === 'takeover' || o.kind === 'release') { ok = s.setter.takeover(s.ws, id, o.kind === 'takeover').ok; message = ok ? (o.kind === 'takeover' ? 'You have taken over. The AI will not reply here.' : 'The AI can reply here again.') : 'Not found.'; }
   else if (o.kind === 'reply') { const r = await s.setter.humanReply(s.ws, id, str(o.text, 1000)); ok = r.ok; message = r.ok ? 'Sent (simulated).' : `Not sent: ${r.reason}`; }
   else if (o.kind === 'reset') { const f = resetSandbox(business); ok = !!f; return { ok, message: ok ? 'Test messages cleared. Your setup is kept.' : 'Could not reset.', view: f ? view(f) : null }; }
+  else if (o.kind === 'test_credits') { ok = s.store.addCredit({ workspaceId: s.ws, delta: 500, reason: 'test_credit', ref: `test:${Date.now()}:${Math.random()}`, at: new Date().toISOString() }); message = ok ? '500 test credits added (no payment taken).' : 'Could not add credits.'; }
   else if (o.kind === 'kill') { s.store.setKillSwitch(s.ws, o.on === true); ok = true; message = o.on === true ? 'All sending stopped.' : 'Sending allowed again.'; }
   else message = 'Unknown action.';
   return { ok, message, view: view(s) };

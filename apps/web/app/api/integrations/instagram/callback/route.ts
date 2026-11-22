@@ -3,6 +3,7 @@
 import { exchangeCode, fetchProfile, oauthConfigFromEnv, checkState } from '../../../../../lib/aimp/setter/oauth';
 import { parseKey, seal } from '../../../../../lib/aimp/setter/crypto';
 import { defaultConfig } from '../../../../../lib/aimp/setter/pipeline';
+import { grantTrial } from '../../../../../lib/aimp/setter/billing';
 import { live } from '../../../../start/_server/setter-runtime';
 
 export const dynamic = 'force-dynamic';
@@ -30,5 +31,6 @@ export async function GET(req: Request): Promise<Response> {
   });
   if (!saved.ok) return back(ws, 'owned_elsewhere');
   if (!rt.store.config(ws)) rt.store.saveConfig(defaultConfig(ws, new Date()));
+  grantTrial(rt.store, ws, new Date().toISOString()); // once per workspace (ledger ref 'trial')
   return back(ws, 'ok');
 }

@@ -53,6 +53,7 @@ test('Claude agent: sends the conversation as alternating turns and its JSON goe
   const agent = claudeAgent({ apiKey: 'sk-ant-test', fetch: async (url, init) => { calls.push({ url, body: JSON.parse(init.body!), headers: init.headers }); return { status: 200, json: async () => ({ content: [{ type: 'text', text: 'Here you go:\n' + JSON.stringify(reply) }] }) }; } });
   const sb = createSandbox({ now: () => T0, agent });
   sb.store.saveConfig({ ...sb.store.config(sb.ws)!, mode: 'auto' });
+  sb.store.addCredit({ workspaceId: sb.ws, delta: 10, reason: 'test_credit', ref: 'seed', at: T0.toISOString() });
   await sb.inbound('how much is it', '7001');
   const r = await sb.inbound('seems a bit pricey', '7001');
   assert.equal(calls[0]!.url, 'https://api.anthropic.com/v1/messages');

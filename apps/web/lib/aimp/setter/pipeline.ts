@@ -110,9 +110,16 @@ export function createSetter(d: SetterDeps) {
         const r = await deliverLocked(ws, m.id, 'ai');
         return r.ok ? 'sent' : `send_failed:${r.reason}`;
       }
+      // Pay-per-chat: a metered (real AI) agent needs a credit first. Out of credits = the AI stops and the owner answers.
+      if (d.agent.metered && s.creditBalance(ws) <= 0) {
+        s.saveConversation({ ...conv, humanTakeover: true, state: 'human' });
+        audit(ws, 'out_of_credits', `${conv.id}: no AI reply credits left; handed to you.`);
+        return 'out_of_credits';
+      }
       let raw: unknown;
-      try { raw = await d.agent.decide({ config: cfg, history: s.messages(ws, conv.id).slice(0, -1), latest: ev.text }); }
+      try { raw = await d.agent.decide({ config: cfg, history: s.messages(ws, conv.id).slice(0, -1), latest: ev.text, conversationId: conv.id }); }
       catch { s.saveConversation({ ...conv, humanTakeover: true, state: 'human' }); audit(ws, 'model_error', `${conv.id}: the AI did not answer; handed to a person.`); return 'model_error'; }
+      if (d.agent.metered) s.addCredit({ workspaceId: ws, delta: -1, reason: 'reply', ref: `reply:${ev.eventId}`, at: iso() });
       const v = validateDecision(raw);
       if (!v.ok) { s.saveConversation({ ...conv, humanTakeover: true, state: 'human' }); audit(ws, 'invalid_model_output', `${conv.id}: ${v.errors.join(' ')}`); return 'invalid_output'; }
       const dec = v.decision;
