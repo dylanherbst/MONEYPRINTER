@@ -147,7 +147,19 @@ export function paletteFor(tone: BrandTone, input: BrandInput): BrandPalette {
 
 // ---- copy ------------------------------------------------------------------------------------------------------------------
 
-function plural(type: string): string { return /s$/i.test(type) ? type : `${type}s`; }
+/** "planner" -> "planners"; "budget tracker with a progress page" -> "budget trackers with a progress page"; already plural stays. */
+function plural(type: string): string {
+  const m = /^(.*?)(\s+(?:with|for)\s.*)$/i.exec(type);
+  const head = m ? m[1]! : type, tail = m ? m[2]! : '';
+  return /s$/i.test(head) ? type : `${head}s${tail}`;
+}
+/** "A printable tracker" -> "printable tracker": the copy adds its own article. Keeps acronyms like "PDF". */
+function bareType(type: string): string {
+  const t = type.replace(/^(a|an|the)\s+/i, '').trim();
+  return /^[A-Z]{2,}/.test(t) ? t : t.charAt(0).toLowerCase() + t.slice(1);
+}
+/** "a" or "an" for a word. */
+const article = (w: string): string => (/^[aeiou]/i.test(w) ? 'an' : 'a');
 
 function listFormats(formats: string[]): string {
   const f = formats.map(norm).filter(Boolean);
@@ -158,7 +170,7 @@ function listFormats(formats: string[]): string {
 export function generateListing(input: BrandInput, tone: BrandTone): BrandListing {
   const niche = clip(norm(input.niche), 40);
   const audience = lower(clip(norm(input.audience), 50));
-  const type = norm(input.productType ?? 'digital product') || 'digital product';
+  const type = bareType(norm(input.productType ?? 'digital product')) || 'digital product';
   const taglines: Record<BrandTone, string> = {
     warm: `Thoughtful ${plural(type)} for ${audience}`,
     playful: `${niche.charAt(0).toUpperCase()}${niche.slice(1)} made easy, and a little fun`,
@@ -169,11 +181,11 @@ export function generateListing(input: BrandInput, tone: BrandTone): BrandListin
   const tagline = clip(taglines[tone], TAGLINE_MAX);
   const productTitle = clip(norm(input.productTitle ?? '') || `${niche} ${type}`, 80);
   const summary = norm(input.productSummary ?? '');
-  const shortDescription = clip(summary ? `${productTitle}: ${summary}` : `${productTitle}, a ${type} for ${audience}. Download it and start straight away.`, SHORT_MAX);
+  const shortDescription = clip(summary ? `${productTitle}: ${summary}` : `${productTitle}, ${article(type)} ${type} for ${audience}. Download it and start straight away.`, SHORT_MAX);
   const formats = input.formats?.length ? listFormats(input.formats) : '';
   const pages = typeof input.totalPages === 'number' && input.totalPages > 0 ? `${Math.round(input.totalPages)} pages` : '';
   const parts = [
-    `${productTitle} is a ${type} made for ${audience}.`,
+    `${productTitle} is ${article(type)} ${type} made for ${audience}.`,
     summary ? (/[.!?]$/.test(summary) ? summary : `${summary}.`) : '',
     formats || pages ? `You get ${[pages, formats ? `as ${formats}` : ''].filter(Boolean).join(' ')}, ready to download as soon as you buy.` : 'You can download it as soon as you buy.',
     'Print it or use it on screen, as often as you like.',
