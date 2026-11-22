@@ -117,7 +117,7 @@ export function createSetter(d: SetterDeps) {
         return 'out_of_credits';
       }
       let raw: unknown;
-      try { raw = await d.agent.decide({ config: cfg, history: s.messages(ws, conv.id).slice(0, -1), latest: ev.text, conversationId: conv.id }); }
+      try { raw = await d.agent.decide({ config: cfg, history: s.messages(ws, conv.id).slice(0, -1).filter((m) => m.direction === 'in' || m.status === 'sent'), latest: ev.text, conversationId: conv.id }); }
       catch { s.saveConversation({ ...conv, humanTakeover: true, state: 'human' }); audit(ws, 'model_error', `${conv.id}: the AI did not answer; handed to a person.`); return 'model_error'; }
       if (d.agent.metered) s.addCredit({ workspaceId: ws, delta: -1, reason: 'reply', ref: `reply:${ev.eventId}`, at: iso() });
       const v = validateDecision(raw);
