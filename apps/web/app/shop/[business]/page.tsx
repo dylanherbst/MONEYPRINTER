@@ -4,6 +4,7 @@ import { availability, checkBusiness } from '../../start/_server/runtime';
 import { getOfferState } from '../../../lib/aimp/offers/store';
 import { buildShopPage } from '../../../lib/aimp/shop/page';
 import { BuyBox } from './buy-box';
+import { VisitBeacon } from '../../../lib/aimp/funnel/beacon';
 import './shop.css';
 
 export const dynamic = 'force-dynamic';
@@ -25,6 +26,7 @@ export default async function ShopPage({ params }: { params: Promise<{ business:
   if (!shop) notFound();
   return (
     <main className="shop">
+      <VisitBeacon shop={business} />
       <header className="shop-hero">
         <p className="shop-for">{shop.forWho}</p>
         <h1>{shop.title}</h1>

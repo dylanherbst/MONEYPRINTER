@@ -6,6 +6,7 @@ import type { StoreSection } from '../../../lib/aimp/storefront/schema';
 import { storeBase } from './_ui/base';
 import { BundleCard, Cover, ProductCard } from './_ui/parts';
 import { formatPrice } from '../../../lib/aimp/storefront/load';
+import { VisitBeacon } from '../../../lib/aimp/funnel/beacon';
 import { TestPurchaseForm } from './_ui/test-purchase-form';
 import { OptInForm } from './_ui/opt-in-form';
 import { readOptInWording } from './_server/audience';
@@ -33,6 +34,7 @@ export default async function StoreHome({ params }: { params: Promise<{ store: s
 
   return (
     <>
+      <VisitBeacon slug={store.slug} />
       <section className="st-hero">
         <div className="st-wrap st-hero-inner">
           <div className="st-hero-copy">

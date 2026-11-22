@@ -36,7 +36,7 @@ export const tabRoutes: Record<TabId, { segment: string; segments: readonly stri
   home: { segment: 'home', segments: ['', 'home', 'dashboard'] },
   shop: { segment: 'products', segments: ['offers', 'products', 'orders', 'website', 'brand', 'domains', 'payments'] },
   growth: { segment: 'marketing', segments: ['marketing'] },
-  settings: { segment: 'settings', segments: ['settings', 'integrations', 'approvals', 'operator', 'inbox', 'gaps', 'setter'] },
+  settings: { segment: 'settings', segments: ['settings', 'integrations', 'approvals', 'operator', 'inbox', 'gaps', 'setter', 'results'] },
 };
 
 export const tabHref = (business: string, id: TabId): string => {
@@ -52,6 +52,7 @@ export function tabForSegment(segment: string): TabId | null {
 
 /** Everything in the bar that is not one of the four tabs, shown on the Settings page so no screen becomes unreachable on a phone. */
 export const settingsLinks: readonly { label: string; segment: string; detail: string }[] = [
+  { label: 'Shop results', segment: 'results', detail: 'Visits, Buy presses and paid orders: where buyers drop off.' },
   { label: 'AI Setter', segment: 'setter', detail: 'Answers Instagram DMs and sends your links.' },
   { label: 'Inbox', segment: 'inbox', detail: 'Messages from customers.' },
   { label: 'Competitor gaps', segment: 'gaps', detail: 'What other tools miss.' },
