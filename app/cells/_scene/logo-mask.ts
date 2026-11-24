@@ -1,4 +1,4 @@
-// The AiMoneyPrinter mark as a 143×160 one-bit mask (1 = inside the mark), row by row, packed eight cells to a byte
+// The logo mark as a 143×160 one-bit mask (1 = inside the mark), row by row, packed eight cells to a byte
 // and base64 encoded. Made from the owner's logo file (16 Nov 2026); the cells gather into this shape.
 export const logoMask = {
   width: 143,

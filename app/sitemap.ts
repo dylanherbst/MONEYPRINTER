@@ -1,8 +1,8 @@
 import type { MetadataRoute } from 'next';
-import { site } from '../lib/aimp/site-config';
+import { siteUrl } from '../lib/aimp/site-config';
 
-// Public marketing pages only.
+// Public marketing pages only; empty until the public domain is set.
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = `https://${site.domain}`;
-  return ['/', '/how-it-works', '/faq', '/about', '/signup'].map((path) => ({ url: `${base}${path}` }));
+  if (!siteUrl()) return [];
+  return ['/', '/how-it-works', '/faq', '/about', '/signup', '/policies'].map((path) => ({ url: siteUrl(path) as string }));
 }

@@ -20,7 +20,7 @@ export function SiteHeader({ solid = false, current }: { solid?: boolean; curren
   return (
     <header className="cells-top" data-solid={solid ? '1' : undefined}>
       <a href={HOME_HREF} className="cells-logo" aria-label={`${site.name} home`}>
-        <img src="/brand/aimp-logo.webp" alt="" width={36} height={36} />
+        <img src="/brand/logo.webp" alt="" width={36} height={36} />
       </a>
       <nav className="cells-nav" aria-label="Site">
         {NAV.map((n) => (
@@ -37,10 +37,10 @@ export function SiteHeader({ solid = false, current }: { solid?: boolean; curren
             {NAV.map((n) => (
               <a key={n.href} href={n.href} aria-current={current === n.href ? 'page' : undefined}>{n.label}</a>
             ))}
-            <a href={SIGN_IN}>Sign in</a>
+            {SIGN_IN && <a href={SIGN_IN}>Sign in</a>}
           </nav>
         </details>
-        <a href={SIGN_IN} className="cells-signin">Sign in</a>
+        {SIGN_IN && <a href={SIGN_IN} className="cells-signin">Sign in</a>}
       </div>
     </header>
   );

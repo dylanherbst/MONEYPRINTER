@@ -181,7 +181,7 @@ export class CellsScene {
     // Same proportions and height as the logo formation (1.95 units tall).
     const logoH = 1.95;
     const logoW = logoH * (918 / 1024);
-    const map = new THREE.TextureLoader().load('/brand/aimp-logo-solid.webp');
+    const map = new THREE.TextureLoader().load('/brand/logo-solid.webp');
     map.colorSpace = THREE.NoColorSpace;
     map.anisotropy = 4;
     this.solidMaterial = new THREE.ShaderMaterial({

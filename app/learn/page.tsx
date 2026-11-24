@@ -1,6 +1,6 @@
 import { permanentRedirect } from 'next/navigation';
 
-// Learn more was split into How it works, FAQs and About us (22 Nov 2026).
+// The old Learn more address now opens How it works.
 export default function LearnPage() {
   permanentRedirect('/how-it-works');
 }

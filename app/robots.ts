@@ -1,15 +1,8 @@
 import type { MetadataRoute } from 'next';
+import { indexable, siteUrl } from '../lib/aimp/site-config';
 
-function originOf(raw: string | undefined): string | null {
-  try { return raw ? new URL(raw).origin : null; } catch { return null; }
-}
-
-// Platform robots (AMP-032): stores are crawlable, internal API and tool pages are not. The sitemap line appears only
-// when an origin is configured (LAUNCHPAD_APP_ORIGIN); stores publish their own sitemap on their own host.
+// Previews and anything without the confirmed domain stay out of search engines.
 export default function robots(): MetadataRoute.Robots {
-  const origin = originOf(process.env.LAUNCHPAD_APP_ORIGIN);
-  return {
-    rules: { userAgent: '*', allow: '/', disallow: ['/api/', '/tools/'] },
-    ...(origin ? { sitemap: `${origin}/sitemap.xml` } : {}),
-  };
+  if (!indexable) return { rules: { userAgent: '*', disallow: '/' } };
+  return { rules: { userAgent: '*', allow: '/' }, sitemap: siteUrl('/sitemap.xml') };
 }

@@ -1,19 +1,34 @@
-// Single place for the public website's brand: rename here and every page follows. The owner set the name to
-// AiMoneyPrinter on 15 Nov 2026 (it was the placeholder "Seedline"); a legal and Stripe name check is still open.
+// Single place for the public website's brand and the addresses it links to. VentraAI (24 Nov 2026) replaces the
+// VentraAI positioning: an AI growth team for existing solo and small businesses.
+//
+// Addresses come from environment variables (see .env.example) so nothing points at an app, domain or contact that
+// has not been confirmed. Empty values switch the site to its safe fallbacks: no canonical URLs and no indexing
+// without a domain, early access instead of sign-up without an app, and placeholders on the Policies page.
+const clean = (v: string | undefined) => (v ?? '').trim().replace(/\/+$/, '');
+
 export const site = {
-  name: 'AiMoneyPrinter',
-  // Said with the name wherever it stands alone (page titles, link previews, the footer, ads), so the first thing anyone
-  // reads is what the product does: it builds a side business with you. It makes no promise about money.
-  descriptor: 'the side business builder',
-  tagline: 'Side business quick start',
-  workingName: false,
-  domain: 'aimoneyprinter.com',
-  supportEmail: 'hello@aiventra.com.au',
-  // Draft pricing hypotheses from the business plan §13.1, to be validated with pilot users. Never shown as final.
-  plans: [
-    { id: 'discover', name: 'Discover', priceAud: 0, blurb: 'Five researched business ideas and a sample preview.', includes: ['5 opportunity suggestions', 'Sample business preview', 'No card needed'] },
-    { id: 'launch', name: 'Launch', priceAud: 79, blurb: 'One business, store, products, payments and automatic delivery.', includes: ['1 business and storefront', 'Product creation within monthly limits', 'Payments to your own Stripe account', 'Automatic file delivery'] },
-    { id: 'autopilot', name: 'Autopilot', priceAud: 149, blurb: 'Launch plus approved social publishing and daily operator checks.', includes: ['Everything in Launch', 'Approved Pinterest publishing', 'Daily health checks and summaries'] },
-    { id: 'scale', name: 'Scale', priceAud: 249, blurb: 'Higher limits and room for more than one business.', includes: ['Everything in Autopilot', 'Higher generation limits', 'Multiple businesses (coming)'] },
-  ],
+  name: 'VentraAI',
+  // Said with the name wherever it stands alone (kicker, footer, link previews).
+  descriptor: 'your AI growth team',
+  title: 'VentraAI | Your AI Growth Team for Small Businesses',
+  description:
+    'AI sales, social media, marketing and receptionist agents working together to help your business attract and convert customers.',
+  /** Public domain, without https://, e.g. ventraai.com. Not chosen yet. */
+  domain: clean(process.env.NEXT_PUBLIC_SITE_DOMAIN).replace(/^https?:\/\//, ''),
+  /** The VentraAI app (AIMONEYPRINTER-GROWTH deployment), e.g. https://app.ventraai.com. Not deployed yet. */
+  appUrl: clean(process.env.NEXT_PUBLIC_APP_URL),
+  /** Where "Join the early access list" goes while the app is not live (a form or waitlist page). */
+  earlyAccessUrl: clean(process.env.NEXT_PUBLIC_EARLY_ACCESS_URL),
+  contactEmail: clean(process.env.NEXT_PUBLIC_CONTACT_EMAIL),
+  legal: {
+    entityName: clean(process.env.NEXT_PUBLIC_LEGAL_ENTITY),
+    abn: clean(process.env.NEXT_PUBLIC_LEGAL_ABN),
+    state: 'Western Australia',
+  },
 } as const;
+
+/** Full URL on the public domain, or undefined until the domain is set. */
+export const siteUrl = (path = '/') => (site.domain ? `https://${site.domain}${path}` : undefined);
+
+/** Search engines index the site only on the confirmed domain in production; previews stay noindex. */
+export const indexable = Boolean(site.domain) && process.env.VERCEL_ENV === 'production';

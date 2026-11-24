@@ -1,22 +1,22 @@
 import type { Metadata, Viewport } from 'next';
-import { site } from '../../lib/aimp/site-config';
+import { indexable, site, siteUrl } from '../../lib/aimp/site-config';
 import { fontVars } from '../plant-lab/fonts';
 import { CellsStage } from './cells-stage';
 import { CTA, SIGNUP } from './content';
 import { SiteHeader } from './site-header';
 import './cells.css';
 
-// The public home page (owner approved for production, 16 Nov 2026): the homepage story told with a cloud of cells
-// that morphs as you scroll. aimoneyprinter.com serves it at / (next.config.mjs).
+// The public home page: the VentraAI story told with a cloud of cells that morphs as you scroll (served at /).
 export const metadata: Metadata = {
-  title: `${site.name}: ${site.descriptor} · ${site.tagline}`,
-  description: `${site.tagline}. Pick an idea and AI drafts your first digital product, shop and launch content. You approve everything before it goes live. No promise of earnings.`,
+  title: site.title,
+  description: site.description,
   openGraph: {
-    type: 'website', url: `https://${site.domain}/`, siteName: `${site.name}: ${site.descriptor}`,
-    title: 'Start a side business without spending weeks building it',
-    description: 'Pick an idea. AI drafts your first product, shop and launch content. You approve everything. Free to start.',
+    type: 'website', url: siteUrl('/'), siteName: site.name,
+    title: 'Grow your business without doing it all yourself',
+    description: site.description,
   },
-  alternates: { canonical: `https://${site.domain}/` },
+  alternates: siteUrl() ? { canonical: siteUrl('/') } : undefined,
+  robots: indexable ? undefined : { index: false, follow: false },
 };
 export const viewport: Viewport = { themeColor: '#ffffff', width: 'device-width', initialScale: 1, viewportFit: 'cover' };
 
@@ -34,78 +34,78 @@ export default function CellsPage() {
         <section className="cells-ch cells-ch-hero" data-chapter="field" aria-labelledby="cells-h1">
           <div className="cells-copy">
             <p className="cells-kicker"><span className="cells-dot" aria-hidden="true" />{site.name}: {site.descriptor}</p>
-            <h1 id="cells-h1">Start a side business without spending weeks building it.</h1>
-            <p className="cells-lede">AI researches the idea, makes the product and opens your shop. You approve every step before anything goes live.</p>
+            <h1 id="cells-h1">Grow your business without doing it all yourself.</h1>
+            <p className="cells-lede">Four AI agents working together to generate leads, grow your socials, create marketing campaigns and answer customer calls. Built for solo operators and small businesses.</p>
             <div className="cells-actions">
               <a className="cells-btn" href={SIGNUP}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
               <a className="cells-link" href="#how">See how it works</a>
             </div>
           </div>
           <div className="cells-points" aria-labelledby="cells-points-h">
-            <p className="cells-label" id="cells-points-h">The next wave of online business</p>
+            <p className="cells-label" id="cells-points-h">A smarter way to grow your business</p>
             <ul>
-              <li><b>40%</b><span>of people with a side business want to turn it into a full-time business</span></li>
-              <li><b>US$59,000+</b><span>a month in revenue for the top 25% of established online stores</span></li>
-              <li><b>US$258,000</b><span>a year in revenue for the average established online store</span></li>
+              <li><b>4 AI agents</b><span>Sales, social media, marketing and reception in one team.</span></li>
+              <li><b>1 platform</b><span>Shared business knowledge, activity and approvals.</span></li>
+              <li><b>Less admin</b><span>Your AI team handles approved growth tasks, so you spend more time with customers.</span></li>
             </ul>
-            <p className="cells-source">Full-time goal: QuickBooks 2026 Entrepreneurship Study, 3,000 US adults, December 2025. Store revenue: profitable online stores 3+ years old listed for sale on Flippa, 2022–2024 (revenue, not profit). These are market figures, not {site.name} customer results or a promise of earnings.</p>
+            <p className="cells-source">The AI Receptionist is in development. Features depend on connected accounts, permissions and provider availability. Results are not guaranteed.</p>
           </div>
         </section>
 
         {/* Not a chapter: while it is read the cells are still out of sight, gathering for step 1. */}
         <section className="cells-pain" aria-labelledby="cells-h-pain">
           <div className="cells-copy">
-            <p className="cells-label">Start with the customer</p>
-            <h2 id="cells-h-pain">A website is easy to launch. Finding customers is the hard part.</h2>
-            <p className="cells-body">It&apos;s easy to spend weeks on a store, a logo and posts, then find out the offer doesn&apos;t solve a problem people care about. So we start with the customer, then build the business.</p>
+            <p className="cells-label">Start with the opportunity</p>
+            <h2 id="cells-h-pain">More marketing isn&apos;t always the answer. Better opportunities are.</h2>
+            <p className="cells-body">{site.name} learns your business, researches competitors and identifies customer needs, then coordinates content, campaigns and sales conversations around the opportunities that matter.</p>
           </div>
           <div className="cells-versus" role="list">
-            <div className="cells-vs cells-vs-old" role="listitem"><span>The usual way</span><b>Build first, hope later</b></div>
-            <div className="cells-vs cells-vs-new" role="listitem"><span>With {site.name}</span><b>Research first, test early</b></div>
+            <div className="cells-vs cells-vs-old" role="listitem"><span>The usual way</span><b>Manage every task yourself</b></div>
+            <div className="cells-vs cells-vs-new" role="listitem"><span>With {site.name}</span><b>One coordinated AI growth team</b></div>
           </div>
         </section>
 
-        <section className="cells-ch cells-ch-low" data-chapter="vortex" id="how" aria-label="Find the gap">
+        <section className="cells-ch cells-ch-low" data-chapter="vortex" id="how" aria-label="Understand">
           <div className="cells-stat">
-            <p className="cells-label">Step 1 of 3 · Find the gap</p>
-            <p className="cells-big">5</p>
-            <p>business ideas from real customer problems, market signals and gaps competitors leave, with the sources to check them.</p>
-          </div>
-        </section>
-
-        <section className="cells-ch cells-ch-mid" data-chapter="helix" aria-label="Build the offer">
-          <div className="cells-stat">
-            <p className="cells-label">Step 2 of 3 · Build the offer</p>
+            <p className="cells-label">Step 1 of 3 · Understand</p>
             <p className="cells-big">1</p>
-            <p>clear offer to test: who it&apos;s for, what they get and a price, with the brand, product and shop made for it. Change anything, or do it yourself.</p>
+            <p>business profile: import your website, services and brand, then confirm what you want to achieve.</p>
           </div>
         </section>
 
-        <section className="cells-ch cells-ch-top" data-chapter="horizon" aria-label="Launch and learn">
+        <section className="cells-ch cells-ch-mid" data-chapter="helix" aria-label="Activate">
           <div className="cells-stat">
-            <p className="cells-label">Step 3 of 3 · Launch and learn</p>
-            <p className="cells-big">1st</p>
-            <p>version goes out small, so you learn what people respond to before you spend more. Launch posts are drafted and checked; you approve before anything publishes.</p>
+            <p className="cells-label">Step 2 of 3 · Activate</p>
+            <p className="cells-big">4</p>
+            <p>AI agents, one team: Sales, Socials, Marketing and Receptionist work from the same business knowledge.</p>
+          </div>
+        </section>
+
+        <section className="cells-ch cells-ch-top" data-chapter="horizon" aria-label="Grow">
+          <div className="cells-stat">
+            <p className="cells-label">Step 3 of 3 · Grow</p>
+            <p className="cells-big">1</p>
+            <p>place to review results: track enquiries, bookings and campaign activity, approve important actions and refine the plan.</p>
           </div>
         </section>
 
         <section className="cells-ch cells-ch-split" data-chapter="ring" aria-labelledby="cells-h-paid">
           <div className="cells-copy">
-            <p className="cells-label">Getting paid</p>
-            <h2 id="cells-h-paid">Money goes straight to your own Stripe account.</h2>
+            <p className="cells-label">From enquiry to booking</p>
+            <h2 id="cells-h-paid">Turn more enquiries into paying customers.</h2>
           </div>
           <div className="cells-copy cells-copy-low">
-            <p>Every order is delivered automatically, once, with a download link that expires.</p>
+            <p>From the first message to the phone call and booking, your AI team helps keep opportunities moving using your existing tools.</p>
           </div>
         </section>
 
         <section className="cells-ch cells-ch-split cells-ch-final" data-chapter="galaxy" aria-labelledby="cells-h-final">
           <div className="cells-copy">
-            <h2 id="cells-h-final">Your next business starts with a problem worth solving.</h2>
+            <h2 id="cells-h-final">Your business deserves a team behind it.</h2>
           </div>
           <div className="cells-copy cells-copy-low">
             <a className="cells-btn" href={SIGNUP}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
-            <p className="cells-more"><a href="/how-it-works">How it works</a><span aria-hidden="true">·</span><a href="/faq">FAQs</a><span aria-hidden="true">·</span><a href="/about">About us</a></p>
+            <p className="cells-more"><a href="/how-it-works">How it works</a><span aria-hidden="true">·</span><a href="/faq">FAQs</a><span aria-hidden="true">·</span><a href="/about">About us</a><span aria-hidden="true">·</span><a href="/policies">Policies</a></p>
           </div>
         </section>
 

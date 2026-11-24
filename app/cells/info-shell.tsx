@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { site } from '../../lib/aimp/site-config';
 import { fontVars } from '../plant-lab/fonts';
-import { CTA, SIGNUP } from './content';
+import { CTA, FOOTER_NOTE, SIGNUP } from './content';
 import { SiteHeader } from './site-header';
 import { CellsStage } from './cells-stage';
 import './cells.css';
@@ -19,12 +19,12 @@ export function InfoShell({ children, closing, current }: { children: ReactNode;
           <section className="cells-sec cells-close" data-chapter="close" aria-labelledby="cells-h-close">
             <h2 id="cells-h-close">{closing}</h2>
             <a className="cells-btn" href={SIGNUP}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
-            <p className="cells-note">No coding experience needed. Results are not guaranteed.</p>
+            <p className="cells-note">No coding required. Results are not guaranteed.</p>
           </section>
         )}
         <footer className="cells-foot">
-          <p><a href="/">{site.name}</a>: {site.descriptor} · <a href="/how-it-works">How it works</a> · <a href="/faq">FAQs</a> · <a href="/about">About us</a></p>
-          <p>{site.name} helps people research, build and market a business. It does not promise earnings or business success. Connected tools depend on each provider&apos;s availability and the permissions you give.</p>
+          <p><a href="/">{site.name}</a>: {site.descriptor} · <a href="/how-it-works">How it works</a> · <a href="/faq">FAQs</a> · <a href="/about">About us</a> · <a href="/policies">Policies</a></p>
+          <p>{FOOTER_NOTE}</p>
         </footer>
       </main>
     </div>
