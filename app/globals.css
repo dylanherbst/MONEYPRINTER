@@ -1,6 +1,6 @@
 /* Layer order: element defaults sit in "base" so Tailwind utilities (the app's glasscn components) can override them. */
 @layer theme, base, components, utilities;
-/* VENTRA — PowerAI-inspired visual language; original product content and CSS. */
+/* PowerAI-inspired visual language; original product content and CSS. */
 :root {
   color-scheme: dark;
   --canvas: #040217; --surface: #141226; --surface-raised: #1e1a36;

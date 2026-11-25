@@ -6,7 +6,7 @@ import { CTA, SIGNUP } from './content';
 import { SiteHeader } from './site-header';
 import './cells.css';
 
-// The public home page: the VentraAI story told with a cloud of cells that morphs as you scroll (served at /).
+// The public home page: the InsertAgentic story told with a cloud of cells that morphs as you scroll (served at /).
 export const metadata: Metadata = {
   title: site.title,
   description: site.description,

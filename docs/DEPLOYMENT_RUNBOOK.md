@@ -10,7 +10,7 @@ npx next start -p 3070      # http://127.0.0.1:3070
 ```
 
 ## 1. Repository (owner)
-Create a private GitHub repo `VENTRAAI-WEBSITE`. Then: `git remote add origin <url>` and `git push -u origin main`.
+Create a private GitHub repo `INSERTAGENTIC-WEBSITE`. Then: `git remote add origin <url>` and `git push -u origin main`.
 
 ## 2. Vercel project (owner)
 - Create a new project from the repo: framework Next.js, root `/`, Node 24.

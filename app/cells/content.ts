@@ -1,4 +1,4 @@
-// Shared copy and links for the public pages (from the VentraAI website brief, 24 Nov 2026). Features that are not
+// Shared copy and links for the public pages (from the InsertAgentic website brief, 24 Nov 2026). Features that are not
 // verified yet are labelled "In development" rather than advertised as working.
 import { site } from '../../lib/aimp/site-config';
 
@@ -11,7 +11,7 @@ export const SIGNUP = '/signup';
 /** Where the sign-up page's button goes: the app's existing-business onboarding, or the early access list. */
 export const SIGNUP_TARGET = APP_READY
   ? `${site.appUrl}/start/existing`
-  : site.earlyAccessUrl || (site.contactEmail ? `mailto:${site.contactEmail}?subject=${encodeURIComponent('VentraAI early access')}` : '');
+  : site.earlyAccessUrl || (site.contactEmail ? `mailto:${site.contactEmail}?subject=${encodeURIComponent('InsertAgentic early access')}` : '');
 /** Sign in to the app; empty (hidden) until the app is live. */
 export const SIGN_IN = APP_READY ? `${site.appUrl}/start/account?mode=login` : '';
 

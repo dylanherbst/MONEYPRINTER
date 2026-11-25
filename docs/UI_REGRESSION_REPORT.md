@@ -5,7 +5,7 @@ Updated 24 November 2026. Tool: Playwright with Chrome. Sizes: mobile 390×844, 
 ## 1. Baseline copy vs live aimoneyprinter.com
 At most 0.18% of pixels differ on every screen, all from the moving cells. Layout, fonts, colours, the cells scene, logo formation and header match exactly.
 
-## 2. VentraAI rebrand vs baseline
+## 2. InsertAgentic rebrand vs baseline
 | Screen | Pixels changed | Cause |
 |---|---|---|
 | Home chapters 2–6 | 1.5–5.7% | New wording only |

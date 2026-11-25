@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { indexable, site, siteUrl } from '../../lib/aimp/site-config';
 import { InfoShell } from '../cells/info-shell';
 
-// Terms of use, privacy policy and disclaimers in one plain-English page (VentraAI, 24 Nov 2026), adapted from the
+// Terms of use, privacy policy and disclaimers in one plain-English page (InsertAgentic, 24 Nov 2026), adapted from the
 // AiMoneyPrinter policies. Not legal advice: the owner should have it reviewed by an Australian lawyer, and the legal
 // operator, ABN and contact email must be set (NEXT_PUBLIC_LEGAL_ENTITY, NEXT_PUBLIC_LEGAL_ABN, NEXT_PUBLIC_CONTACT_EMAIL)
 // before the site goes public.
