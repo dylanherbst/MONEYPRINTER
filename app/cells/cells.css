@@ -343,7 +343,10 @@
 .eco2-link.is-dim { opacity: .18; transition: opacity .3s; }
 .eco2-peer { fill: none; stroke: color-mix(in srgb, var(--cells-accent) 16%, transparent); stroke-width: 1.5; stroke-dasharray: 1; stroke-dashoffset: 1;
   transition: stroke-dashoffset 1.4s ease calc(var(--i) * 80ms + 700ms), stroke .25s, stroke-width .25s; }
-.eco2-peer.is-lit { stroke: var(--cells-accent); stroke-width: 2.5; stroke-dasharray: 4 6; stroke-dashoffset: 0; animation: eco2-flow 1.2s linear infinite; }
+.eco2-peer.is-lit { stroke: var(--cells-accent); stroke-width: 2.5; stroke-dasharray: none; animation: none; transition: stroke .2s, stroke-width .2s; }
+/* While an agent is selected, its links to the hub are solid and still (no moving dashes). */
+.eco2[data-active] .eco2-link:not(.is-dim) .eco2-link-base { stroke: var(--cells-accent); stroke-width: 2.5; stroke-dasharray: none; transition: stroke .2s, stroke-width .2s; }
+.eco2[data-active] .eco2-link .eco2-link-flow { opacity: 0 !important; transition: opacity .15s; }
 
 /* agents */
 .eco2-node { cursor: pointer; opacity: 0; transform: scale(.85); outline: none;
@@ -384,7 +387,7 @@
 @keyframes eco2-blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .eco2-aura, .eco2-ripple, .eco2-gm, .eco2-link-flow, .eco2-live, .eco2-peer.is-lit { animation: none; }
+  .eco2-aura, .eco2-ripple, .eco2-gm, .eco2-link-flow, .eco2-live { animation: none; }
   .eco2-pulse { display: none; }
   .eco2-node, .eco2-link-base, .eco2-peer { transition: none; }
 }
