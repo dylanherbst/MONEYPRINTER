@@ -15,35 +15,47 @@ export const SIGNUP_TARGET = APP_READY
 /** Sign in to the app; empty (hidden) until the app is live. */
 export const SIGN_IN = APP_READY ? `${site.appUrl}/start/account?mode=login` : '';
 
-/** The four agents and the Growth Manager. `ready: false` shows an "In development" label. */
+/** The agent team, from the InsertAgentic product overview (28 Nov 2026). `soon` shows a "Coming soon" label. */
 export const AGENTS = [
-  { title: 'Sales Agent', body: 'Lead qualification and eligible follow-ups.', ready: true },
-  { title: 'Social Media Agent', body: 'Content plans, captions and publishing.', ready: true },
-  { title: 'Marketing Agent', body: 'Competitor research, ad creatives and campaign insights.', ready: true },
-  { title: 'AI Receptionist', body: 'Call handling, lead capture and booking support.', ready: false },
-  { title: 'Growth Manager', body: 'Shared activity, approvals and performance summaries.', ready: true },
+  { title: 'Sales', body: 'Replies to new enquiries from your services and prices, qualifies the customer and offers a time.', soon: false },
+  { title: 'Job Manager', body: 'Quotes from your price list, invoices and polite payment reminders, with correct GST.', soon: false },
+  { title: 'Business Optimisation', body: 'Checks 18 measures every week and gives up to 8 fixes, each with the reason.', soon: false },
+  { title: 'Integrations', body: 'Connects Stripe, Google Calendar, Xero or a spreadsheet with the least access needed.', soon: false },
+  { title: 'Receptionist', body: 'Answers the phone as an AI assistant, takes details and books new customers.', soon: true },
+  { title: 'Socials & Marketing', body: 'Plans and drafts posts and campaigns in your own voice.', soon: true },
 ];
 
+/** What the team handles today. */
 export const ROUTES = [
-  { title: 'Get more customers', body: 'Qualify enquiries, follow up where permitted and guide prospects towards bookings or purchases.', ready: true },
-  { title: 'Stay visible online', body: 'Plan social content, create branded posts and prepare campaigns for the right audience.', ready: true },
-  { title: 'Never miss an opportunity', body: 'Answer eligible inbound calls, capture customer details and route enquiries to your team.', ready: false },
+  { title: 'Answer every enquiry', body: 'Sales drafts a reply from your real services and prices and offers a time.' },
+  { title: 'Quote and get paid', body: 'Job Manager drafts quotes, invoices and payment reminders. Customers accept quotes through a link.' },
+  { title: 'Find where you’re losing money', body: 'Business Optimisation spots overdue invoices, forgotten quotes and lapsed customers every week.' },
 ];
 
+/** How it works for the owner. */
 export const STEPS = [
-  'Connect your business and confirm your details.',
-  'Link supported socials, ad account and phone or booking tools.',
-  'Review your AI team’s growth plan and permissions.',
-  'Track activity, leads, bookings and improvements.',
+  { title: 'A customer enquires', body: 'Sales drafts the reply and offers a time.' },
+  { title: 'The job is booked', body: 'Job Manager drafts the quote from your confirmed prices. The customer accepts through a link.' },
+  { title: 'The work is done', body: 'Job Manager drafts the invoice and payment reminders. Stripe and Xero stay in sync.' },
+  { title: 'Every week', body: 'Business Optimisation finds what’s slipping and hands each fix to the right agent.' },
+  { title: 'You approve', body: 'Nothing is sent, booked or charged without your OK.' },
 ];
+
+/** Plans and the founding offer (prices in AUD). */
+export const PLANS = [
+  { title: 'Starter', price: 'A$79/month', founding: 'A$49', body: 'Sales, Job Manager and Business Optimisation.' },
+  { title: 'Growth', price: 'A$149/month', founding: 'A$99', body: 'Everything in Starter, plus Integrations. Receptionist included when it launches.' },
+];
+export const OFFER_NOTE = 'Founding price locked for 12 months for the first 25 businesses. 14-day free trial, a reminder before your first charge, cancel in two taps. Prices in AUD.';
 
 export const FAQS = [
-  { q: `Who is ${site.name} for?`, a: 'Existing solo operators and small businesses, including beauty salons, personal trainers, tradies, coaches and other service businesses.' },
-  { q: 'What do the AI agents do?', a: 'Sales handles eligible enquiries and follow-ups; Social Media creates and schedules content; Marketing prepares campaigns; Receptionist answers connected inbound calls and supports booking or handoff. The Receptionist is still in development.' },
-  { q: 'Do I need technical experience?', a: 'No coding is required. Confirm your business information, connect supported accounts and choose what your AI team is allowed to do.' },
-  { q: 'Can I use my existing accounts and phone number?', a: 'Yes, where supported. Connect your existing business socials and ad account through secure authorisation. Phone forwarding or a supported number and booking integration may be needed.' },
-  { q: 'Will AI publish content or spend money without permission?', a: 'You control approval settings and spending limits. Advertising spend and sensitive actions require the configured authorisation. Paid advertising is optional and billed separately.' },
-  { q: `Does ${site.name} guarantee sales or bookings?`, a: `No. Results depend on your business, market, offer and connected tools. ${site.name} helps you manage growth activities and track their outcomes.` },
+  { q: `Who is ${site.name} for?`, a: 'Australian sole traders and small businesses in beauty, fitness, trades, retail and professional services.' },
+  { q: 'What does it do today?', a: 'Sales replies to enquiries, Job Manager quotes, invoices and chases payments, Business Optimisation finds where you’re losing money, and Integrations connects Stripe, Google Calendar, Xero or a spreadsheet. Receptionist and Socials & Marketing are coming soon.' },
+  { q: 'Will it send anything without me?', a: 'No. Every customer message, quote and action is a draft until you approve it, and one switch pauses everything.' },
+  { q: 'Will it make up prices or numbers?', a: 'No. Prices come only from your confirmed price list. Anything it can’t measure shows “Not measured yet”.' },
+  { q: 'How much does it cost?', a: 'Starter is A$79/month and Growth is A$149/month. The first 25 businesses get A$49 or A$99, locked for 12 months. Every plan starts with a 14-day free trial.' },
+  { q: 'Do I need technical skills?', a: 'No. Answer three quick questions and you’ll see your AI team, with a sample of its work, before you pay anything.' },
+  { q: `Does ${site.name} guarantee results?`, a: `No. Results depend on your business, customers and offer. ${site.name} helps you respond faster, quote and get paid, and shows you where money is slipping.` },
 ];
 
-export const FOOTER_NOTE = `${site.name} helps existing businesses manage sales, marketing, social media and customer calls. Results are not guaranteed. Features depend on connected accounts, permissions and provider availability.`;
+export const FOOTER_NOTE = `${site.name} is an AI front-office team for Australian sole traders and small businesses. You approve everything before it goes out. Results are not guaranteed.`;

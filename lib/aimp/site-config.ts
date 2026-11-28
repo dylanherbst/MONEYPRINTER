@@ -12,8 +12,8 @@ export const site = {
   descriptor: 'your AI growth team',
   title: 'InsertAgentic | Your AI Growth Team for Small Businesses',
   description:
-    'AI sales, social media, marketing and receptionist agents working together to help your business attract and convert customers.',
-  /** Public domain, without https://, e.g. insertagentic.com. Not chosen yet. */
+    'AI agents that answer enquiries, quote, chase payments and find where your business is losing money. You approve everything before it goes out.',
+  /** Public domain, without https://. */
   domain: (clean(process.env.NEXT_PUBLIC_SITE_DOMAIN) || 'www.insertagentic.com').replace(/^https?:\/\//, ''),
   /** The InsertAgentic app (AIMONEYPRINTER-GROWTH deployment), e.g. https://app.insertagentic.com. Not deployed yet. */
   appUrl: clean(process.env.NEXT_PUBLIC_APP_URL),

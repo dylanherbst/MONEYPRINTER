@@ -4,7 +4,7 @@ import { indexable, site, siteUrl } from '../../lib/aimp/site-config';
 import { InfoShell } from '../cells/info-shell';
 
 // Terms of use, privacy policy and disclaimers in one plain-English page (InsertAgentic, 24 Nov 2026), adapted from the
-// AiMoneyPrinter policies. Not legal advice: the owner should have it reviewed by an Australian lawyer, and the legal
+// earlier policies. Not legal advice: the owner should have it reviewed by an Australian lawyer, and the legal
 // operator, ABN and contact email must be set (NEXT_PUBLIC_LEGAL_ENTITY, NEXT_PUBLIC_LEGAL_ABN, NEXT_PUBLIC_CONTACT_EMAIL)
 // before the site goes public.
 export const metadata: Metadata = {
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { themeColor: '#ffffff' };
 
-const UPDATED = '24 November 2026';
+const UPDATED = '28 November 2026';
 const L = site.legal;
 const WHO = L.entityName ? `${L.entityName}${L.abn ? ` (ABN ${L.abn})` : ''}` : `the operator of ${site.name} [business name and ABN to be added]`;
 const Mail = () => (site.contactEmail ? <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a> : <>[contact email to be added]</>);
@@ -29,7 +29,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
         <li><b>No financial advice.</b> Nothing on this site or in the app is financial, investment, legal or tax advice.</li>
         <li><b>You stay in charge.</b> You choose what your AI team may do, approve sensitive actions and set spending limits.</li>
         <li><b>It is your business.</b> You are responsible for what is said and sold in your name and for following the law.</li>
-        <li><b>Your accounts stay yours.</b> You connect them through secure authorisation and can disconnect them at any time. We never ask for your social media passwords.</li>
+        <li><b>Your accounts stay yours.</b> You connect them through secure authorisation and can disconnect them at any time. We never ask for passwords or keys in chat.</li>
       </ul>
     ),
   },
@@ -37,7 +37,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
     id: 'no-guarantee', title: 'No guarantee of results',
     body: (
       <>
-        <p>{site.name} is software that helps you manage growth activities such as replying to enquiries, social media, marketing and customer calls. We do not guarantee, promise or imply any particular number of leads, bookings, sales or amount of revenue, or any improvement at all.</p>
+        <p>{site.name} is software that helps you reply to enquiries, quote, invoice, chase payments and find where your business may be losing money. We do not guarantee, promise or imply any particular number of leads, bookings, sales or amount of revenue, or any improvement at all.</p>
         <p>Results depend on many things outside our control, including your market, your offer and prices, competition, the platforms you connect, their rules and the wider economy. Figures that advertising and social platforms report (such as reach, clicks or conversions) are their estimates and are not confirmed sales.</p>
       </>
     ),
@@ -56,7 +56,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
     id: 'ai', title: 'AI agents and AI-generated content',
     body: (
       <>
-        <p>{site.name} uses artificial intelligence to draft and send messages, plan and write posts, prepare campaigns, summarise activity and, where enabled, answer calls. AI can be wrong, out of date or incomplete, and can misunderstand a customer.</p>
+        <p>{site.name} uses artificial intelligence to draft replies, quotes, invoices and reminders, suggest improvements and, as features launch, posts and phone answering. AI can be wrong, out of date or incomplete, and can misunderstand a customer.</p>
         <p>You decide which actions run automatically and which need your approval. You are responsible for checking the business information your AI team uses (such as services, prices and hours) and for reviewing content before you approve it. Your AI team must not be used to give medical, legal or financial advice to your customers.</p>
       </>
     ),
@@ -75,15 +75,15 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
     id: 'connections', title: 'Connected accounts',
     body: (
       <>
-        <p>You connect accounts such as Instagram, Facebook, Meta Ads, a phone number, a calendar or an email sender through each provider&apos;s own authorisation screen. We store the access they grant securely, use it only for the tasks you allow, and stop using it as soon as you disconnect or the provider revokes it.</p>
+        <p>You connect accounts such as Stripe, Google Calendar, Xero or a spreadsheet (and, as features launch, social media and a phone number) through each provider&apos;s own authorisation screen or upload. We ask for the least access needed. We store the access they grant securely, use it only for the tasks you allow, and stop using it as soon as you disconnect or the provider revokes it.</p>
         <p>Each provider&apos;s terms and policies apply, and providers can limit, review or withdraw access. Some features depend on provider approval and may not be available in your region or account.</p>
       </>
     ),
   },
   {
-    id: 'advertising', title: 'Advertising and spending',
+    id: 'advertising', title: 'Payments and spending',
     body: (
-      <p>Paid advertising is optional. Ad spend is charged by the advertising platform (for example Meta) to your own payment method, separately from your {site.name} subscription. Campaigns are created paused and only start after your approval, within the spending limits you set. You are responsible for your ad accounts and for complying with advertising policies.</p>
+      <p>{site.name} never takes payments from your customers or holds your money. Customers pay you through your own payment provider, and nothing is shown as paid without a record. Any future advertising features will be optional, billed by the advertising platform to you, and start only after your approval within limits you set.</p>
     ),
   },
   {
@@ -96,7 +96,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
     id: 'payments', title: 'Subscriptions and refunds',
     body: (
       <>
-        <p>If you choose a paid {site.name} plan, the price, what it includes and how often you are charged are shown before you pay. Payments are processed by Stripe. Subscriptions renew automatically until you cancel; you can cancel at any time and keep access until the end of the period you have paid for.</p>
+        <p>Plans are priced in AUD and start with a 14-day free trial. We remind you before your first charge. The price, what it includes and how often you are charged are shown before you pay. Payments are processed by Stripe. Subscriptions renew automatically until you cancel; you can cancel at any time and keep access until the end of the period you have paid for.</p>
         <p>Paid plans are not refundable for change of mind or unused time, except where the law requires it. Nothing in these terms excludes, restricts or changes your rights under the Australian Consumer Law, including remedies for a major failure of our service.</p>
       </>
     ),

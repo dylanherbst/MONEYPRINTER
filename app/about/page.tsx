@@ -4,17 +4,18 @@ import { InfoShell } from '../cells/info-shell';
 
 export const metadata: Metadata = {
   title: `About us · ${site.name}`,
-  description: `${site.name} brings sales, social media, marketing and reception into one coordinated AI team for small business owners.`,
+  description: `${site.name} gives Australian sole traders and small businesses an AI front-office team. You stay in control of every message, quote and charge.`,
   alternates: siteUrl() ? { canonical: siteUrl('/about') } : undefined,
   robots: indexable ? undefined : { index: false, follow: false },
 };
 export const viewport: Viewport = { themeColor: '#ffffff' };
 
+// "Why owners trust it", from the InsertAgentic product overview (28 Nov 2026).
 const PRINCIPLES = [
-  { title: 'Start with your customers', body: 'Understand what they need.' },
-  { title: 'Make every activity count', body: 'Focus on measurable opportunities.' },
-  { title: 'You stay in charge', body: 'Approve sensitive actions and set limits.' },
-  { title: 'Be transparent', body: 'Report actual activity and results without promising revenue.' },
+  { title: 'You stay in control', body: 'Every customer message is a draft until you approve it. One switch pauses everything.' },
+  { title: 'It never makes things up', body: 'Prices come only from your confirmed price list. Unknown numbers show “Not measured yet”.' },
+  { title: 'Built for Australia', body: 'AUD, correct GST and Spam Act consent rules.' },
+  { title: 'Honest by design', body: 'Nothing shows as sent, paid or connected without a record to prove it.' },
 ];
 
 export default function AboutPage() {
@@ -22,16 +23,15 @@ export default function AboutPage() {
     <InfoShell closing="Your business deserves a team behind it." current="/about">
       <section className="cells-sec cells-intro" data-chapter="" aria-labelledby="about-h1">
         <p className="cells-label">About us</p>
-        <h1 id="about-h1">We help small businesses grow without a full-time marketing and sales team.</h1>
+        <h1 id="about-h1">A front-office team for businesses that can’t afford one.</h1>
         <p className="cells-body">
-          {site.name} brings sales, social media, marketing and reception into one coordinated AI team, designed for owners
-          who want to spend more time serving customers.
+          {site.name} gives Australian sole traders and small businesses AI agents that answer enquiries, quote, chase
+          payments and find where money is slipping, so you can get back to the work only you can do.
         </p>
       </section>
-
       <section className="cells-sec" data-chapter="" aria-labelledby="about-h-believe">
-        <p className="cells-label">Our principles</p>
-        <h2 id="about-h-believe">How we work for you.</h2>
+        <p className="cells-label">Why owners trust it</p>
+        <h2 id="about-h-believe">Your business, your call.</h2>
         <ul className="cells-cards cells-cards-2">
           {PRINCIPLES.map((b) => (
             <li key={b.title} className="cells-card"><b>{b.title}</b><span>{b.body}</span></li>

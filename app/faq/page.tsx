@@ -5,7 +5,7 @@ import { FAQS } from '../cells/content';
 
 export const metadata: Metadata = {
   title: `FAQs · ${site.name}`,
-  description: `Answers about ${site.name}: who it is for, what the AI agents do, approvals and spending, and why results are not guaranteed.`,
+  description: `Answers about ${site.name}: who it is for, what it does today, approvals, pricing and the free trial.`,
   alternates: siteUrl() ? { canonical: siteUrl('/faq') } : undefined,
   robots: indexable ? undefined : { index: false, follow: false },
 };
