@@ -29,7 +29,7 @@ export function EarlyAccessForm() {
   }
 
   if (state === 'done') {
-    return <p className="cells-ea-done" role="status">You&apos;re on the list. We&apos;ll email you when your spot opens.</p>;
+    return <p className="cells-ea-done" role="status">You&apos;re on the founders list. We&apos;ll email you when your spot opens.</p>;
   }
 
   return (
@@ -41,7 +41,7 @@ export function EarlyAccessForm() {
           placeholder="you@yourbusiness.com.au" aria-describedby="ea-error"
           aria-invalid={state === 'error' || undefined}
         />
-        <button type="submit" aria-label="Join the early access list" disabled={state === 'sending'}>
+        <button type="submit" aria-label="Join the founders list" disabled={state === 'sending'}>
           <span aria-hidden="true">{state === 'sending' ? '…' : '→'}</span>
         </button>
       </div>
