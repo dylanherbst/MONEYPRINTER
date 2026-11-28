@@ -8,6 +8,7 @@ export const HOME_HREF = '/';
 export const NAV = [
   { href: HOME_HREF, label: 'Home' },
   { href: '/how-it-works', label: 'How it works' },
+  { href: '/ecosystem', label: 'Ecosystem' },
   { href: '/faq', label: 'FAQs' },
   { href: '/about', label: 'About us' },
 ];

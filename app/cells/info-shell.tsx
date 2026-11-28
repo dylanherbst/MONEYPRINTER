@@ -23,7 +23,7 @@ export function InfoShell({ children, closing, current }: { children: ReactNode;
           </section>
         )}
         <footer className="cells-foot">
-          <p><a href="/">{site.name}</a>: {site.descriptor} · <a href="/how-it-works">How it works</a> · <a href="/faq">FAQs</a> · <a href="/about">About us</a> · <a href="/policies">Policies</a></p>
+          <p><a href="/">{site.name}</a>: {site.descriptor} · <a href="/how-it-works">How it works</a> · <a href="/ecosystem">Ecosystem</a> · <a href="/faq">FAQs</a> · <a href="/about">About us</a> · <a href="/policies">Policies</a></p>
           <p>{FOOTER_NOTE}</p>
         </footer>
       </main>

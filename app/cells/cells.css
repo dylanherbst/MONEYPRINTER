@@ -307,3 +307,38 @@
 .cells-ea-error:empty { visibility: hidden; }
 .cells-ea-hp { position: absolute; left: -10000px; width: 1px; height: 1px; opacity: 0; }
 .cells-ea-done { font-size: 1.1rem; font-weight: 600; color: var(--cells-ink); margin: 6px 0 0; }
+
+/* Ecosystem page: hub diagram on wider screens, a simple stack on phones. */
+.eco-figure { margin: 8px 0 0; display: none; }
+.eco-svg { width: 100%; height: auto; display: block; }
+.eco-link { stroke: color-mix(in srgb, var(--cells-accent) 45%, transparent); stroke-width: 2; }
+.eco-link-soon { stroke-dasharray: 6 7; }
+.eco-ring { fill: none; stroke: color-mix(in srgb, var(--cells-accent) 55%, transparent); stroke-width: 2; stroke-dasharray: 3 7; }
+.eco-ring-label { font: 600 15px var(--cells-head); fill: var(--cells-accent); }
+.eco-ring-sub { font: 500 13px var(--cells-font); fill: var(--cells-accent); }
+.eco-hub { fill: color-mix(in srgb, var(--cells-accent) 10%, #fff); stroke: color-mix(in srgb, var(--cells-accent) 35%, transparent); stroke-width: 1.5; }
+.eco-hub-title { font: 600 24px var(--cells-head); fill: var(--cells-ink); letter-spacing: -0.02em; }
+.eco-hub-sub { font: 500 14px var(--cells-font); fill: var(--cells-ink-2); }
+.eco-node { fill: #fff; stroke: var(--cells-line); stroke-width: 1.5; filter: drop-shadow(0 6px 14px rgb(46 26 84 / .10)); }
+.eco-node-soon { fill: color-mix(in srgb, #fff 80%, transparent); stroke-dasharray: 5 5; stroke: color-mix(in srgb, var(--cells-ink) 30%, transparent); }
+.eco-node-name { font: 600 16px var(--cells-head); fill: var(--cells-ink); }
+.eco-node-soon-label { font: 600 11px var(--cells-font); fill: #8a6d00; }
+.eco-figure figcaption { margin-top: 10px; text-align: center; }
+.eco-stack { display: grid; gap: 10px; margin-top: 10px; }
+.eco-stack-hub { display: grid; gap: 4px; padding: 18px; border-radius: 20px; text-align: center;
+  background: color-mix(in srgb, var(--cells-accent) 10%, #fff); border: 1px solid color-mix(in srgb, var(--cells-accent) 30%, transparent); }
+.eco-stack-hub b { font-family: var(--cells-head); font-size: 1.3rem; font-weight: 600; }
+.eco-stack-hub span { font-size: .95rem; color: var(--cells-ink-2); }
+.eco-stack-ring { text-align: center; font-size: .92rem; font-weight: 600; color: var(--cells-accent); }
+.eco-stack ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.eco-stack li { display: grid; gap: 2px; padding: 12px; border-radius: 16px; border: 1px solid var(--cells-line); background: #fff;
+  font-family: var(--cells-head); font-weight: 600; font-size: .98rem; text-align: center; }
+.eco-stack li.is-soon { border-style: dashed; background: color-mix(in srgb, #fff 80%, transparent); }
+.eco-stack li em { font-style: normal; font-family: var(--cells-font); font-size: .72rem; color: #8a6d00; }
+.eco-with { font-size: .9rem !important; color: var(--cells-accent) !important; font-weight: 600; }
+.eco-chips { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.eco-chips li { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--cells-line); background: #fff; font-size: .95rem; font-weight: 600; }
+@media (min-width: 720px) {
+  .eco-figure { display: block; }
+  .eco-stack { display: none; }
+}
