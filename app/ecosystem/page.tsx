@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { indexable, site, siteUrl } from '../../lib/aimp/site-config';
 import { InfoShell } from '../cells/info-shell';
 import { EcosystemDiagram } from './ecosystem-diagram';
+import { SharedRecords } from './shared-records';
 
 // The ecosystem: every agent, what it does, who it hands work to, and how it all sits on the client's own business
 // data. Source: InsertAgentic product overview (28 Nov 2026).
@@ -35,7 +36,8 @@ const FLOWS = [
 
 const BUSINESS = ['Services and prices', 'Customers', 'Jobs and bookings', 'Quotes and invoices', 'Calendar', 'Payment records'];
 
-const TAG: Record<Status, string | null> = { live: null, soon: null, behind: 'Behind the scenes' };
+// Availability is always labelled: Receptionist and Socials & Marketing are not live yet.
+const TAG: Record<Status, string | null> = { live: null, soon: 'Coming soon', behind: 'Behind the scenes' };
 
 export default function EcosystemPage() {
   return (
@@ -56,7 +58,7 @@ export default function EcosystemPage() {
         <p className="cells-label">How work moves</p>
         <h2 id="eco-h-flows">From first enquiry to money in the bank.</h2>
         <ol className="cells-check">
-          {FLOWS.map((f) => <li key={f.title}><span><b>{f.title}.</b> {f.body}</span></li>)}
+          {FLOWS.map((f, i) => <li key={f.title} data-reveal style={{ ['--ri' as string]: i }}><span><b>{f.title}.</b> {f.body}</span></li>)}
         </ol>
       </section>
 
@@ -64,8 +66,8 @@ export default function EcosystemPage() {
         <p className="cells-label">The team</p>
         <h2 id="eco-h-team">Who does what, and who they work with.</h2>
         <ul className="cells-cards cells-cards-3">
-          {AGENTS.map((a) => (
-            <li key={a.name} className="cells-card">
+          {AGENTS.map((a, i) => (
+            <li key={a.name} className={`cells-card${a.status === 'soon' ? ' is-soon' : ''}`} data-reveal style={{ ['--ri' as string]: i % 3 }}>
               <b>{a.name}</b>
               {TAG[a.status] && <em className="cells-tag">{TAG[a.status]}</em>}
               <span>{a.does}</span>
@@ -79,9 +81,7 @@ export default function EcosystemPage() {
         <p className="cells-label">Your business</p>
         <h2 id="eco-h-data">One source of truth.</h2>
         <p className="cells-body">Every agent uses the same facts you’ve confirmed, so prices are never made up and anything not measured shows “Not measured yet”.</p>
-        <ul className="eco-chips">
-          {BUSINESS.map((b) => <li key={b}>{b}</li>)}
-        </ul>
+        <SharedRecords items={BUSINESS} />
       </section>
     </InfoShell>
   );

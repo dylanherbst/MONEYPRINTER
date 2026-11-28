@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { indexable, site, siteUrl } from '../../lib/aimp/site-config';
 import { InfoShell } from '../cells/info-shell';
+import { ApprovalDemo } from './approval-demo';
 
 export const metadata: Metadata = {
   title: `About us · ${site.name}`,
@@ -33,10 +34,11 @@ export default function AboutPage() {
         <p className="cells-label">Why owners trust it</p>
         <h2 id="about-h-believe">Your business, your call.</h2>
         <ul className="cells-cards cells-cards-2">
-          {PRINCIPLES.map((b) => (
-            <li key={b.title} className="cells-card"><b>{b.title}</b><span>{b.body}</span></li>
+          {PRINCIPLES.map((b, i) => (
+            <li key={b.title} className="cells-card" data-reveal style={{ ['--ri' as string]: i }}><b>{b.title}</b><span>{b.body}</span></li>
           ))}
         </ul>
+        <ApprovalDemo />
       </section>
     </InfoShell>
   );

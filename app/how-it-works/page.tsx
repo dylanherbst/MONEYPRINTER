@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { indexable, site, siteUrl } from '../../lib/aimp/site-config';
 import { InfoShell } from '../cells/info-shell';
 import { AGENTS, OFFER_NOTE, PLANS, ROUTES, SIGNUP, STEPS } from '../cells/content';
+import { WorkflowTimeline } from './workflow-timeline';
 
 export const metadata: Metadata = {
   title: `How it works · ${site.name}`,
@@ -41,9 +42,8 @@ export default function HowItWorksPage() {
       <section className="cells-sec" data-chapter="" aria-labelledby="cells-h-steps">
         <p className="cells-label">From enquiry to paid</p>
         <h2 id="cells-h-steps">Five steps. You approve every one.</h2>
-        <ol className="cells-check">
-          {STEPS.map((s) => <li key={s.title}><span><b>{s.title}.</b> {s.body}</span></li>)}
-        </ol>
+        {/* C03 workflow timeline (same five steps and wording). */}
+        <WorkflowTimeline steps={STEPS} />
       </section>
 
       <section className="cells-sec" data-chapter="" id="what-you-get" aria-labelledby="cells-h-output">
@@ -61,7 +61,7 @@ export default function HowItWorksPage() {
         <h2 id="cells-h-pricing">Founding price for the first 25 businesses.</h2>
         <ul className="cells-cards cells-cards-2">
           {PLANS.map((p) => (
-            <li key={p.title} className="cells-card">
+            <li key={p.title} className="cells-card" data-c05>
               <b>{p.title}: {p.founding}/month</b>
               <span>Then {p.price}. {p.body}</span>
             </li>

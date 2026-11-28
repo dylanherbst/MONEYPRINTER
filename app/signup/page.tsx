@@ -5,6 +5,7 @@ import { APP_READY, CTA, SIGNUP_TARGET } from '../cells/content';
 import { EarlyAccessForm } from './early-access-form';
 import { SiteHeader } from '../cells/site-header';
 import { CellsStage } from '../cells/cells-stage';
+import { MotionBoot } from '../cells/motion/motion-boot';
 import '../cells/cells.css';
 
 // The sign-up page: one line, one button. It opens the app's existing-business onboarding once the app is live, and
@@ -22,6 +23,7 @@ export default function SignupPage() {
     <div className={`cells cells-plain cells-signup ${fontVars}`} data-tone="light">
       <CellsStage tuneByDefault={false} />
       <SiteHeader solid />
+      <MotionBoot />
       <main className="cells-signup-main" data-chapter="signup">
         <h1>Get your Agentic AI team</h1>
         <section className="cells-close" aria-labelledby="signup-line">

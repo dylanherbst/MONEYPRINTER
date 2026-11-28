@@ -4,6 +4,7 @@ import { fontVars } from '../plant-lab/fonts';
 import { CTA, FOOTER_NOTE, SIGNUP } from './content';
 import { SiteHeader } from './site-header';
 import { CellsStage } from './cells-stage';
+import { MotionBoot } from './motion/motion-boot';
 import './cells.css';
 
 /** Page in the home page's look, with the same scroll-driven cells behind it: How it works, FAQs, About us. */
@@ -13,6 +14,7 @@ export function InfoShell({ children, closing, current }: { children: ReactNode;
       {/* Same moving cells and wave background as the home page; each section below is one step of the scroll. */}
       <CellsStage tuneByDefault={false} />
       <SiteHeader solid current={current} />
+      <MotionBoot />
       <main className="cells-info">
         {children}
         {closing && (

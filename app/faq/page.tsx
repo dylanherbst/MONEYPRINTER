@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { indexable, site, siteUrl } from '../../lib/aimp/site-config';
 import { InfoShell } from '../cells/info-shell';
 import { FAQS } from '../cells/content';
+import { FaqAccordion } from './faq-accordion';
 
 export const metadata: Metadata = {
   title: `FAQs · ${site.name}`,
@@ -17,14 +18,8 @@ export default function FaqPage() {
       <section className="cells-sec cells-intro" data-chapter="" aria-labelledby="faq-h1">
         <p className="cells-label">FAQs</p>
         <h1 id="faq-h1">Before you start</h1>
-        <div className="cells-faq">
-          {FAQS.map((f) => (
-            <details key={f.q}>
-              <summary>{f.q}</summary>
-              <p>{f.a}</p>
-            </details>
-          ))}
-        </div>
+        {/* C07 accordion on native <details> (works without JavaScript). */}
+        <FaqAccordion items={FAQS} />
       </section>
     </InfoShell>
   );
