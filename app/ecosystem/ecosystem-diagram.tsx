@@ -1,12 +1,25 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
+import { useInsertMotion } from '../../lib/motion/useInsertMotion';
+import { prefersReducedMotion, supportsWaapi } from '../../lib/motion/core';
+import { belowViewport, runMotion } from '../../lib/motion/run';
+import { AgentSignature } from './agent-signature';
 
 // Animated, interactive ecosystem map. Pure SVG + CSS (no extra libraries):
 // - the hub glows and ripples, the Growth Manager ring turns, data pulses travel both ways along every live link;
 // - links draw in when the diagram scrolls into view;
 // - hovering, focusing or tapping an agent lights up the agents it works with and shows what it does.
 // Everything calms down under prefers-reduced-motion.
+//
+// Motion presets (lib/motion, docs/motion/MOTION_LIBRARY.md):
+// - B10 network activation the first time the map scrolls into view (hub, Growth Manager ring, then each agent);
+// - B01 lift for the selected agent (flat SVG version: a short rise and shadow, no tilt);
+// - C02 connector routing on selection: one path draws from the agent to your business and one token arrives;
+// - one signature per agent inside the info card, on interaction only, one agent at a time:
+//   Sales B04, Job Manager B07, Business Optimisation B11, Integrations C02, Growth Manager B10,
+//   Receptionist B05 (coming soon), Socials & Marketing B09 (coming soon).
+// Receptionist and Socials & Marketing are labelled "Coming soon" on the map (dashed, muted, no live dot).
 
 type Status = 'live' | 'soon';
 type Agent = { id: string; name: string; status: Status; does: string; with: string[]; icon: ReactNode };
@@ -14,10 +27,10 @@ type Agent = { id: string; name: string; status: Status; does: string; with: str
 type Layout = { w: number; h: number; cx: number; cy: number; hubR: number; ringR: number; font: number; pos: Record<string, [number, number, number]> };
 // [x, y, pill width] per agent, for wide screens and for phones.
 const WIDE: Layout = { w: 760, h: 560, cx: 380, cy: 280, hubR: 104, ringR: 150, font: 16, pos: {
-  sales: [380, 66, 208], jobs: [646, 172, 208], integrations: [646, 388, 208], optimise: [380, 494, 236], socials: [114, 388, 208], receptionist: [114, 172, 208] } };
+  sales: [380, 66, 208], jobs: [646, 172, 208], integrations: [646, 388, 208], optimise: [380, 494, 236], socials: [114, 388, 208], receptionist: [114, 172, 208], growth: [614, 280, 168] } };
 // Phones: the hub on top, agents in one column below, joined by curves down the left.
 const TALL: Layout = { w: 340, h: 790, cx: 170, cy: 132, hubR: 92, ringR: 118, font: 15, pos: {
-  sales: [170, 346, 300], jobs: [170, 420, 300], integrations: [170, 494, 300], optimise: [170, 568, 300], receptionist: [170, 652, 300], socials: [170, 726, 300] } };
+  sales: [170, 346, 300], jobs: [170, 420, 300], integrations: [170, 494, 300], optimise: [170, 568, 300], receptionist: [170, 652, 300], socials: [170, 726, 300], growth: [170, 273, 200] } };
 
 const I = { // 24px line icons, drawn around (0,0)
   sales: <path d="M-9-7h18a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H-2l-6 5v-5h-1a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z" />,
@@ -36,13 +49,19 @@ const AGENTS: Agent[] = [
   { id: 'socials', name: 'Socials & Marketing', status: 'soon', icon: I.socials, does: 'Plans and drafts posts and campaigns in your own voice. The enquiries they bring go straight to Sales.', with: ['sales', 'optimise'] },
   { id: 'receptionist', name: 'Receptionist', status: 'soon', icon: I.receptionist, does: 'Answers the phone as an AI assistant, takes details and books new customers into your calendar.', with: ['sales', 'integrations'] },
 ];
-const BY_ID = Object.fromEntries(AGENTS.map((a) => [a.id, a]));
+const GROWTH: Agent = { id: 'growth', name: 'Growth Manager', status: 'live', icon: null, does: 'Works behind the scenes: coordinates the team so no two agents give conflicting advice about the same customer or job.', with: ['sales', 'jobs', 'integrations', 'optimise', 'receptionist', 'socials'] };
+const BY_ID: Record<string, Agent> = Object.fromEntries([...AGENTS, GROWTH].map((a) => [a.id, a]));
 
 // Agent-to-agent hand-offs, drawn as arcs bowed away from the hub.
 const PEERS: [string, string][] = [
   ['sales', 'jobs'], ['jobs', 'integrations'], ['integrations', 'optimise'], ['jobs', 'optimise'],
   ['receptionist', 'sales'], ['socials', 'sales'], ['socials', 'optimise'],
 ];
+function linkPath(L: Layout, id: string, tall: boolean) {
+  const [x, y, pw] = L.pos[id];
+  const ex = x - pw / 2 + 27;
+  return tall ? `M${L.cx} ${L.cy} C${L.cx - 150} ${L.cy + 70} ${ex - 34} ${y - 70} ${ex} ${y}` : `M${L.cx} ${L.cy} L${x} ${y}`;
+}
 function arc(L: Layout, a: string, b: string) {
   const [ax, ay] = L.pos[a];
   const [bx, by] = L.pos[b];
@@ -79,7 +98,32 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
     return () => io.disconnect();
   }, []);
 
-  const lit = (id: string) => !active || id === active || BY_ID[active].with.includes(id);
+  // B10: assemble the network the first time it comes into view. Only armed when the map starts below the screen,
+  // so it is never hidden and shown again; otherwise (and with reduced motion) it is simply there.
+  const hubRef = useRef<SVGGElement>(null);
+  const ringRef = useRef<SVGGElement>(null);
+  const nodeRefs = useRef<(SVGGElement | null)[]>([]);
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (!prefersReducedMotion() && supportsWaapi() && belowViewport(ref.current)) setArmed(true);
+  }, []);
+  const assemble = useInsertMotion('B10', () => (armed && hubRef.current ? {
+    focus: hubRef.current as unknown as HTMLElement, beam: ringRef.current as unknown as HTMLElement,
+    nodes: nodeRefs.current.filter(Boolean) as unknown as HTMLElement[],
+  } : null), { targetsKey: `${armed}-${tall}`, params: { nodeStagger: 260 } });
+  const { play: playAssemble } = assemble;
+  useEffect(() => { if (armed && inView) playAssemble(); }, [armed, inView, playAssemble]);
+
+  // C02: when an agent is selected, one path draws from it to your business and one token arrives at the hub.
+  const routeRef = useRef<SVGPathElement>(null);
+  const tokenRef = useRef<SVGCircleElement>(null);
+  const arriveRef = useRef<SVGCircleElement>(null);
+  useLayoutEffect(() => {
+    if (!active || active === 'growth' || !routeRef.current) return;
+    return runMotion('C02', { beam: routeRef.current as unknown as HTMLElement, focus: tokenRef.current as unknown as HTMLElement, overlay: arriveRef.current as unknown as HTMLElement }, { params: { reverse: true } });
+  }, [active, tall]);
+
+  const lit = (id: string) => !active || active === 'growth' || id === active || BY_ID[active].with.includes(id);
   const peerLit = (a: string, b: string) => active !== null && ((a === active && BY_ID[active].with.includes(b)) || (b === active && BY_ID[active].with.includes(a)));
   const current = active ? BY_ID[active] : null;
   const onKey = (id: string) => (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActive((v) => (v === id ? null : id)); } };
@@ -125,11 +169,7 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
 
         {/* hub-to-agent links with travelling data pulses */}
         {AGENTS.map((a, i) => {
-          const [x, y, pw] = L.pos[a.id];
-          const ex = x - pw / 2 + 27;
-          const d = tall
-            ? `M${CX} ${CY} C${CX - 150} ${CY + 70} ${ex - 34} ${y - 70} ${ex} ${y}`
-            : `M${CX} ${CY} L${x} ${y}`;
+          const d = linkPath(L, a.id, tall);
           return (
             <g key={`l-${a.id}`} className={`eco2-link${lit(a.id) ? '' : ' is-dim'}`} style={{ ['--i' as string]: i }}>
               <path d={d} pathLength={1} className="eco2-link-base" />
@@ -149,10 +189,27 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
         })}
 
         {/* Growth Manager: a slowly turning ring with an orbiting spark */}
+        <g className="eco2-in" ref={ringRef}>
         <g className="eco2-gm" style={{ transformOrigin: `${CX}px ${CY}px` }}>
           <circle cx={CX} cy={CY} r={ringR} className="eco2-ring" stroke="url(#eco2-ring)" />
           <circle cx={CX} cy={CY - ringR} r="5" className="eco2-orbit" filter="url(#eco2-glow)" />
         </g>
+        </g>
+
+        {/* C02 route for the selected agent (drawn over its solid link) */}
+        {active && active !== 'growth' && (
+          <g className="eco2-route-g" key={`r-${active}`}>
+            <path ref={routeRef} d={linkPath(L, active, tall)} className="eco2-route" />
+            <circle ref={arriveRef} cx={CX} cy={CY} r={hubR + 6} className="eco2-arrive" />
+            <circle ref={tokenRef} cx={0} cy={0} r="6" className="eco2-token" filter="url(#eco2-glow)" />
+          </g>
+        )}
+        {/* Growth Manager works behind the scenes; selectable like the agents (signature: B10). */}
+        <g className={`eco2-gm-btn${active === 'growth' ? ' is-active' : ''}`} role="button" tabIndex={0} aria-pressed={active === 'growth'}
+          aria-label={`Growth Manager, behind the scenes. ${GROWTH.does}`}
+          onMouseEnter={() => setActive('growth')} onMouseLeave={() => setActive(null)}
+          onFocus={() => setActive('growth')} onBlur={() => setActive(null)}
+          onClick={() => setActive('growth')} onKeyDown={onKey('growth')}>
         {tall ? (
           <g className="eco2-gm-label">
             <rect x={CX - 100} y={CY + ringR + 12} width="200" height="46" rx="14" className="eco2-gm-chip" />
@@ -166,9 +223,10 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
             <text x={CX + ringR + 20} y={CY + 14} className="eco2-gm-sub">keeps everyone in sync</text>
           </g>
         )}
+        </g>
 
         {/* hub */}
-        <g className="eco2-hub">
+        <g className="eco2-hub eco2-in" ref={hubRef}>
           <circle cx={CX} cy={CY} r={hubR} fill="url(#eco2-hub)" className="eco2-hub-disc" filter="url(#eco2-shadow)" />
           <image href="/brand/logo.webp" x={CX - 18} y={CY - hubR + 24} width="36" height="36" />
           <text x={CX} y={CY - 6} className="eco2-hub-title" textAnchor="middle">Your business</text>
@@ -181,18 +239,27 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
           const [x, y, pw] = L.pos[a.id];
           const left = x - pw / 2;
           return (
-          <g key={a.id} className={`eco2-node${lit(a.id) ? '' : ' is-dim'}${active === a.id ? ' is-active' : ''}`}
+          <g key={a.id} className={`eco2-node${a.status === 'soon' ? ' is-soon' : ''}${lit(a.id) ? '' : ' is-dim'}${active === a.id ? ' is-active' : ''}`}
             style={{ ['--i' as string]: i, transformOrigin: `${x}px ${y}px` }}
             role="button" tabIndex={0} aria-pressed={active === a.id}
-            aria-label={`${a.name}. ${a.does}`}
+            aria-label={`${a.name}${a.status === 'soon' ? ', coming soon' : ''}. ${a.does}`}
             onMouseEnter={() => setActive(a.id)} onMouseLeave={() => setActive(null)}
             onFocus={() => setActive(a.id)} onBlur={() => setActive(null)}
             onClick={() => setActive(a.id)} onKeyDown={onKey(a.id)}>
+            <g className="eco2-in" ref={(el) => { nodeRefs.current[i] = el; }}>
+            <g className="eco2-lift">
             <rect x={left} y={y - 29} width={pw} height="58" rx="29" className="eco2-pill" filter="url(#eco2-shadow)" />
             <circle cx={left + 27} cy={y} r="17" className="eco2-icon-bg" />
             <g transform={`translate(${left + 27} ${y}) scale(0.72)`} className="eco2-icon">{a.icon}</g>
-            <text x={left + 52} y={y + 5} className="eco2-name">{a.name}</text>
+            {a.status === 'soon' ? (
+              <>
+                <text x={left + 52} y={y - 2} className="eco2-name">{a.name}</text>
+                <text x={left + 52} y={y + 15} className="eco2-soon">Coming soon</text>
+              </>
+            ) : <text x={left + 52} y={y + 5} className="eco2-name">{a.name}</text>}
             {a.status === 'live' && <circle cx={left + pw - 18} cy={y - 13} r="4" className="eco2-live" />}
+            </g>
+            </g>
           </g>
           );
         })}
@@ -217,7 +284,8 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
         else style.top = `${((y + 36) / L.h) * 100}%`;
         return (
           <div className="eco2-card" style={style} role="status" key={current.id}>
-            <p className="eco2-card-name">{current.name}</p>
+            <p className="eco2-card-name">{current.name}{current.status === 'soon' && <em className="cells-tag eco2-card-tag">Coming soon</em>}{current.id === 'growth' && <em className="cells-tag eco2-card-tag">Behind the scenes</em>}</p>
+            <AgentSignature id={current.id} />
             <p className="eco2-card-does">{current.does}</p>
             <p className="eco2-card-with">Works with: {current.with.map((id) => BY_ID[id].name).join(', ')}</p>
           </div>

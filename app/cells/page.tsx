@@ -5,6 +5,12 @@ import { CellsStage } from './cells-stage';
 import { CTA, SIGNUP } from './content';
 import { EcosystemDiagram } from '../ecosystem/ecosystem-diagram';
 import { SiteHeader } from './site-header';
+import { HeroProduct } from './motion/hero-product';
+import { Benefits } from './motion/benefits';
+import { StepPanel } from './motion/step-panel';
+import { EnquiryJourney } from './motion/enquiry-journey';
+import { FinalGlow } from './motion/final-glow';
+import { MotionBoot } from './motion/motion-boot';
 import './cells.css';
 
 // The public home page: the InsertAgentic story told with a cloud of cells that morphs as you scroll (served at /).
@@ -30,6 +36,7 @@ export default function CellsPage() {
       <CellsStage tuneByDefault={TUNE_BY_DEFAULT} />
 
       <SiteHeader current="/" />
+      <MotionBoot />
 
       <main>
         <section className="cells-ch cells-ch-hero" data-chapter="field" aria-labelledby="cells-h1">
@@ -42,13 +49,12 @@ export default function CellsPage() {
               <a className="cells-link" href="#how">See how it works</a>
             </div>
           </div>
-          <div className="cells-points" aria-labelledby="cells-points-h">
+          {/* Illustrative product view: A09 once on first view (static on phones and with reduced motion). */}
+          <HeroProduct />
+          <div className="cells-points" aria-labelledby="cells-points-h" data-c05>
             <p className="cells-label" id="cells-points-h">A smarter way to grow your business</p>
-            <ul>
-              <li><b>7 AI agents</b><span>Sales, Job Manager, Business Optimisation, Integrations and more, working as one team.</span></li>
-              <li><b>1 platform</b><span>Your prices, jobs, quotes and approvals in one place.</span></li>
-              <li><b>Less admin</b><span>Your AI team drafts the work and you approve it, so you spend more time with customers.</span></li>
-            </ul>
+            {/* Same three points; B08 (the published 7), A04 and B02 illustrations play once on view. */}
+            <Benefits />
             <p className="cells-source">Receptionist and Socials &amp; Marketing are coming soon. You approve everything before it goes out. Results are not guaranteed.</p>
           </div>
         </section>
@@ -60,7 +66,7 @@ export default function CellsPage() {
             <p className="cells-label">Your AI team</p>
             <h2 id="cells-h-eco">Seven AI employees. One connected team.</h2>
           </div>
-          <div className="cells-eco-map">
+          <div className="cells-eco-map" data-c05>
             <EcosystemDiagram siteName={site.name} />
           </div>
           <a className="cells-link" href="/ecosystem">See the full ecosystem</a>
@@ -70,6 +76,7 @@ export default function CellsPage() {
             <p className="cells-label">Step 1 of 3 · Understand</p>
             <p className="cells-big">1</p>
             <p>business profile: answer three quick questions and confirm your services and prices.</p>
+            <StepPanel stage="setup" />
           </div>
         </section>
 
@@ -78,6 +85,7 @@ export default function CellsPage() {
             <p className="cells-label">Step 2 of 3 · Activate</p>
             <p className="cells-big">7</p>
             <p>AI agents, one team: Sales, Job Manager, Business Optimisation and Integrations today, with Receptionist and Socials &amp; Marketing coming soon.</p>
+            <StepPanel stage="team" />
           </div>
         </section>
 
@@ -86,6 +94,7 @@ export default function CellsPage() {
             <p className="cells-label">Step 3 of 3 · Grow</p>
             <p className="cells-big">1</p>
             <p>place to run it all: enquiries, quotes, payments and weekly fixes, with every action waiting for your OK.</p>
+            <StepPanel stage="ops" />
           </div>
         </section>
 
@@ -99,7 +108,18 @@ export default function CellsPage() {
           </div>
         </section>
 
+        {/* Not a chapter (the logo formation keeps the chapter above to itself): the enquiry-to-paid journey, as an
+            illustrative, controllable demo. */}
+        <section className="cells-journey" aria-labelledby="cells-h-journey">
+          <div className="cells-copy">
+            <p className="cells-label">Illustrative demo</p>
+            <h3 id="cells-h-journey">Follow one enquiry from the first message to the payment reminder.</h3>
+          </div>
+          <EnquiryJourney />
+        </section>
+
         <section className="cells-ch cells-ch-split cells-ch-final" data-chapter="galaxy" aria-labelledby="cells-h-final">
+          <FinalGlow />
           <div className="cells-copy">
             <h2 id="cells-h-final">Your business deserves a team behind it.</h2>
           </div>
