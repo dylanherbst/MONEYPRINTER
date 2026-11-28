@@ -61,7 +61,7 @@ export function EnquiryJourney() {
     setPhase(to, 'intro');
     if (to === 3) setMoved(false);
     setPressed(false);
-    const c03 = run('C03', { beam: rail.current, nodes: markers.current.filter(Boolean) as HTMLElement[], layers: panels.current.filter(Boolean) as HTMLElement[] }, { params: { from, to, count: N }, speed: 1.5 });
+    const c03 = run('C03', { beam: rail.current, nodes: markers.current.filter(Boolean) as HTMLElement[], layers: panels.current.filter(Boolean) as HTMLElement[] }, { params: { from, to, count: N }, speed: 1.8 });
     setStep(to);
     await c03;
     if (!tk.live) return;
@@ -105,7 +105,7 @@ export function EnquiryJourney() {
         await sleep(140, tk); if (!tk.live) break;
         await approve(s);
       }
-      await sleep(s === N - 1 ? 0 : 300, tk);
+      await sleep(s === N - 1 ? 0 : 220, tk);
     }
     if (tk.live) setPlaying(false);
   }, [enter, approve]);

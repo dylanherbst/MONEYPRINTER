@@ -1,13 +1,14 @@
 'use client';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { prefersReducedMotion, supportsWaapi } from '../../../lib/motion/core';
-import { belowViewport, onceVisible, runMotion } from '../../../lib/motion/run';
+import { belowViewport, onceVisible, poseStart, runMotion } from '../../../lib/motion/run';
 
 /**
  * Understand → Activate → Grow: one workspace panel that carries through the three steps. The same four blocks change
  * role each step: your setup → your team → your day-to-day.
  *   Step 1 (setup): A04, the setup rows enter from alternating sides.
  *   Step 2 (team):  C01, each block morphs from its setup box into an agent tile, then B10 lights the hub and links.
+ *   (The morph is transform-only: blocks never change layout position, so it causes no layout shift.)
  *   Step 3 (ops):   C01, blocks morph from agent tiles into the operations view while A08 turns the panel to flat.
  * Each plays once when its step comes into view. No pinning and no scroll capture (native scroll), so phones get the
  * same three stacked panels. Reduced motion, no JavaScript, or already on screen at load: the final layout, still.
@@ -40,15 +41,31 @@ const TITLE: Record<Stage, string> = { setup: 'Setting up · illustrative', team
 type Box = { left: number; top: number; width: number; height: number };
 const offsetBox = (el: HTMLElement): Box => ({ left: el.offsetLeft, top: el.offsetTop, width: el.offsetWidth, height: el.offsetHeight });
 
+function Blocks({ stage, refs }: { stage: Stage; refs?: (i: number) => (el: HTMLDivElement | null) => void }) {
+  return (
+    <>
+      {BLOCKS[stage].map((b, i) => (
+        <div key={i} className="sp-b" ref={refs?.(i)}>
+          <b>{b.k}</b>
+          <span className={b.tone ? `sp-tone sp-${b.tone}` : 'sp-tone'}>{b.v}</span>
+        </div>
+      ))}
+    </>
+  );
+}
+
 export function StepPanel({ stage }: { stage: Stage }) {
   const prev = ORDER[Math.max(0, ORDER.indexOf(stage) - 1)];
   const panel = useRef<HTMLDivElement>(null);
   const blocks = useRef<(HTMLDivElement | null)[]>([]);
+  const ghosts = useRef<(HTMLDivElement | null)[]>([]);
   const hub = useRef<HTMLSpanElement>(null);
   const links = useRef<SVGSVGElement>(null);
-  // `shown` is the layout on screen. Armed panels start in the previous step's layout and morph into their own.
-  const [shown, setShown] = useState<Stage>(stage);
-  const first = useRef<Box[] | null>(null);
+  // The blocks always sit in their own (final) layout, so nothing ever changes layout position (no layout shift).
+  // While armed, a ghost copy shows the previous step's layout and the real blocks wait, hidden; on view the ghost
+  // goes and each block morphs (C01, transform only) from its ghost twin's box into place.
+  const [waiting, setWaiting] = useState(false);
+  const [go, setGo] = useState(false);
   const cancels = useRef<(() => void)[]>([]);
 
   useEffect(() => {
@@ -56,53 +73,50 @@ export function StepPanel({ stage }: { stage: Stage }) {
     if (!el || prefersReducedMotion() || !supportsWaapi() || !belowViewport(el)) return;
     if (stage === 'setup') {
       // A04: pose the hidden start now (off screen), play on view.
-      let done: (() => void) | null = null;
-      const off = onceVisible(el, () => {
-        done = runMotion('A04', { layers: blocks.current.filter(Boolean) as HTMLElement[] }, { params: { sideOffset: Math.round(el.offsetWidth * 0.18) }, speed: 2.2 });
-      }, 0.5);
-      return () => { off(); done?.(); };
+      const targets = { layers: blocks.current.filter(Boolean) as HTMLElement[] };
+      const params = { sideOffset: Math.round(el.offsetWidth * 0.18) };
+      let stop = poseStart('A04', targets, params);
+      const off = onceVisible(el, () => { stop(); stop = runMotion('A04', targets, { params, speed: 2.2 }); }, 0.5);
+      return () => { off(); stop(); };
     }
-    setShown(prev);
-    const off = onceVisible(el, () => {
-      first.current = blocks.current.map((b) => offsetBox(b!));
-      setShown(stage);
-    }, 0.5);
-    return () => off();
-  }, [stage, prev]);
+    setWaiting(true);
+    return onceVisible(el, () => setGo(true), 0.5);
+  }, [stage]);
 
-  // After the switch to the real layout: FLIP each block from its old box (C01), plus the step's supporting motion.
   useLayoutEffect(() => {
-    const from = first.current;
-    if (!from || shown !== stage) return;
-    first.current = null;
+    if (!go) return;
     const run = cancels.current;
     blocks.current.forEach((b, i) => {
-      if (!b) return;
-      run.push(runMotion('C01', { focus: b, nodes: Array.from(b.children) as HTMLElement[] }, { params: { from: from[i], to: offsetBox(b) } }));
+      const g = ghosts.current[i];
+      if (!b || !g) return;
+      run.push(runMotion('C01', { focus: b, nodes: Array.from(b.children) as HTMLElement[] }, { params: { from: offsetBox(g), to: offsetBox(b) } }));
     });
     if (stage === 'team') run.push(runMotion('B10', { focus: hub.current, beam: links.current as unknown as HTMLElement, nodes: [] }, { speed: 2, delay: 250 }));
     if (stage === 'ops') run.push(runMotion('A08', { stage: panel.current }, { speed: 2.5 }));
-  }, [shown, stage]);
+    setWaiting(false);
+  }, [go, stage]);
 
   useEffect(() => () => { cancels.current.forEach((c) => c()); cancels.current = []; }, []);
 
   return (
     <div className="sp-view" aria-hidden="true">
-      <div className="sp" data-layout={shown} ref={panel}>
-        <p className="sp-title">{TITLE[shown]}</p>
-        {shown === 'team' && (
-          <>
-            <svg className="sp-links" ref={links} viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M50 50L25 28M50 50L75 28M50 50L25 72M50 50L75 72" /></svg>
-            <span className="sp-hub" ref={hub}>Your business</span>
-          </>
-        )}
-        {BLOCKS[shown].map((b, i) => (
-          <div key={i} className="sp-b" ref={(el) => { blocks.current[i] = el; }}>
-            <b>{b.k}</b>
-            <span className={b.tone ? `sp-tone sp-${b.tone}` : 'sp-tone'}>{b.v}</span>
+      <div className="sp" ref={panel}>
+        <p className="sp-title">{TITLE[stage]}</p>
+        <div className="sp-l" data-layout={stage} data-wait={waiting || undefined}>
+          {stage === 'team' && (
+            <>
+              <svg className="sp-links" ref={links} viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M50 50L25 28M50 50L75 28M50 50L25 72M50 50L75 72" /></svg>
+              <span className="sp-hub" ref={hub}>Your business</span>
+            </>
+          )}
+          <Blocks stage={stage} refs={(i) => (el) => { blocks.current[i] = el; }} />
+          {stage === 'team' && <p className="sp-foot">Receptionist and Socials &amp; Marketing coming soon · Growth Manager behind the scenes</p>}
+        </div>
+        {stage !== 'setup' && (waiting || go) && (
+          <div className="sp-l sp-ghost" data-layout={prev} data-gone={!waiting || undefined}>
+            <Blocks stage={prev} refs={(i) => (el) => { ghosts.current[i] = el; }} />
           </div>
-        ))}
-        {shown === 'team' && <p className="sp-foot">Receptionist and Socials &amp; Marketing coming soon · Growth Manager behind the scenes</p>}
+        )}
       </div>
     </div>
   );
