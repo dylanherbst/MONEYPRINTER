@@ -27,7 +27,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
       <ul>
         <li><b>No guarantee of results.</b> {site.name} does not promise any sales, bookings, leads, revenue or profit.</li>
         <li><b>No financial advice.</b> Nothing on this site or in the app is financial, investment, legal or tax advice.</li>
-        <li><b>You stay in charge.</b> You choose what your AI team may do, approve sensitive actions and set spending limits.</li>
+        <li><b>You stay in charge.</b> Nothing is sent, booked or charged until you approve it, and one switch pauses everything.</li>
         <li><b>It is your business.</b> You are responsible for what is said and sold in your name and for following the law.</li>
         <li><b>Your accounts stay yours.</b> You connect them through secure authorisation and can disconnect them at any time. We never ask for passwords or keys in chat.</li>
       </ul>
@@ -38,7 +38,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
     body: (
       <>
         <p>{site.name} is software that helps you reply to enquiries, quote, invoice, chase payments and find where your business may be losing money. We do not guarantee, promise or imply any particular number of leads, bookings, sales or amount of revenue, or any improvement at all.</p>
-        <p>Results depend on many things outside our control, including your market, your offer and prices, competition, the platforms you connect, their rules and the wider economy. Figures that advertising and social platforms report (such as reach, clicks or conversions) are their estimates and are not confirmed sales.</p>
+        <p>Results depend on many things outside our control, including your market, your offer and prices, competition, the platforms you connect, their rules and the wider economy. Figures from connected tools are only as accurate as those tools, and anything we can&apos;t measure is shown as &ldquo;Not measured yet&rdquo;.</p>
       </>
     ),
   },
@@ -47,7 +47,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
     body: (
       <>
         <p>Everything on this website and in the app is general information only. It does not take into account your objectives, financial situation or needs.</p>
-        <p>{site.name} is not a financial adviser, accountant, tax agent or law firm, and does not hold an Australian Financial Services Licence. Nothing we provide is financial product advice, investment advice, legal advice or tax advice, and you should not treat it as a recommendation to make any financial decision, including how much to spend on advertising.</p>
+        <p>{site.name} is not a financial adviser, accountant, tax agent or law firm, and does not hold an Australian Financial Services Licence. Nothing we provide is financial product advice, investment advice, legal advice or tax advice, and you should not treat it as a recommendation to make any financial decision, including pricing or spending decisions.</p>
         <p>Before you make decisions about money, tax, contracts or your legal obligations, speak with a qualified, licensed professional.</p>
       </>
     ),
@@ -57,7 +57,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
     body: (
       <>
         <p>{site.name} uses artificial intelligence to draft replies, quotes, invoices and reminders, suggest improvements and, as features launch, posts and phone answering. AI can be wrong, out of date or incomplete, and can misunderstand a customer.</p>
-        <p>You decide which actions run automatically and which need your approval. You are responsible for checking the business information your AI team uses (such as services, prices and hours) and for reviewing content before you approve it. Your AI team must not be used to give medical, legal or financial advice to your customers.</p>
+        <p>Nothing your AI team prepares is sent, booked or charged until you approve that exact version. You are responsible for checking the business information your AI team uses (such as services, prices and hours) and for reviewing content before you approve it. Your AI team must not be used to give medical, legal or financial advice to your customers.</p>
       </>
     ),
   },
@@ -65,7 +65,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
     id: 'your-business', title: 'Your business and your responsibilities',
     body: (
       <>
-        <p>Messages, posts, ads and calls handled by {site.name} are made on behalf of your business. You are responsible for your products and services, your prices, the claims made about them, and dealing with your customers.</p>
+        <p>Messages, quotes, invoices and reminders (and, when available, posts and calls) handled by {site.name} are made on behalf of your business. You are responsible for your products and services, your prices, the claims made about them, and dealing with your customers.</p>
         <p>Your obligations can include the Australian Consumer Law (including rules against misleading claims), the Spam Act (you must have consent before sending marketing messages, and include a way to unsubscribe), privacy law for your customers&apos; information, call recording laws, and the rules of every platform you connect.</p>
         <p>You must be at least 18 years old and authorised to act for the business you connect.</p>
       </>
@@ -89,7 +89,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
   {
     id: 'calls', title: 'Calls and recordings',
     body: (
-      <p>The AI Receptionist is in development. When it is available, it will tell callers they are speaking with an AI assistant. Calls will only be recorded or transcribed where you have enabled it and where it is lawful, with callers told at the start of the call. You are responsible for meeting recording and privacy laws that apply to your business.</p>
+      <p>The AI Receptionist is coming soon. When it is available, it will tell callers they are speaking with an AI assistant. Calls will only be recorded or transcribed where you have enabled it and where it is lawful, with callers told at the start of the call. You are responsible for meeting recording and privacy laws that apply to your business.</p>
     ),
   },
   {
@@ -130,7 +130,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
     body: (
       <>
         <p>We handle personal information in line with the Australian Privacy Principles.</p>
-        <p><b>What we collect.</b> Your name, email and business details; the information you give your AI team; the accounts you connect and the data they provide (such as messages, comments, post and ad results, calendar availability and call details); payment and subscription status (card details are handled by Stripe, not stored by us); messages you send us; and basic technical and usage information.</p>
+        <p><b>What we collect.</b> Your name, email and business details; the information you give your AI team; the accounts you connect and the data they provide (such as enquiries and messages, jobs, quotes, invoices and payment records, and calendar availability); payment and subscription status (card details are handled by Stripe, not stored by us); messages you send us; and basic technical and usage information.</p>
         <p><b>Your customers&apos; information.</b> When your customers message, comment, call or book, or when you import a customer list, we process their information on your behalf to provide the service. You are responsible for having a lawful basis and any consent needed, and for your own privacy notice.</p>
         <p><b>Why.</b> To run and improve {site.name}, carry out the tasks you allow, keep accounts secure, send you service messages and meet legal obligations. We do not sell personal information.</p>
         <p><b>Who we share it with.</b> Service providers who help us run {site.name}, such as hosting, database, AI model, email, payment, phone and social media providers, only as needed for their service. Some of them store or process information outside Australia, including in the United States.</p>

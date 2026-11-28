@@ -5,7 +5,7 @@ import { AGENTS, OFFER_NOTE, PLANS, ROUTES, SIGNUP, STEPS } from '../cells/conte
 
 export const metadata: Metadata = {
   title: `How it works · ${site.name}`,
-  description: 'Sales replies, Job Manager quotes and chases payments, Business Optimisation finds lost money. You approve everything. From A$79/month.',
+  description: 'Sales replies, Job Manager quotes and chases payments, Business Optimisation finds lost money. You approve everything. Founding price from A$49/month.',
   alternates: siteUrl() ? { canonical: siteUrl('/how-it-works') } : undefined,
   robots: indexable ? undefined : { index: false, follow: false },
 };
@@ -51,7 +51,7 @@ export default function HowItWorksPage() {
         <h2 id="cells-h-output">One team that works from your real prices and records.</h2>
         <ul className="cells-cards cells-cards-3">
           {AGENTS.map((a) => (
-            <li key={a.title} className="cells-card"><b>{a.title}</b>{a.soon && <ComingSoon />}<span>{a.body}</span></li>
+            <li key={a.title} className="cells-card"><b>{a.title}</b>{a.soon && <ComingSoon />}{'behind' in a && a.behind && <em className="cells-tag">Behind the scenes</em>}<span>{a.body}</span></li>
           ))}
         </ul>
       </section>

@@ -15,14 +15,15 @@ export const SIGNUP_TARGET = APP_READY
 /** Sign in to the app; empty (hidden) until the app is live. */
 export const SIGN_IN = APP_READY ? `${site.appUrl}/start/account?mode=login` : '';
 
-/** The agent team, from the InsertAgentic product overview (28 Nov 2026). `soon` shows a "Coming soon" label. */
+/** The agent team, from the InsertAgentic product overview (28 Nov 2026). `soon` shows a "Coming soon" label; `behind` a "Behind the scenes" one. */
 export const AGENTS = [
   { title: 'Sales', body: 'Replies to new enquiries from your services and prices, qualifies the customer and offers a time.', soon: false },
   { title: 'Job Manager', body: 'Quotes from your price list, invoices and polite payment reminders, with correct GST.', soon: false },
   { title: 'Business Optimisation', body: 'Checks 18 measures every week and gives up to 8 fixes, each with the reason.', soon: false },
-  { title: 'Integrations', body: 'Connects Stripe, Google Calendar, Xero or a spreadsheet with the least access needed.', soon: false },
+  { title: 'Integrations', body: 'Connects Stripe, Google Calendar, Xero or a spreadsheet with the least access needed, and turns repeated jobs into automations.', soon: false },
   { title: 'Receptionist', body: 'Answers the phone as an AI assistant, takes details and books new customers.', soon: true },
   { title: 'Socials & Marketing', body: 'Plans and drafts posts and campaigns in your own voice.', soon: true },
+  { title: 'Growth Manager', body: 'Coordinates the team so agents never give conflicting advice about the same customer or job.', soon: false, behind: true },
 ];
 
 /** What the team handles today. */
