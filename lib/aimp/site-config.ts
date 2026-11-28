@@ -19,7 +19,7 @@ export const site = {
   appUrl: clean(process.env.NEXT_PUBLIC_APP_URL),
   /** Where "Join the early access list" goes while the app is not live (a form or waitlist page). */
   earlyAccessUrl: clean(process.env.NEXT_PUBLIC_EARLY_ACCESS_URL),
-  contactEmail: clean(process.env.NEXT_PUBLIC_CONTACT_EMAIL),
+  contactEmail: clean(process.env.NEXT_PUBLIC_CONTACT_EMAIL) || 'insertagentic@gmail.com',
   legal: {
     entityName: clean(process.env.NEXT_PUBLIC_LEGAL_ENTITY),
     abn: clean(process.env.NEXT_PUBLIC_LEGAL_ABN),
