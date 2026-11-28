@@ -1,5 +1,5 @@
 // Single place for the public website's brand and the addresses it links to. InsertAgentic (24 Nov 2026) replaces the
-// InsertAgentic positioning: an AI front-office team for Australian sole traders and small businesses.
+// InsertAgentic positioning: an Agentic AI team for Australian sole traders and small businesses.
 //
 // Addresses come from environment variables (see .env.example) so nothing points at an app, domain or contact that
 // has not been confirmed. Empty values switch the site to its safe fallbacks: no canonical URLs and no indexing
@@ -9,8 +9,8 @@ const clean = (v: string | undefined) => (v ?? '').trim().replace(/\/+$/, '');
 export const site = {
   name: 'InsertAgentic',
   // Said with the name wherever it stands alone (kicker, footer, link previews).
-  descriptor: 'your AI front-office team',
-  title: 'InsertAgentic | Your AI Front-Office Team for Small Businesses',
+  descriptor: 'your Agentic AI team',
+  title: 'InsertAgentic | Your Agentic AI Team for Small Businesses',
   description:
     'AI agents that answer enquiries, quote, chase payments and find where your business is losing money. You approve everything before it goes out.',
   /** Public domain, without https://. */

@@ -59,4 +59,4 @@ export const FAQS = [
   { q: `Does ${site.name} guarantee results?`, a: `No. Results depend on your business, customers and offer. ${site.name} helps you respond faster, quote and get paid, and shows you where money is slipping.` },
 ];
 
-export const FOOTER_NOTE = `${site.name} is an AI front-office team for Australian sole traders and small businesses. You approve everything before it goes out. Results are not guaranteed.`;
+export const FOOTER_NOTE = `${site.name} is an Agentic AI team for Australian sole traders and small businesses. You approve everything before it goes out. Results are not guaranteed.`;

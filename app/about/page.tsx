@@ -4,7 +4,7 @@ import { InfoShell } from '../cells/info-shell';
 
 export const metadata: Metadata = {
   title: `About us · ${site.name}`,
-  description: `${site.name} gives Australian sole traders and small businesses an AI front-office team. You stay in control of every message, quote and charge.`,
+  description: `${site.name} gives Australian sole traders and small businesses an Agentic AI team. You stay in control of every message, quote and charge.`,
   alternates: siteUrl() ? { canonical: siteUrl('/about') } : undefined,
   robots: indexable ? undefined : { index: false, follow: false },
 };
@@ -23,7 +23,7 @@ export default function AboutPage() {
     <InfoShell closing="Your business deserves a team behind it." current="/about">
       <section className="cells-sec cells-intro" data-chapter="" aria-labelledby="about-h1">
         <p className="cells-label">About us</p>
-        <h1 id="about-h1">A front-office team for businesses that can’t afford one.</h1>
+        <h1 id="about-h1">An Agentic AI team for businesses that can’t afford a front office.</h1>
         <p className="cells-body">
           {site.name} gives Australian sole traders and small businesses AI agents that answer enquiries, quote, chase
           payments and find where money is slipping, so you can get back to the work only you can do.

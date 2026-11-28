@@ -10,7 +10,7 @@ import '../cells/cells.css';
 // the early access list until then.
 export const metadata: Metadata = {
   title: `Sign up · ${site.name}`,
-  description: `Get your AI front-office team with ${site.name}. Founding price for the first 25 businesses.`,
+  description: `Get your Agentic AI team with ${site.name}. Founding price for the first 25 businesses.`,
   alternates: siteUrl() ? { canonical: siteUrl('/signup') } : undefined,
   robots: indexable ? undefined : { index: false, follow: false },
 };
@@ -22,7 +22,7 @@ export default function SignupPage() {
       <CellsStage tuneByDefault={false} />
       <SiteHeader solid />
       <main className="cells-signup-main" data-chapter="signup">
-        <h1>Get your AI front-office team</h1>
+        <h1>Get your Agentic AI team</h1>
         <section className="cells-close" aria-labelledby="signup-line">
           <h2 id="signup-line">{APP_READY ? 'Answer three quick questions and meet your team before you pay anything.' : 'Founding price for the first 25 businesses: from A$49/month, locked for 12 months.'}</h2>
           {SIGNUP_TARGET

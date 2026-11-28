@@ -18,7 +18,7 @@ export default function HowItWorksPage() {
     <InfoShell closing="More time for your customers. Less time chasing admin." current="/how-it-works">
       <section className="cells-sec cells-intro" data-chapter="" aria-labelledby="how-h1">
         <p className="cells-label">How it works</p>
-        <h1 id="how-h1">Your AI front-office team.</h1>
+        <h1 id="how-h1">Your Agentic AI team.</h1>
         <p className="cells-body">AI agents that answer enquiries, quote, chase payments and find where your business is losing money. You approve everything before it goes out.</p>
       </section>
 

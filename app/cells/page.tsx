@@ -61,7 +61,7 @@ export default function CellsPage() {
           </div>
           <div className="cells-versus" role="list">
             <div className="cells-vs cells-vs-old" role="listitem"><span>The usual way</span><b>Manage every task yourself</b></div>
-            <div className="cells-vs cells-vs-new" role="listitem"><span>With {site.name}</span><b>One AI front-office team</b></div>
+            <div className="cells-vs cells-vs-new" role="listitem"><span>With {site.name}</span><b>One Agentic AI team</b></div>
           </div>
         </section>
 
