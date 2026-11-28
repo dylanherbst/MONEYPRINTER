@@ -425,3 +425,57 @@
   .ia-pulse { display: none; animation: none; }
   .eco2-node { transform: none; }
 }
+
+/* ---- Phone portrait ecosystem (Insert_Agentic_Mobile_Ecosystem brief, 28 Nov 2026) ----
+   Applies only when the diagram uses its phone layout (data-layout="tall"); desktop rules above are untouched. */
+.eco2[data-layout="tall"] .eco2-stage { --eco2m-w: min(440px, calc(100vw - 16px)); width: var(--eco2m-w); max-width: none; margin-inline: calc((100% - var(--eco2m-w)) / 2); }
+.eco2[data-layout="tall"] .eco2-svg { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.eco2m-orbits ellipse { fill: none; stroke: color-mix(in srgb, var(--cells-accent) 18%, transparent); stroke-width: 1; }
+.eco2[data-layout="tall"] .eco2-hub-title { font-size: 19px; }
+.eco2[data-layout="tall"] .eco2-hub-sub { font-size: 11.5px; }
+.eco2[data-layout="tall"] .eco2-name { font-size: 14px; }
+.eco2[data-layout="tall"] .eco2-gm-title { font-size: 13px; }
+.eco2[data-layout="tall"] .eco2-gm-sub { font-size: 10.5px; }
+/* Coordination ring turns slowly. */
+.eco2[data-layout="tall"] .eco2-gm { animation-duration: 36s; }
+/* Wires: light solid lines; illustrative pulses travel out from the hub. */
+.eco2[data-layout="tall"] .eco2-link-base { stroke: color-mix(in srgb, var(--cells-accent) 34%, transparent); stroke-width: 1.5; }
+.eco2m-signal { fill: none; stroke: var(--cells-accent); stroke-width: 2; stroke-linecap: round; stroke-dasharray: 6 94; opacity: 0;
+  animation: eco2m-flow 4.2s linear infinite; animation-delay: calc(var(--i) * -0.7s); transition: opacity .28s ease, stroke-width .28s ease; }
+.eco2[data-layout="tall"][data-in="true"] .eco2m-signal { opacity: .65; }
+.eco2[data-layout="tall"][data-active] .eco2m-signal { opacity: .13; }
+.eco2[data-layout="tall"][data-active] .eco2-link.is-on .eco2m-signal { opacity: 1; stroke-width: 2.8; }
+.eco2[data-layout="tall"][data-active="growth"] .eco2m-signal { opacity: .8; }
+.eco2[data-layout="tall"][data-active] .eco2-link.is-on .eco2-link-base,
+.eco2[data-layout="tall"][data-active="growth"] .eco2-link .eco2-link-base { stroke: var(--cells-accent); stroke-width: 2.2; }
+@keyframes eco2m-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -100; } }
+/* Entrance: about 70ms apart, 650ms ease-out, 8px rise, no layout movement. */
+.eco2[data-layout="tall"] .eco2-node { transform: translateY(8px) scale(.97);
+  transition: opacity .65s cubic-bezier(.2,.75,.2,1) calc(var(--i) * 70ms + 120ms), transform .65s cubic-bezier(.2,.75,.2,1) calc(var(--i) * 70ms + 120ms); }
+.eco2[data-layout="tall"][data-in="true"] .eco2-node { transform: none; }
+.eco2[data-layout="tall"] .eco2-gm-label { opacity: 0; transition: opacity .65s ease .55s; }
+.eco2[data-layout="tall"][data-in="true"] .eco2-gm-label { opacity: 1; }
+/* Selection: 2px rise, soft purple elevation; no rotation. */
+.eco2[data-layout="tall"] .eco2-node .eco2-surface, .eco2[data-layout="tall"] .eco2-node:focus-visible .eco2-surface { transform: none; filter: none; transition: transform .28s ease, filter .28s ease; }
+.eco2[data-layout="tall"] .eco2-node[data-ia-active="true"] .eco2-surface { transform: translateY(-2px);
+  filter: drop-shadow(0 7px 12px rgb(124 58 237 / .26)) drop-shadow(0 0 3px rgb(167 139 250 / .35)); }
+.eco2[data-layout="tall"] .eco2-node:focus { outline: none; }
+.eco2[data-layout="tall"] .eco2-node:focus-visible .eco2-pill, .eco2m-gm:focus-visible .eco2-gm-chip { stroke: var(--cells-accent); stroke-width: 3; }
+.eco2m-gm { cursor: pointer; outline: none; }
+.eco2m-gm .eco2-gm-chip { transition: stroke .28s, stroke-width .28s, filter .28s; }
+.eco2m-gm.is-active .eco2-gm-chip { fill: #fff; stroke: var(--cells-accent); stroke-width: 2; filter: drop-shadow(0 6px 12px rgb(124 58 237 / .25)); }
+.eco2[data-layout="tall"][data-active="growth"] .eco2-ring { stroke: var(--cells-accent); stroke-width: 3.2; }
+/* Detail area under the map on phones, and a pause control. */
+.eco2-dock { min-height: 104px; display: grid; align-items: start; }
+.eco2 .eco2-card--dock { position: static; width: 100%; max-width: 440px; margin: 0 auto; pointer-events: auto; }
+.eco2-dock .eco2-hint { align-self: center; }
+.eco2-pause { justify-self: center; border: 0; background: none; padding: 10px 14px; min-height: 44px; font: 600 .86rem var(--cells-font); color: var(--cells-accent); cursor: pointer; }
+.eco2-pause:focus-visible { outline: 2px solid var(--cells-accent); outline-offset: 2px; border-radius: 10px; }
+/* Pause offscreen, in hidden tabs, or when the visitor presses Pause. */
+.eco2[data-layout="tall"][data-ia-running="false"] :is(.eco2m-signal, .eco2-gm, .eco2-aura, .eco2-ripple, .eco2-live) { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .eco2m-signal { display: none; }
+  .eco2[data-layout="tall"] .eco2-node, .eco2[data-layout="tall"] .eco2-gm-label { transform: none; transition: none; }
+  .eco2[data-layout="tall"] .eco2-node[data-ia-active="true"] .eco2-surface { transform: none; transition: none; }
+  .eco2-pause { display: none; }
+}

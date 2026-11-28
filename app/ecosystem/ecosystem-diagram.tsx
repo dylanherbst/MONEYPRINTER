@@ -15,9 +15,15 @@ type Layout = { w: number; h: number; cx: number; cy: number; hubR: number; ring
 // [x, y, pill width] per agent, for wide screens and for phones.
 const WIDE: Layout = { w: 760, h: 560, cx: 380, cy: 280, hubR: 104, ringR: 150, font: 16, pos: {
   sales: [380, 66, 208], jobs: [646, 172, 208], integrations: [646, 388, 208], optimise: [380, 494, 236], socials: [114, 388, 208], receptionist: [114, 172, 208] } };
-// Phones: the hub on top, agents in one column below, joined by curves down the left.
-const TALL: Layout = { w: 340, h: 790, cx: 170, cy: 132, hubR: 92, ringR: 118, font: 15, pos: {
-  sales: [170, 346, 300], jobs: [170, 420, 300], integrations: [170, 494, 300], optimise: [170, 568, 300], receptionist: [170, 652, 300], socials: [170, 726, 300] } };
+// Phones (portrait network, Insert_Agentic_Mobile_Ecosystem brief): the hub in the middle, agents around it.
+// Positions are the brief's percentages of a 340 x 470 canvas, so lines always meet the real nodes.
+const TALL: Layout = { w: 340, h: 470, cx: 170, cy: 215, hubR: 80, ringR: 100, font: 14, pos: {
+  sales: [170, 42, 194], receptionist: [82, 108, 150], jobs: [258, 108, 150],
+  socials: [82, 374, 150], integrations: [258, 374, 150], optimise: [170, 439, 194] } };
+// Names that need two lines inside the narrower phone cards.
+const TALL_LINES: Record<string, string[]> = { socials: ['Socials &', 'Marketing'] };
+// Growth Manager detail (same copy as the ecosystem page).
+const GM = { id: 'growth', name: 'Growth Manager', does: 'Coordinates the whole team so no two agents ever give conflicting advice about the same customer or job.' };
 
 const I = { // 24px line icons, drawn around (0,0)
   sales: <path d="M-9-7h18a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H-2l-6 5v-5h-1a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3z" />,
@@ -118,13 +124,20 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
   };
   useEffect(() => () => cancelAnimationFrame(tiltRaf.current), []);
 
-  const lit = (id: string) => !active || id === active || BY_ID[active].with.includes(id);
-  const peerLit = (a: string, b: string) => active !== null && ((a === active && BY_ID[active].with.includes(b)) || (b === active && BY_ID[active].with.includes(a)));
-  const current = active ? BY_ID[active] : null;
+  const [paused, setPaused] = useState(false);
+  const lit = (id: string) => !active || active === 'growth' || id === active || BY_ID[active].with.includes(id);
+  const peerLit = (a: string, b: string) => active !== null && active !== 'growth' && ((a === active && BY_ID[active].with.includes(b)) || (b === active && BY_ID[active].with.includes(a)));
+  const current = active && active !== 'growth' ? BY_ID[active] : null;
   const onKey = (id: string) => (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActive((v) => (v === id ? null : id)); } };
+  const toggle = (id: string) => setActive((v) => (v === id ? null : id));
+  // Desktop keeps hover/focus selection; phones select by tap (tap again to clear), with no hover-only behaviour.
+  const pick = (id: string) => (tall
+    ? { onClick: () => toggle(id), onKeyDown: onKey(id) }
+    : { onMouseEnter: () => setActive(id), onMouseLeave: () => setActive(null), onFocus: () => setActive(id), onBlur: () => setActive(null),
+        onClick: () => setActive(id), onKeyDown: onKey(id), onPointerMove: onTilt, onPointerLeave: endTilt, onPointerCancel: endTilt });
 
   return (
-    <div ref={ref} className="eco2" data-in={inView ? 'true' : 'false'} data-active={active ?? undefined} data-ia-motion="" data-ia-running={running ? 'true' : 'false'}>
+    <div ref={ref} className="eco2" data-in={inView ? 'true' : 'false'} data-active={active ?? undefined} data-ia-motion="" data-ia-running={running && !paused ? 'true' : 'false'} data-layout={tall ? 'tall' : 'wide'} data-paused={paused ? 'true' : undefined}>
       <div className="eco2-stage">
       <svg className="eco2-svg" viewBox={`0 0 ${L.w} ${L.h}`} style={{ ["--eco2-font" as string]: `${L.font}px` }} role="group" aria-label={`${siteName} ecosystem map. Choose an agent to see what it does and who it works with.`}>
         <defs>
@@ -160,6 +173,13 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
           </g>
         ))}
 
+        {tall && (
+          <g className="eco2m-orbits" aria-hidden="true">
+            <ellipse cx={CX} cy={CY} rx="147" ry="185" />
+            <ellipse cx={CX} cy={CY} rx="137" ry="176" transform={`rotate(26 ${CX} ${CY})`} opacity=".6" />
+          </g>
+        )}
+
         {/* hub aura and ripples */}
         <circle cx={CX} cy={CY} r={ringR + 40} fill="url(#eco2-aura)" className="eco2-aura" />
         <circle cx={CX} cy={CY} r={hubR} className="eco2-ripple" style={{ transformOrigin: `${CX}px ${CY}px` }} />
@@ -167,11 +187,14 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
 
         {/* hub-to-agent links with travelling data pulses */}
         {AGENTS.map((a, i) => {
-          const [x, y, pw] = L.pos[a.id];
-          const ex = x - pw / 2 + 27;
-          const d = tall
-            ? `M${CX} ${CY} C${CX - 150} ${CY + 70} ${ex - 34} ${y - 70} ${ex} ${y}`
-            : `M${CX} ${CY} L${x} ${y}`;
+          const [x, y] = L.pos[a.id];
+          const d = `M${CX} ${CY} L${x} ${y}`;
+          if (tall) return (
+            <g key={`l-${a.id}`} className={`eco2-link${lit(a.id) ? '' : ' is-dim'}${active === a.id ? ' is-on' : ''}`} style={{ ['--i' as string]: i }}>
+              <path d={d} pathLength={1} className="eco2-link-base" />
+              <path d={d} pathLength={100} className="eco2m-signal" style={{ ['--i' as string]: i }} aria-hidden="true" />
+            </g>
+          );
           return (
             <g key={`l-${a.id}`} className={`eco2-link${lit(a.id) ? '' : ' is-dim'}`} style={{ ['--i' as string]: i }}>
               <path d={d} pathLength={1} className="eco2-link-base" />
@@ -197,10 +220,11 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
           <circle cx={CX} cy={CY - ringR} r="5" className="eco2-orbit" filter="url(#eco2-glow)" />
         </g>
         {tall ? (
-          <g className="eco2-gm-label">
-            <rect x={CX - 100} y={CY + ringR + 12} width="200" height="46" rx="14" className="eco2-gm-chip" />
-            <text x={CX} y={CY + ringR + 31} className="eco2-gm-title" textAnchor="middle">Growth Manager</text>
-            <text x={CX} y={CY + ringR + 49} className="eco2-gm-sub" textAnchor="middle">keeps everyone in sync</text>
+          <g className={`eco2-gm-label eco2m-gm${active === 'growth' ? ' is-active' : ''}`} role="button" tabIndex={0}
+            aria-pressed={active === 'growth'} aria-label={`${GM.name}. ${GM.does}`} {...pick('growth')}>
+            <rect x={CX - 82} y={CY + 80} width="164" height="44" rx="13" className="eco2-gm-chip" />
+            <text x={CX} y={CY + 98} className="eco2-gm-title" textAnchor="middle">Growth Manager</text>
+            <text x={CX} y={CY + 115} className="eco2-gm-sub" textAnchor="middle">keeps everyone in sync</text>
           </g>
         ) : (
           <g className="eco2-gm-label">
@@ -213,26 +237,55 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
         {/* hub */}
         <g className="eco2-hub">
           <circle cx={CX} cy={CY} r={hubR} fill="url(#eco2-hub)" className="eco2-hub-disc" filter="url(#eco2-shadow)" />
-          <image href="/brand/logo.webp" x={CX - 18} y={CY - hubR + 24} width="36" height="36" />
-          <text x={CX} y={CY - 6} className="eco2-hub-title" textAnchor="middle">Your business</text>
-          <text x={CX} y={CY + 20} className="eco2-hub-sub" textAnchor="middle">Services, prices, customers,</text>
-          <text x={CX} y={CY + 40} className="eco2-hub-sub" textAnchor="middle">jobs, calendar and payments</text>
+          {tall ? (
+            <>
+              <image href="/brand/logo.webp" x={CX - 15} y={CY - 62} width="30" height="30" />
+              <text x={CX} y={CY - 8} className="eco2-hub-title" textAnchor="middle">Your business</text>
+              <text x={CX} y={CY + 13} className="eco2-hub-sub" textAnchor="middle">Services, prices,</text>
+              <text x={CX} y={CY + 28} className="eco2-hub-sub" textAnchor="middle">customers, jobs,</text>
+              <text x={CX} y={CY + 43} className="eco2-hub-sub" textAnchor="middle">calendar and payments</text>
+            </>
+          ) : (
+            <>
+              <image href="/brand/logo.webp" x={CX - 18} y={CY - hubR + 24} width="36" height="36" />
+              <text x={CX} y={CY - 6} className="eco2-hub-title" textAnchor="middle">Your business</text>
+              <text x={CX} y={CY + 20} className="eco2-hub-sub" textAnchor="middle">Services, prices, customers,</text>
+              <text x={CX} y={CY + 40} className="eco2-hub-sub" textAnchor="middle">jobs, calendar and payments</text>
+            </>
+          )}
         </g>
 
         {/* agents */}
         {AGENTS.map((a, i) => {
           const [x, y, pw] = L.pos[a.id];
           const left = x - pw / 2;
+          if (tall) {
+            const lines = TALL_LINES[a.id] ?? [a.name];
+            return (
+              <g key={a.id} className={`eco2-node${lit(a.id) ? '' : ' is-dim'}${active === a.id ? ' is-active' : ''}`}
+                style={{ ['--i' as string]: i, transformOrigin: `${x}px ${y}px` }}
+                role="button" tabIndex={0} aria-pressed={active === a.id} aria-label={`${a.name}. ${a.does}`}
+                data-ia-motion-node="" data-ia-active={active === a.id ? 'true' : 'false'} {...pick(a.id)}>
+                {/* Touch target taller than the card (>= 44px on a 320px phone). */}
+                <rect x={left} y={y - 31} width={pw} height="62" rx="26" className="eco2-hit" />
+                <g className="eco2-surface" data-ia-motion-surface="" style={{ transformOrigin: `${x}px ${y}px` }}>
+                  <rect x={left} y={y - 26} width={pw} height="52" rx="26" className="eco2-pill" filter="url(#eco2-shadow)" />
+                  <circle cx={left + 24} cy={y} r="14" className="eco2-icon-bg" />
+                  <g transform={`translate(${left + 24} ${y}) scale(0.6)`} className="eco2-icon">{a.icon}</g>
+                  <text x={left + 44} y={y + 5 - (lines.length - 1) * 8} className="eco2-name">
+                    {lines.map((t, k) => <tspan key={k} x={left + 44} dy={k ? 16 : 0}>{t}</tspan>)}
+                  </text>
+                  {a.status === 'live' && <circle cx={left + pw - 15} cy={y - 13} r="3.5" className="eco2-live" />}
+                </g>
+              </g>
+            );
+          }
           return (
           <g key={a.id} className={`eco2-node${lit(a.id) ? '' : ' is-dim'}${active === a.id ? ' is-active' : ''}`}
             style={{ ['--i' as string]: i, transformOrigin: `${x}px ${y}px` }}
             role="button" tabIndex={0} aria-pressed={active === a.id}
             aria-label={`${a.name}. ${a.does}`}
-            onMouseEnter={() => setActive(a.id)} onMouseLeave={() => setActive(null)}
-            onFocus={() => setActive(a.id)} onBlur={() => setActive(null)}
-            onClick={() => setActive(a.id)} onKeyDown={onKey(a.id)}
-            data-ia-motion-node="" data-ia-active={active === a.id ? 'true' : 'false'}
-            onPointerMove={onTilt} onPointerLeave={endTilt} onPointerCancel={endTilt}>
+            data-ia-motion-node="" data-ia-active={active === a.id ? 'true' : 'false'} {...pick(a.id)}>
             {/* Fixed, invisible hit area: hover stays stable while the visible surface tilts. */}
             <rect x={left} y={y - 29} width={pw} height="58" rx="29" className="eco2-hit" />
             <g className="eco2-surface" data-ia-motion-surface="" style={{ transformOrigin: `${x}px ${y}px` }}>
@@ -247,7 +300,7 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
         })}
       </svg>
 
-      {current && (() => {
+      {!tall && current && (() => {
         const [x, y, pw] = L.pos[current.id];
         const above = y > L.h * (tall ? 0.72 : 0.6);
         const style: Record<string, string> = {};
@@ -273,7 +326,26 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
         );
       })()}
       </div>
-      <p className="eco2-hint">Hover or tap an agent to see what it does and who it works with. Nothing reaches a customer until you approve it.</p>
+      {tall ? (
+        <>
+          <div className="eco2-dock" aria-live="polite">
+            {active ? (
+              <div className="eco2-card eco2-card--dock" key={active}>
+                <p className="eco2-card-name">{active === 'growth' ? GM.name : current!.name}</p>
+                <p className="eco2-card-does">{active === 'growth' ? GM.does : current!.does}</p>
+                <p className="eco2-card-with">Works with: {active === 'growth' ? 'Every agent' : current!.with.map((id) => BY_ID[id].name).join(', ')}</p>
+              </div>
+            ) : (
+              <p className="eco2-hint">Tap an agent to see what it does and who it works with. Nothing reaches a customer until you approve it.</p>
+            )}
+          </div>
+          <button type="button" className="eco2-pause" aria-pressed={paused} onClick={() => setPaused((v) => !v)}>
+            {paused ? 'Resume motion' : 'Pause motion'}
+          </button>
+        </>
+      ) : (
+        <p className="eco2-hint">Hover or tap an agent to see what it does and who it works with. Nothing reaches a customer until you approve it.</p>
+      )}
     </div>
   );
 }
