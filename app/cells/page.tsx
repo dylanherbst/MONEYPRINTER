@@ -3,6 +3,7 @@ import { indexable, site, siteUrl } from '../../lib/aimp/site-config';
 import { fontVars } from '../plant-lab/fonts';
 import { CellsStage } from './cells-stage';
 import { CTA, SIGNUP } from './content';
+import { EcosystemDiagram } from '../ecosystem/ecosystem-diagram';
 import { SiteHeader } from './site-header';
 import './cells.css';
 
@@ -67,6 +68,17 @@ export default function CellsPage() {
           </div>
         </section>
 
+        {/* Not a chapter: the animated map of the AI team (same component as /ecosystem). */}
+        <section className="cells-pain cells-eco" aria-labelledby="cells-h-eco">
+          <div className="cells-copy">
+            <p className="cells-label">Your AI team</p>
+            <h2 id="cells-h-eco">Seven AI employees. One connected team.</h2>
+          </div>
+          <div className="cells-eco-map">
+            <EcosystemDiagram siteName={site.name} />
+          </div>
+          <a className="cells-link" href="/ecosystem">See the full ecosystem</a>
+        </section>
         <section className="cells-ch cells-ch-low" data-chapter="vortex" id="how" aria-label="Understand">
           <div className="cells-stat">
             <p className="cells-label">Step 1 of 3 · Understand</p>
