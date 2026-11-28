@@ -86,6 +86,7 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
 
   return (
     <div ref={ref} className="eco2" data-in={inView ? 'true' : 'false'} data-active={active ?? undefined}>
+      <div className="eco2-stage">
       <svg className="eco2-svg" viewBox={`0 0 ${L.w} ${L.h}`} style={{ ["--eco2-font" as string]: `${L.font}px` }} role="group" aria-label={`${siteName} ecosystem map. Choose an agent to see what it does and who it works with.`}>
         <defs>
           <radialGradient id="eco2-hub" cx="50%" cy="40%" r="65%">
@@ -130,10 +131,10 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
             ? `M${CX} ${CY} C${CX - 150} ${CY + 70} ${ex - 34} ${y - 70} ${ex} ${y}`
             : `M${CX} ${CY} L${x} ${y}`;
           return (
-            <g key={`l-${a.id}`} className={`eco2-link${a.status === 'soon' ? ' is-soon' : ''}${lit(a.id) ? '' : ' is-dim'}`} style={{ ['--i' as string]: i }}>
+            <g key={`l-${a.id}`} className={`eco2-link${lit(a.id) ? '' : ' is-dim'}`} style={{ ['--i' as string]: i }}>
               <path d={d} pathLength={1} className="eco2-link-base" />
               <path d={d} className="eco2-link-flow" />
-              {a.status === 'live' && (
+              {(
                 <>
                   <circle r="4.5" className="eco2-pulse" filter="url(#eco2-glow)">
                     <animateMotion dur={`${2.6 + i * 0.25}s`} repeatCount="indefinite" path={d} begin={`${i * 0.4}s`} />
@@ -180,36 +181,50 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
           const [x, y, pw] = L.pos[a.id];
           const left = x - pw / 2;
           return (
-          <g key={a.id} className={`eco2-node${a.status === 'soon' ? ' is-soon' : ''}${lit(a.id) ? '' : ' is-dim'}${active === a.id ? ' is-active' : ''}`}
+          <g key={a.id} className={`eco2-node${lit(a.id) ? '' : ' is-dim'}${active === a.id ? ' is-active' : ''}`}
             style={{ ['--i' as string]: i, transformOrigin: `${x}px ${y}px` }}
             role="button" tabIndex={0} aria-pressed={active === a.id}
-            aria-label={`${a.name}${a.status === 'soon' ? ', coming soon' : ''}. ${a.does}`}
+            aria-label={`${a.name}. ${a.does}`}
             onMouseEnter={() => setActive(a.id)} onMouseLeave={() => setActive(null)}
             onFocus={() => setActive(a.id)} onBlur={() => setActive(null)}
             onClick={() => setActive(a.id)} onKeyDown={onKey(a.id)}>
             <rect x={left} y={y - 29} width={pw} height="58" rx="29" className="eco2-pill" filter="url(#eco2-shadow)" />
             <circle cx={left + 27} cy={y} r="17" className="eco2-icon-bg" />
             <g transform={`translate(${left + 27} ${y}) scale(0.72)`} className="eco2-icon">{a.icon}</g>
-            <text x={left + 52} y={a.status === 'soon' ? y - 3 : y + 5} className="eco2-name">{a.name}</text>
-            {a.status === 'soon'
-              ? <text x={left + 52} y={y + 15} className="eco2-soon">Coming soon</text>
-              : <circle cx={left + pw - 18} cy={y - 13} r="4" className="eco2-live" />}
+            <text x={left + 52} y={y + 5} className="eco2-name">{a.name}</text>
+            {a.status === 'live' && <circle cx={left + pw - 18} cy={y - 13} r="4" className="eco2-live" />}
           </g>
           );
         })}
       </svg>
 
-      <div className="eco2-panel" aria-live="polite">
-        {current ? (
-          <>
-            <p className="eco2-panel-name">{current.name}{current.status === 'soon' && <em className="cells-tag">Coming soon</em>}</p>
-            <p className="eco2-panel-does">{current.does}</p>
-            <p className="eco2-panel-with">Works with: {current.with.map((id) => BY_ID[id].name).join(', ')}</p>
-          </>
-        ) : (
-          <p className="eco2-panel-hint">Hover or tap an agent to see what it does and who it works with. Nothing reaches a customer until you approve it.</p>
-        )}
+      {current && (() => {
+        const [x, y, pw] = L.pos[current.id];
+        const above = y > L.h * (tall ? 0.72 : 0.6);
+        const style: Record<string, string> = {};
+        if (tall) {
+          style.left = `${((x - pw / 2) / L.w) * 100}%`;
+          style.width = `${(pw / L.w) * 100}%`;
+        } else if (x < L.w * 0.3) {
+          style.left = `${((x - pw / 2) / L.w) * 100}%`;
+        } else if (x > L.w * 0.7) {
+          style.right = `${((L.w - (x + pw / 2)) / L.w) * 100}%`;
+        } else {
+          style.left = `${(x / L.w) * 100}%`;
+          style.transform = 'translateX(-50%)';
+        }
+        if (above) style.bottom = `${((L.h - (y - 36)) / L.h) * 100}%`;
+        else style.top = `${((y + 36) / L.h) * 100}%`;
+        return (
+          <div className="eco2-card" style={style} role="status" key={current.id}>
+            <p className="eco2-card-name">{current.name}</p>
+            <p className="eco2-card-does">{current.does}</p>
+            <p className="eco2-card-with">Works with: {current.with.map((id) => BY_ID[id].name).join(', ')}</p>
+          </div>
+        );
+      })()}
       </div>
+      <p className="eco2-hint">Hover or tap an agent to see what it does and who it works with. Nothing reaches a customer until you approve it.</p>
     </div>
   );
 }

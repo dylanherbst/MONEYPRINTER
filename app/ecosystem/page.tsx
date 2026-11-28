@@ -25,17 +25,17 @@ const AGENTS: { name: string; does: string; worksWith: string[]; status: Status 
 ];
 
 const FLOWS = [
-  { title: 'Enquiry to booking', body: 'Sales replies and holds a time. When the Receptionist launches, phone calls join the same flow.' },
+  { title: 'Enquiry to booking', body: 'Sales replies to messages and the Receptionist answers calls. Both hold a time in your calendar.' },
   { title: 'Booking to paid', body: 'Job Manager quotes, invoices and chases payment. Integrations keeps Stripe and Xero in step.' },
   { title: 'Every week', body: 'Business Optimisation finds what’s slipping, such as overdue invoices or lapsed customers, and hands each fix to the right agent.' },
-  { title: 'Getting found', body: 'Socials & Marketing (coming soon) drafts posts and campaigns. The enquiries they bring go to Sales.' },
+  { title: 'Getting found', body: 'Socials & Marketing drafts posts and campaigns. The enquiries they bring go to Sales.' },
   { title: 'One voice', body: 'Growth Manager keeps every agent working from the same facts, so customers always get one consistent answer.' },
   { title: 'You approve', body: 'Every message, quote and action waits for your OK. One switch pauses everything.' },
 ];
 
 const BUSINESS = ['Services and prices', 'Customers', 'Jobs and bookings', 'Quotes and invoices', 'Calendar', 'Payment records'];
 
-const TAG: Record<Status, string | null> = { live: null, soon: 'Coming soon', behind: 'Behind the scenes' };
+const TAG: Record<Status, string | null> = { live: null, soon: null, behind: 'Behind the scenes' };
 
 export default function EcosystemPage() {
   return (
