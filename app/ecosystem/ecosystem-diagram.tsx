@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { KeyboardEvent, PointerEvent, ReactNode } from 'react';
 
 // Animated, interactive ecosystem map. Pure SVG + CSS (no extra libraries):
 // - the hub glows and ripples, the Growth Manager ring turns, data pulses travel both ways along every live link;
@@ -79,13 +79,52 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
     return () => io.disconnect();
   }, []);
 
+  // Motion-only layer (Insert_Agentic_Ecosystem_Motion_Only): pause decorative pulses offscreen or in hidden tabs.
+  const [running, setRunning] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let visible = false;
+    const sync = () => setRunning(visible && !document.hidden);
+    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; sync(); }, { threshold: 0.05 });
+    io.observe(el);
+    document.addEventListener('visibilitychange', sync);
+    return () => { io.disconnect(); document.removeEventListener('visibilitychange', sync); };
+  }, []);
+  // Local 3D tilt of the hovered agent's surface, following the pointer (fine pointers only, never touch).
+  const tiltRaf = useRef(0);
+  const onTilt = (e: PointerEvent<SVGGElement>) => {
+    if (e.pointerType === 'touch' || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const node = e.currentTarget;
+    const surface = node.querySelector<SVGGElement>('[data-ia-motion-surface]');
+    const hit = node.querySelector<SVGRectElement>('.eco2-hit');
+    if (!surface || !hit) return;
+    const r = hit.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const x = Math.max(-1, Math.min(1, (2 * (e.clientX - r.left)) / r.width - 1));
+    const y = Math.max(-1, Math.min(1, (2 * (e.clientY - r.top)) / r.height - 1));
+    cancelAnimationFrame(tiltRaf.current);
+    tiltRaf.current = requestAnimationFrame(() => {
+      surface.style.setProperty('--ia-rx', `${(-y * 6).toFixed(2)}deg`);
+      surface.style.setProperty('--ia-ry', `${(x * 4).toFixed(2)}deg`);
+    });
+  };
+  const endTilt = (e: PointerEvent<SVGGElement>) => {
+    cancelAnimationFrame(tiltRaf.current);
+    const surface = e.currentTarget.querySelector<SVGGElement>('[data-ia-motion-surface]');
+    surface?.style.removeProperty('--ia-rx');
+    surface?.style.removeProperty('--ia-ry');
+  };
+  useEffect(() => () => cancelAnimationFrame(tiltRaf.current), []);
+
   const lit = (id: string) => !active || id === active || BY_ID[active].with.includes(id);
   const peerLit = (a: string, b: string) => active !== null && ((a === active && BY_ID[active].with.includes(b)) || (b === active && BY_ID[active].with.includes(a)));
   const current = active ? BY_ID[active] : null;
   const onKey = (id: string) => (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActive((v) => (v === id ? null : id)); } };
 
   return (
-    <div ref={ref} className="eco2" data-in={inView ? 'true' : 'false'} data-active={active ?? undefined}>
+    <div ref={ref} className="eco2" data-in={inView ? 'true' : 'false'} data-active={active ?? undefined} data-ia-motion="" data-ia-running={running ? 'true' : 'false'}>
       <div className="eco2-stage">
       <svg className="eco2-svg" viewBox={`0 0 ${L.w} ${L.h}`} style={{ ["--eco2-font" as string]: `${L.font}px` }} role="group" aria-label={`${siteName} ecosystem map. Choose an agent to see what it does and who it works with.`}>
         <defs>
@@ -114,8 +153,11 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
 
         {/* agent-to-agent hand-offs */}
         {!tall && PEERS.map(([a, b], i) => (
-          <path key={`p-${a}-${b}`} d={arc(L, a, b)} pathLength={1}
-            className={`eco2-peer${peerLit(a, b) ? ' is-lit' : ''}`} style={{ ['--i' as string]: i }} />
+          <g key={`p-${a}-${b}`}>
+            <path d={arc(L, a, b)} pathLength={1}
+              className={`eco2-peer${peerLit(a, b) ? ' is-lit' : ''}`} style={{ ['--i' as string]: i }} />
+            <path d={arc(L, a, b)} pathLength={100} className="ia-pulse" data-ia-flow={peerLit(a, b) ? 'true' : 'false'} aria-hidden="true" />
+          </g>
         ))}
 
         {/* hub aura and ripples */}
@@ -134,6 +176,7 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
             <g key={`l-${a.id}`} className={`eco2-link${lit(a.id) ? '' : ' is-dim'}`} style={{ ['--i' as string]: i }}>
               <path d={d} pathLength={1} className="eco2-link-base" />
               <path d={d} className="eco2-link-flow" />
+              <path d={d} pathLength={100} className="ia-pulse ia-pulse-hub" data-ia-flow={active === a.id ? 'true' : 'false'} aria-hidden="true" />
               {(
                 <>
                   <circle r="4.5" className="eco2-pulse" filter="url(#eco2-glow)">
@@ -187,12 +230,18 @@ export function EcosystemDiagram({ siteName }: { siteName: string }) {
             aria-label={`${a.name}. ${a.does}`}
             onMouseEnter={() => setActive(a.id)} onMouseLeave={() => setActive(null)}
             onFocus={() => setActive(a.id)} onBlur={() => setActive(null)}
-            onClick={() => setActive(a.id)} onKeyDown={onKey(a.id)}>
-            <rect x={left} y={y - 29} width={pw} height="58" rx="29" className="eco2-pill" filter="url(#eco2-shadow)" />
-            <circle cx={left + 27} cy={y} r="17" className="eco2-icon-bg" />
-            <g transform={`translate(${left + 27} ${y}) scale(0.72)`} className="eco2-icon">{a.icon}</g>
-            <text x={left + 52} y={y + 5} className="eco2-name">{a.name}</text>
-            {a.status === 'live' && <circle cx={left + pw - 18} cy={y - 13} r="4" className="eco2-live" />}
+            onClick={() => setActive(a.id)} onKeyDown={onKey(a.id)}
+            data-ia-motion-node="" data-ia-active={active === a.id ? 'true' : 'false'}
+            onPointerMove={onTilt} onPointerLeave={endTilt} onPointerCancel={endTilt}>
+            {/* Fixed, invisible hit area: hover stays stable while the visible surface tilts. */}
+            <rect x={left} y={y - 29} width={pw} height="58" rx="29" className="eco2-hit" />
+            <g className="eco2-surface" data-ia-motion-surface="" style={{ transformOrigin: `${x}px ${y}px` }}>
+              <rect x={left} y={y - 29} width={pw} height="58" rx="29" className="eco2-pill" filter="url(#eco2-shadow)" />
+              <circle cx={left + 27} cy={y} r="17" className="eco2-icon-bg" />
+              <g transform={`translate(${left + 27} ${y}) scale(0.72)`} className="eco2-icon">{a.icon}</g>
+              <text x={left + 52} y={y + 5} className="eco2-name">{a.name}</text>
+              {a.status === 'live' && <circle cx={left + pw - 18} cy={y - 13} r="4" className="eco2-live" />}
+            </g>
           </g>
           );
         })}

@@ -349,8 +349,8 @@
 .eco2[data-active] .eco2-link .eco2-link-flow { opacity: 0 !important; transition: opacity .15s; }
 
 /* agents */
-.eco2-node { cursor: pointer; opacity: 0; transform: scale(.85); outline: none;
-  transition: opacity .5s ease calc(var(--i) * 90ms + 300ms), transform .5s cubic-bezier(.2,.9,.3,1.3) calc(var(--i) * 90ms + 300ms); }
+.eco2-node { cursor: pointer; opacity: 0; transform: translateY(14px) scale(.94); outline: none;
+  transition: opacity .55s cubic-bezier(.2,.75,.25,1) calc(var(--i) * 80ms + 300ms), transform .6s cubic-bezier(.2,.75,.25,1) calc(var(--i) * 80ms + 300ms); }
 .eco2-pill { fill: #fff; stroke: color-mix(in srgb, var(--cells-accent) 22%, transparent); stroke-width: 1.5; transition: stroke .2s, fill .2s; }
 .eco2-node.is-soon .eco2-pill { fill: color-mix(in srgb, #fff 82%, transparent); stroke: color-mix(in srgb, var(--cells-ink) 28%, transparent); stroke-dasharray: 5 5; }
 .eco2-icon-bg { fill: color-mix(in srgb, var(--cells-accent) 12%, #fff); }
@@ -402,3 +402,26 @@
   background: color-mix(in srgb, var(--cells-bg) 72%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   border: 1px solid color-mix(in srgb, var(--cells-accent) 14%, transparent); }
 @media (min-width: 900px) { .cells-eco-map { padding: 28px 28px 24px; } }
+
+/* ---- Ecosystem motion-only layer (Insert_Agentic_Ecosystem_Motion_Only, 28 Nov 2026) ----
+   Adds tilt, elevation, purple glow and relationship pulses to the existing map. No layout, position, size,
+   colour or copy changes: at rest every surface is the identity transform. */
+.eco2[data-ia-motion] { --ia-motion-accent: var(--cells-accent); --ia-motion-glow: rgb(124 58 237 / .30); }
+.eco2-hit { fill: transparent; }
+.eco2-surface { --ia-rx: 0deg; --ia-ry: 0deg; transform-box: view-box; transform: none;
+  transition: transform 260ms cubic-bezier(.2,.75,.25,1), filter 260ms ease; }
+.eco2-node[data-ia-active="true"] .eco2-surface, .eco2-node:focus-visible .eco2-surface {
+  transform: perspective(850px) translateZ(10px) rotateX(var(--ia-rx)) rotateY(var(--ia-ry));
+  filter: drop-shadow(0 8px 16px var(--ia-motion-glow)) drop-shadow(0 0 1px rgb(124 58 237 / .35)); }
+/* A light pulse travels along the existing highlighted connections only (active agent's link + its hand-offs). */
+.ia-pulse { fill: none; stroke: var(--ia-motion-accent); stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 6 94;
+  pointer-events: none; opacity: 0; filter: drop-shadow(0 0 4px rgb(167 139 250 / .9));
+  animation: ia-flow 2.4s linear infinite; animation-play-state: paused; transition: opacity 260ms ease; }
+.ia-pulse-hub { animation-duration: 1.8s; }
+.eco2[data-ia-running="true"] .ia-pulse[data-ia-flow="true"] { opacity: .95; animation-play-state: running; }
+@keyframes ia-flow { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -100; } }
+@media (prefers-reduced-motion: reduce) {
+  .eco2-surface, .eco2-node[data-ia-active="true"] .eco2-surface, .eco2-node:focus-visible .eco2-surface { transform: none; transition: none; }
+  .ia-pulse { display: none; animation: none; }
+  .eco2-node { transform: none; }
+}
