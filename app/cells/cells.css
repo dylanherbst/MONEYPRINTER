@@ -308,37 +308,83 @@
 .cells-ea-hp { position: absolute; left: -10000px; width: 1px; height: 1px; opacity: 0; }
 .cells-ea-done { font-size: 1.1rem; font-weight: 600; color: var(--cells-ink); margin: 6px 0 0; }
 
-/* Ecosystem page: hub diagram on wider screens, a simple stack on phones. */
-.eco-figure { margin: 8px 0 0; display: none; }
-.eco-svg { width: 100%; height: auto; display: block; }
-.eco-link { stroke: color-mix(in srgb, var(--cells-accent) 45%, transparent); stroke-width: 2; }
-.eco-link-soon { stroke-dasharray: 6 7; }
-.eco-ring { fill: none; stroke: color-mix(in srgb, var(--cells-accent) 55%, transparent); stroke-width: 2; stroke-dasharray: 3 7; }
-.eco-ring-label { font: 600 15px var(--cells-head); fill: var(--cells-accent); }
-.eco-ring-sub { font: 500 13px var(--cells-font); fill: var(--cells-accent); }
-.eco-hub { fill: color-mix(in srgb, var(--cells-accent) 10%, #fff); stroke: color-mix(in srgb, var(--cells-accent) 35%, transparent); stroke-width: 1.5; }
-.eco-hub-title { font: 600 24px var(--cells-head); fill: var(--cells-ink); letter-spacing: -0.02em; }
-.eco-hub-sub { font: 500 14px var(--cells-font); fill: var(--cells-ink-2); }
-.eco-node { fill: #fff; stroke: var(--cells-line); stroke-width: 1.5; filter: drop-shadow(0 6px 14px rgb(46 26 84 / .10)); }
-.eco-node-soon { fill: color-mix(in srgb, #fff 80%, transparent); stroke-dasharray: 5 5; stroke: color-mix(in srgb, var(--cells-ink) 30%, transparent); }
-.eco-node-name { font: 600 16px var(--cells-head); fill: var(--cells-ink); }
-.eco-node-soon-label { font: 600 11px var(--cells-font); fill: #8a6d00; }
-.eco-figure figcaption { margin-top: 10px; text-align: center; }
-.eco-stack { display: grid; gap: 10px; margin-top: 10px; }
-.eco-stack-hub { display: grid; gap: 4px; padding: 18px; border-radius: 20px; text-align: center;
-  background: color-mix(in srgb, var(--cells-accent) 10%, #fff); border: 1px solid color-mix(in srgb, var(--cells-accent) 30%, transparent); }
-.eco-stack-hub b { font-family: var(--cells-head); font-size: 1.3rem; font-weight: 600; }
-.eco-stack-hub span { font-size: .95rem; color: var(--cells-ink-2); }
-.eco-stack-ring { text-align: center; font-size: .92rem; font-weight: 600; color: var(--cells-accent); }
-.eco-stack ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.eco-stack li { display: grid; gap: 2px; padding: 12px; border-radius: 16px; border: 1px solid var(--cells-line); background: #fff;
-  font-family: var(--cells-head); font-weight: 600; font-size: .98rem; text-align: center; }
-.eco-stack li.is-soon { border-style: dashed; background: color-mix(in srgb, #fff 80%, transparent); }
-.eco-stack li em { font-style: normal; font-family: var(--cells-font); font-size: .72rem; color: #8a6d00; }
+/* Ecosystem page: animated, interactive map (app/ecosystem/ecosystem-diagram.tsx). */
 .eco-with { font-size: .9rem !important; color: var(--cells-accent) !important; font-weight: 600; }
 .eco-chips { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .eco-chips li { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--cells-line); background: #fff; font-size: .95rem; font-weight: 600; }
-@media (min-width: 720px) {
-  .eco-figure { display: block; }
-  .eco-stack { display: none; }
+
+.eco2 { margin-top: 8px; display: grid; gap: 14px; }
+.eco2-svg { width: 100%; height: auto; display: block; overflow: visible; max-width: 920px; margin: 0 auto; }
+
+/* hub */
+.eco2-aura { animation: eco2-breathe 5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.eco2-ripple { fill: none; stroke: var(--cells-accent); stroke-width: 1.5; opacity: 0; animation: eco2-ripple 4s ease-out infinite; }
+.eco2-ripple-2 { animation-delay: 2s; }
+.eco2-hub-disc { stroke: color-mix(in srgb, var(--cells-accent) 40%, transparent); stroke-width: 1.5; }
+.eco2-hub-title { font: 650 calc(var(--eco2-font) * 1.55) var(--cells-head); fill: var(--cells-ink); letter-spacing: -0.02em; }
+.eco2-hub-sub { font: 500 calc(var(--eco2-font) * .86) var(--cells-font); fill: var(--cells-ink-2); }
+
+/* Growth Manager ring */
+.eco2-gm { animation: eco2-spin 26s linear infinite; }
+.eco2-ring { fill: none; stroke-width: 2.5; stroke-dasharray: 2 9; stroke-linecap: round; }
+.eco2-orbit { fill: var(--cells-accent); }
+.eco2-gm-chip { fill: color-mix(in srgb, #fff 88%, transparent); stroke: color-mix(in srgb, var(--cells-accent) 30%, transparent); }
+.eco2-gm-title { font: 650 var(--eco2-font) var(--cells-head); fill: var(--cells-accent); }
+.eco2-gm-sub { font: 500 calc(var(--eco2-font) * .8) var(--cells-font); fill: var(--cells-accent); }
+
+/* links and pulses */
+.eco2-link-base { fill: none; stroke: color-mix(in srgb, var(--cells-accent) 30%, transparent); stroke-width: 2; stroke-dasharray: 1; stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1s cubic-bezier(.2,.7,.2,1) calc(var(--i) * 90ms + 150ms), opacity .3s; }
+.eco2-link-flow { fill: none; stroke: var(--cells-accent); stroke-width: 2; stroke-dasharray: 3 12; stroke-linecap: round; opacity: 0;
+  animation: eco2-flow 1.4s linear infinite; transition: opacity .6s ease 1.2s; }
+.eco2-link.is-soon .eco2-link-flow { stroke: color-mix(in srgb, var(--cells-ink) 35%, transparent); animation-duration: 3s; }
+.eco2-pulse { fill: var(--cells-accent); opacity: 0; transition: opacity .6s ease 1.3s; }
+.eco2-pulse-back { fill: #c084fc; }
+.eco2-link.is-dim { opacity: .18; transition: opacity .3s; }
+.eco2-peer { fill: none; stroke: color-mix(in srgb, var(--cells-accent) 16%, transparent); stroke-width: 1.5; stroke-dasharray: 1; stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1.4s ease calc(var(--i) * 80ms + 700ms), stroke .25s, stroke-width .25s; }
+.eco2-peer.is-lit { stroke: var(--cells-accent); stroke-width: 2.5; stroke-dasharray: 4 6; stroke-dashoffset: 0; animation: eco2-flow 1.2s linear infinite; }
+
+/* agents */
+.eco2-node { cursor: pointer; opacity: 0; transform: scale(.85); outline: none;
+  transition: opacity .5s ease calc(var(--i) * 90ms + 300ms), transform .5s cubic-bezier(.2,.9,.3,1.3) calc(var(--i) * 90ms + 300ms); }
+.eco2-pill { fill: #fff; stroke: color-mix(in srgb, var(--cells-accent) 22%, transparent); stroke-width: 1.5; transition: stroke .2s, fill .2s; }
+.eco2-node.is-soon .eco2-pill { fill: color-mix(in srgb, #fff 82%, transparent); stroke: color-mix(in srgb, var(--cells-ink) 28%, transparent); stroke-dasharray: 5 5; }
+.eco2-icon-bg { fill: color-mix(in srgb, var(--cells-accent) 12%, #fff); }
+.eco2-node.is-soon .eco2-icon-bg { fill: color-mix(in srgb, var(--cells-ink) 7%, #fff); }
+.eco2-icon { fill: none; stroke: var(--cells-accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.eco2-node.is-soon .eco2-icon { stroke: color-mix(in srgb, var(--cells-ink) 55%, transparent); }
+.eco2-name { font: 650 var(--eco2-font) var(--cells-head); fill: var(--cells-ink); letter-spacing: -0.01em; }
+.eco2-soon { font: 650 calc(var(--eco2-font) * .72) var(--cells-font); fill: #8a6d00; }
+.eco2-live { fill: #16a34a; animation: eco2-blink 2s ease-in-out infinite; }
+.eco2-node:hover .eco2-pill, .eco2-node:focus-visible .eco2-pill, .eco2-node.is-active .eco2-pill { stroke: var(--cells-accent); stroke-width: 2.5; }
+.eco2-node:focus-visible .eco2-pill { stroke-width: 3.5; }
+.eco2-node.is-dim { opacity: .35 !important; }
+
+/* entrance */
+.eco2[data-in="true"] .eco2-link-base, .eco2[data-in="true"] .eco2-peer { stroke-dashoffset: 0; }
+.eco2[data-in="true"] .eco2-link-flow { opacity: .55; }
+.eco2[data-in="true"] .eco2-pulse { opacity: 1; }
+.eco2[data-in="true"] .eco2-node { opacity: 1; transform: scale(1); }
+.eco2[data-in="true"] .eco2-node.is-dim { transition-delay: 0s; }
+
+/* detail panel */
+.eco2-panel { min-height: 96px; max-width: 640px; margin: 0 auto; width: 100%; box-sizing: border-box; padding: 16px 20px; border-radius: 20px; text-align: center;
+  border: 1px solid color-mix(in srgb, var(--cells-accent) 22%, transparent); background: color-mix(in srgb, #fff 86%, transparent); }
+.eco2-panel p { margin: 0; }
+.eco2-panel-name { display: flex; gap: 8px; align-items: center; justify-content: center; font: 650 1.2rem var(--cells-head); color: var(--cells-ink); }
+.eco2-panel-does { margin-top: 6px !important; color: var(--cells-ink-2); line-height: 1.45; }
+.eco2-panel-with { margin-top: 6px !important; color: var(--cells-accent); font-weight: 600; font-size: .92rem; }
+.eco2-panel-hint { color: var(--cells-ink-2); line-height: 1.5; }
+
+@keyframes eco2-flow { to { stroke-dashoffset: -30; } }
+@keyframes eco2-spin { to { transform: rotate(360deg); } }
+@keyframes eco2-ripple { 0% { opacity: .45; transform: scale(1); } 100% { opacity: 0; transform: scale(1.75); } }
+@keyframes eco2-breathe { 0%, 100% { opacity: .75; transform: scale(.96); } 50% { opacity: 1; transform: scale(1.04); } }
+@keyframes eco2-blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .eco2-aura, .eco2-ripple, .eco2-gm, .eco2-link-flow, .eco2-live, .eco2-peer.is-lit { animation: none; }
+  .eco2-pulse { display: none; }
+  .eco2-node, .eco2-link-base, .eco2-peer { transition: none; }
 }
