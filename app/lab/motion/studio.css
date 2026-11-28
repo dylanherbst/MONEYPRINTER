@@ -1,0 +1,85 @@
+/* Motion studio chrome (development only). Stage styles: v2-stage.css; C-series demo styles below. */
+.ms { min-height: 100vh; margin: 0; font: 14px 'Hanken Grotesk Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #29233a; background: #f8f7fb; }
+.ms *, .ms *::before, .ms *::after { box-sizing: border-box; }
+.ms p { line-height: 1.5; margin: 6px 0; color: #726b80; }
+.ms-head { padding: 28px 5vw 22px; background: #fff; border-bottom: 1px solid #e8e4ef; }
+.ms-head h1 { margin: 5px 0; font-size: 30px; letter-spacing: -1.2px; color: #1d1638; }
+.ms-eyebrow { font-size: 11px !important; font-weight: 800; letter-spacing: 1.5px; color: #805ebf !important; text-transform: uppercase; }
+.ms-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 20px; max-width: 1240px; margin: 24px auto; padding: 0 20px; }
+.ms-list { display: flex; flex-direction: column; gap: 6px; max-height: 820px; overflow: auto; }
+.ms-group { display: grid; gap: 4px; }
+.ms-section { font-size: 11px !important; text-transform: uppercase; letter-spacing: 1px; color: #8a8197 !important; padding: 10px 8px 2px; margin: 0 !important; }
+.ms-item { display: flex; align-items: center; gap: 10px; text-align: left; border: 1px solid transparent; background: #fff; border-radius: 10px; padding: 9px 10px; cursor: pointer; color: #322842; font: inherit; }
+.ms-item[aria-pressed='true'] { border-color: #a78bde; background: #f1ebff; }
+.ms-item span { font-size: 10px; color: #8364bf; font-weight: 700; width: 26px; }
+.ms-item:focus-visible, .ms-controls :focus-visible { outline: 2px solid #6d28d9; outline-offset: 2px; }
+.ms-viewer { min-width: 0; background: #fff; border: 1px solid #ece8f2; border-radius: 20px; padding: 20px; }
+.ms-viewer h2 { margin: 0 0 5px; font-size: 24px; letter-spacing: -.6px; color: #1d1638; }
+.ms-meta { font-size: 12px !important; font-weight: 700; color: #805ebf !important; }
+.ms-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ms-controls button, .ms-controls select, .ms-parity button { border: 1px solid #e4deed; background: #fff; border-radius: 9px; padding: 9px 13px; color: #483666; cursor: pointer; font: inherit; }
+.ms-controls button.primary { background: #7855bb; color: #fff; border-color: #7855bb; }
+.ms-controls button:disabled { opacity: .45; cursor: not-allowed; }
+.ms-controls input[type='range'] { flex: 1; min-width: 90px; accent-color: #805ac6; }
+.ms-time { font-variant-numeric: tabular-nums; color: #6b6488; min-width: 92px; }
+.ms-spec { display: grid; grid-template-columns: 150px 1fr; gap: 6px 14px; margin: 18px 0 0; font-size: 13px; }
+.ms-spec dt { font-weight: 700; color: #483666; }
+.ms-spec dd { margin: 0; color: #5d5570; }
+.ms-parity output { font-size: 12px; color: #2f6b4f; word-break: break-word; }
+@media (max-width: 780px) {
+  .ms-layout { grid-template-columns: 1fr; padding: 0 12px; margin: 12px auto; }
+  .ms-list { max-height: 220px; }
+  .ms-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ms-section { grid-column: 1 / -1; }
+  .ms-viewer { padding: 12px; }
+  .ms-spec { grid-template-columns: 1fr; }
+}
+
+/* C-series demos (inside .stage.wide, 350×260) */
+.ms .c01-ghost { position: absolute; left: 20px; top: 52px; width: 150px; height: 34px; visibility: hidden; }
+.ms .c01-box { left: 20px; top: 52px; width: 310px; height: 180px; display: grid; align-content: start; gap: 6px; }
+.ms .c01-row { position: absolute; inset: 10px 12px auto; font-size: 12px; opacity: 0; }
+.ms .c02-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ms .c02-base { fill: none; stroke: #d9cdef; stroke-width: 2; stroke-dasharray: 4 6; }
+.ms .c02-path { fill: none; stroke: #7c4ddb; stroke-width: 3; stroke-linecap: round; }
+.ms .c02-node { fill: #fff; stroke: #a789d9; stroke-width: 2; }
+.ms .c02-ring { fill: none; stroke: #7c4ddb; stroke-width: 2; }
+.ms .c02-token { fill: #7c4ddb; }
+.ms .c02-t { font-size: 11px; fill: #5b4a7d; font-weight: 700; }
+.ms .c03-rail { position: absolute; left: 34px; right: 34px; top: 70px; height: 4px; background: #e6def5; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+.ms .c03-fill { position: absolute; inset: 0; background: #7c4ddb; border-radius: 4px; transform-origin: 0 50%; transform: scaleX(.6667); }
+.ms .c03-m { position: relative; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: #fff; border: 2px solid #d9cdef; color: #7c4ddb; }
+.ms .c03-m.done { background: #7c4ddb; color: #fff; border-color: #7c4ddb; }
+.ms .c03-m.on { border-color: #7c4ddb; }
+.ms .c03-p { left: 24px; right: 24px; top: 120px; height: 90px; font-weight: 700; color: #483666; }
+.ms .c04-draft { left: 30px; top: 90px; width: 160px; height: 70px; display: grid; }
+.ms .c04-gate { position: absolute; left: 206px; top: 78px; width: 6px; height: 94px; border-radius: 6px; background: #e9546c; transform-origin: 50% 0; }
+.ms .c04-st { position: absolute; left: 30px; top: 176px; font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; }
+.ms .c04-wait { background: #fde5e9; color: #8d3044; }
+.ms .c04-ok { background: #dcf3e9; color: #1f634b; opacity: 0; }
+.ms .c04-btn { position: absolute; left: 228px; top: 108px; padding: 9px 16px; border-radius: 999px; background: #241340; color: #fff; font-weight: 700; font-size: 12px; }
+.ms .c05-card { left: 60px; top: 80px; width: 230px; height: 110px; display: grid; gap: 6px; }
+[data-c05] { position: relative; }
+.ms .c06-glow { position: absolute; inset: 30px; border-radius: 50%; background: radial-gradient(closest-side, #c98dcb88, #9b6cc540 55%, transparent); }
+.ms .c06-copy { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 6px; font-size: 18px; color: #241340; padding: 0 30px; }
+.ms .c07 { left: 20px; top: 60px; width: 310px; }
+.ms .c07-sum { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; }
+.ms .c07-ind { display: inline-block; color: #6d28d9; font-size: 18px; line-height: 1; transform: rotate(45deg); }
+.ms .c07-body { overflow: hidden; }
+.ms .c08-phone { position: absolute; left: 95px; top: 40px; width: 160px; height: 205px; border-radius: 18px; border: 1px solid #e4deed; background: #fff; overflow: hidden; }
+.ms .c08-bar { display: flex; justify-content: space-between; padding: 10px 12px; font-size: 12px; color: #483666; border-bottom: 1px solid #eee; }
+.ms .c08-sheet { margin: 8px; padding: 6px; border-radius: 12px; background: #f6f2ff; display: grid; gap: 2px; box-shadow: 0 10px 24px #2e1a5422; }
+.ms .c08-sheet span { display: block; padding: 6px 8px; font-size: 12px; font-weight: 700; color: #1d1638; border-radius: 8px; }
+.ms .c09-frame { position: absolute; inset: 0; border-radius: 21px; overflow: hidden; background: #fff; box-shadow: 0 16px 42px #51407a30; }
+.ms .c09-head { position: relative; height: 40px; padding: 11px 14px; font-size: 12px; font-weight: 700; color: #6d28d9; border-bottom: 1px solid #eee; border-radius: 0; box-shadow: none; inset: auto; }
+.ms .c09-page { position: absolute; left: 16px; right: 16px; top: 56px; height: 150px; padding: 12px; border-radius: 12px; background: linear-gradient(140deg, #fff, #f2edfc); }
+.ms .c09-next { opacity: 0; }
+.ms .c10 { left: 30px; top: 70px; width: 290px; height: 110px; display: grid; gap: 4px; }
+.ms .c10-edge { position: absolute; left: 30px; top: 66px; width: 3px; height: 118px; border-radius: 3px; background: #9b6cc5; box-shadow: 0 0 14px 3px #c98dcb88; opacity: 0; }
+.ms .c11 { position: absolute; left: 20px; right: 20px; top: 100px; display: flex; align-items: center; justify-content: center; }
+.ms .c11 .card { position: relative; padding: 12px 14px; font-weight: 700; font-size: 12px; color: #483666; }
+.ms .c11-link { width: 40px; height: 4px; border-radius: 4px; background: #9b6cc5; }
+.ms .c11-st { position: absolute; left: 0; right: 0; top: 170px; text-align: center; font-size: 12px; font-weight: 700; color: #6b4e00; }
+.ms .c12-view { position: absolute; inset: 44px 16px 16px; overflow: hidden; border-radius: 12px; }
+.ms .c12-cam { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ms .c12-p { position: relative; font-size: 12px; }

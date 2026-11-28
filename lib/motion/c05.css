@@ -1,0 +1,18 @@
+/* C05 directional glass reflection (registry: attachC05 sets --c05x/--c05y/--c05o from the pointer).
+   A highlight follows the pointer along the card border; no rotation or depth. Focus shows a static highlight. */
+/* ---- C05: directional glass reflection on [data-c05] cards (pointer-driven, no tilt; static on focus) ---- */
+@property --c05x { syntax: '<percentage>'; inherits: false; initial-value: 30%; }
+@property --c05y { syntax: '<percentage>'; inherits: false; initial-value: 0%; }
+[data-c05] { position: relative; isolation: isolate; transition: --c05x .15s ease-out, --c05y .15s ease-out; }
+[data-c05]::after { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none; z-index: 2;
+  background: radial-gradient(180px circle at var(--c05x) var(--c05y), rgb(255 255 255 / .95), rgb(201 141 203 / .7) 30%, rgb(155 108 197 / .25) 55%, transparent 75%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: var(--c05o, 0); transition: opacity .15s ease; }
+[data-c05]:focus-visible::after, [data-c05]:focus-within::after { --c05o: 1; opacity: 1;
+  background: radial-gradient(220px circle at 20% 0%, rgb(255 255 255 / .95), rgb(201 141 203 / .7) 30%, rgb(155 108 197 / .25) 55%, transparent 75%); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-c05] { transition: none; }
+  [data-c05]::after { transition: none; background: radial-gradient(220px circle at 20% 0%, rgb(255 255 255 / .95), rgb(201 141 203 / .7) 30%, rgb(155 108 197 / .25) 55%, transparent 75%); }
+}

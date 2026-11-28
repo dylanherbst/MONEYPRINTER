@@ -1,0 +1,50 @@
+/* Stage styles ported from Insert_Agentic_Motion_Library_v2.html (V2 studio), scoped to .ms. Development only. */
+.ms .stagebox{height:470px;position:relative;display:grid;place-items:center;overflow:hidden;border-radius:15px;background:radial-gradient(ellipse at 50% 45%,#e6dcff 0%,#faf8ff 58%,#f7f6fa 100%);margin:18px 0;isolation:isolate}
+.ms .stagebox:before{content:"";position:absolute;inset:0;background-image:linear-gradient(#9b87bf10 1px,transparent 1px),linear-gradient(90deg,#9b87bf10 1px,transparent 1px);background-size:24px 24px;mask-image:linear-gradient(black,transparent 75%);pointer-events:none}
+.ms .perspective{perspective:3400px;position:absolute;inset:0;display:grid;place-items:center}
+.ms .stage{position:relative;width:290px;height:320px;transform-style:preserve-3d;transform-origin:center;}
+.ms .shell{position:absolute;inset:0;border-radius:21px;background:#f6f3fc;border:1px solid white;box-shadow:0 16px 42px #51407a30}
+.ms .layer,.ms .card{position:absolute;background:linear-gradient(140deg,#fff,#f2edfc);border:1px solid #fff;border-radius:12px;box-shadow:0 6px 15px #5d46731a;padding:12px;transform-style:preserve-3d}
+.ms .layer{left:12px;right:12px}
+.ms .nav{top:268px;height:40px;display:flex;justify-content:space-around;align-items:center;color:#8b73c2}
+.ms .activity{top:155px;height:104px}
+.ms .metrics{top:89px;height:57px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(115deg,#e5d9ff,#fff1ec)}
+.ms .actions{top:54px;height:29px;padding:6px 12px;font-size:10px;color:#795eb5}
+.ms .brand{top:12px;height:35px;padding:8px 12px;font-weight:800}
+.ms .tiny{font-size:10px;color:#81758f}
+.ms .big{font-size:22px;font-weight:750}
+.ms .line{height:8px;background:#e2d8f2;border-radius:8px;margin:7px 0}
+.ms .line.short{width:64%}
+.ms .tag{font-size:10px;color:#317c63;background:#dcf3e9;padding:4px 8px;border-radius:7px}
+.ms .wide{width:350px;height:260px}
+.ms .wide .shell{background:#ffffffaa}
+.ms .focus{left:20px;top:90px;width:145px;height:80px}
+.ms .wide .focus strong{display:block;margin:5px 0}
+.ms .node{position:absolute;width:112px;height:82px;left:119px;top:90px;text-align:center;display:grid;place-content:center;gap:6px}
+.ms .msg{width:210px;height:39px;left:20px;text-align:left;font-size:12px;display:flex;align-items:center}
+.ms .msg.alt{left:110px;background:#e7dcfc}
+.ms .wave{position:absolute;top:96px;left:55px;right:55px;height:85px;display:flex;align-items:center;justify-content:center;gap:6px}
+.ms .wave i{width:6px;height:70px;border-radius:6px;background:#936fd1;transform-origin:center}
+.ms .overlay{position:absolute;left:65px;right:65px;top:185px;text-align:center;padding:13px;background:#e4f7ec;border-radius:12px;color:#267450;font-weight:700}
+.ms .network{position:absolute;inset:20px;transform-origin:center}
+.ms .scan{position:absolute;top:20px;left:15px;right:15px;height:2px;background:#9c6bf4;box-shadow:0 0 16px 4px #ae87ef80}
+.ms .cta{position:absolute;left:50%;top:50%;width:260px;margin-left:-130px;margin-top:-48px;text-align:center;z-index:2;background:#fff;border:1px solid #e6dcff;padding:19px;border-radius:16px;color:#49346d;box-shadow:0 15px 45px #7658b52b}
+.ms .cta b{display:block;font-size:20px;margin-bottom:9px}
+.ms .cta span{display:inline-block;background:#805ac6;color:white;border-radius:8px;padding:8px 14px;font-size:12px}
+.ms .label{position:absolute;top:18px;left:20px;font-weight:700;color:#69548c;font-size:12px}
+.ms .col{position:absolute;top:52px;bottom:18px;width:145px;border:1px dashed #d9cee9;border-radius:10px;padding:10px;font-size:11px;color:#74658e}
+.ms .col.left{left:20px}
+.ms .col.right{left:185px}
+.ms .frame-label{position:absolute;bottom:12px;left:16px;font-size:10px;color:#9786b1;letter-spacing:.5px}
+.ms .stagebox .source-tag{position:absolute;top:12px;right:12px;font-size:10px;color:#77638e;background:#ffffffb0;padding:5px 8px;border-radius:20px}
+@media(max-width:780px){.ms .stagebox{height:390px}.ms .perspective{transform:scale(.8)}}
+@media(max-width:380px){.ms .perspective{transform:scale(.72)}}
+.ms .flip-wrap{position:absolute;left:55px;top:64px;width:240px;height:160px;transform-style:preserve-3d;perspective:900px}
+.ms .flip-card{position:absolute;inset:0;transform-style:preserve-3d}
+.ms .flip-face{position:absolute;inset:0;border:1px solid #fff;border-radius:18px;box-shadow:0 12px 30px #59428725;padding:18px;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(135deg,#f3eaff,#fff)}
+.ms .flip-back{transform:rotateY(180deg);background:linear-gradient(135deg,#e8defc,#fdf8ff)}
+.ms .flip-icon{font-size:26px;color:#805ac6}
+.ms .flip-face strong{font-size:19px;display:block}
+.ms .flip-face .tag{align-self:flex-start}
+.ms .flip-detail{font-size:12px;color:#69548c;line-height:1.5}
+.ms .flip-caption{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:11px;color:#85759e}
