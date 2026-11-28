@@ -49,7 +49,7 @@ export default function CellsPage() {
               <li><b>1 platform</b><span>Your prices, jobs, quotes and approvals in one place.</span></li>
               <li><b>Less admin</b><span>Your AI team drafts the work and you approve it, so you spend more time with customers.</span></li>
             </ul>
-            <p className="cells-source">Receptionist and Socials &amp; Marketing are coming soon. You approve everything before it goes out. Results are not guaranteed.</p>
+            <p className="cells-source">You approve everything before it goes out. Results are not guaranteed.</p>
           </div>
         </section>
 
@@ -77,7 +77,7 @@ export default function CellsPage() {
           <div className="cells-stat">
             <p className="cells-label">Step 2 of 3 · Activate</p>
             <p className="cells-big">7</p>
-            <p>AI agents, one team: Sales, Job Manager, Business Optimisation and Integrations today, with Receptionist and Socials &amp; Marketing coming soon.</p>
+            <p>AI agents, one team: Sales, Job Manager, Business Optimisation, Integrations, Receptionist and Socials &amp; Marketing.</p>
           </div>
         </section>
 

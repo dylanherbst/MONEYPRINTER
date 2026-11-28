@@ -89,7 +89,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
   {
     id: 'calls', title: 'Calls and recordings',
     body: (
-      <p>The AI Receptionist is coming soon. When it is available, it will tell callers they are speaking with an AI assistant. Calls will only be recorded or transcribed where you have enabled it and where it is lawful, with callers told at the start of the call. You are responsible for meeting recording and privacy laws that apply to your business.</p>
+      <p>The AI Receptionist tells callers they are speaking with an AI assistant. Calls will only be recorded or transcribed where you have enabled it and where it is lawful, with callers told at the start of the call. You are responsible for meeting recording and privacy laws that apply to your business.</p>
     ),
   },
   {

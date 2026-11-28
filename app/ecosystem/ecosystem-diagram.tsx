@@ -39,8 +39,8 @@ const AGENTS: Agent[] = [
   { id: 'jobs', name: 'Job Manager', status: 'live', icon: I.jobs, does: 'Quotes from your price list, invoices when the work is done and chases payment politely, with correct GST.', with: ['sales', 'integrations', 'optimise'] },
   { id: 'integrations', name: 'Integrations', status: 'live', icon: I.integrations, does: 'Connects Stripe, Google Calendar, Xero or a spreadsheet with the least access needed, and automates repeated jobs.', with: ['sales', 'jobs', 'optimise', 'receptionist'] },
   { id: 'optimise', name: 'Business Optimisation', status: 'live', icon: I.optimise, does: 'Reads 18 measures every week, gives up to 8 fixes with the reason, and hands each fix to the right agent.', with: ['sales', 'jobs', 'integrations', 'socials'] },
-  { id: 'socials', name: 'Socials & Marketing', status: 'soon', icon: I.socials, does: 'Plans and drafts posts and campaigns in your own voice. The enquiries they bring go straight to Sales.', with: ['sales', 'optimise'] },
-  { id: 'receptionist', name: 'Receptionist', status: 'soon', icon: I.receptionist, does: 'Answers the phone as an AI assistant, takes details and books new customers into your calendar.', with: ['sales', 'integrations'] },
+  { id: 'socials', name: 'Socials & Marketing', status: 'live', icon: I.socials, does: 'Plans and drafts posts and campaigns in your own voice. The enquiries they bring go straight to Sales.', with: ['sales', 'optimise'] },
+  { id: 'receptionist', name: 'Receptionist', status: 'live', icon: I.receptionist, does: 'Answers the phone as an AI assistant, takes details and books new customers into your calendar.', with: ['sales', 'integrations'] },
 ];
 const BY_ID = Object.fromEntries(AGENTS.map((a) => [a.id, a]));
 

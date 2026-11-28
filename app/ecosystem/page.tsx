@@ -19,8 +19,8 @@ const AGENTS: { name: string; does: string; worksWith: string[]; status: Status 
   { name: 'Job Manager', status: 'live', does: 'Quotes from your price list, invoices when the work is done and sends polite payment reminders, with correct GST.', worksWith: ['Sales', 'Integrations', 'Business Optimisation'] },
   { name: 'Business Optimisation', status: 'live', does: 'Reads 18 measures every week and gives up to 8 fixes, each with the reason, then hands each fix to the right agent.', worksWith: ['Every agent'] },
   { name: 'Integrations', status: 'live', does: 'Connects Stripe, Google Calendar, Xero or a spreadsheet with the least access needed, and turns repeated jobs into automations.', worksWith: ['Stripe', 'Google Calendar', 'Xero', 'Spreadsheets'] },
-  { name: 'Receptionist', status: 'soon', does: 'Answers the phone as an AI assistant, takes details and books new customers into your calendar.', worksWith: ['Sales', 'Integrations'] },
-  { name: 'Socials & Marketing', status: 'soon', does: 'Plans and drafts posts and campaigns in your own voice. New enquiries go straight to Sales.', worksWith: ['Sales', 'Business Optimisation'] },
+  { name: 'Receptionist', status: 'live', does: 'Answers the phone as an AI assistant, takes details and books new customers into your calendar.', worksWith: ['Sales', 'Integrations'] },
+  { name: 'Socials & Marketing', status: 'live', does: 'Plans and drafts posts and campaigns in your own voice. New enquiries go straight to Sales.', worksWith: ['Sales', 'Business Optimisation'] },
   { name: 'Growth Manager', status: 'behind', does: 'Coordinates the whole team so no two agents ever give conflicting advice about the same customer or job.', worksWith: ['Every agent'] },
 ];
 
