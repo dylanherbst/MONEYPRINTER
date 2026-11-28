@@ -14,7 +14,7 @@ export const site = {
   description:
     'AI sales, social media, marketing and receptionist agents working together to help your business attract and convert customers.',
   /** Public domain, without https://, e.g. insertagentic.com. Not chosen yet. */
-  domain: (clean(process.env.NEXT_PUBLIC_SITE_DOMAIN) || 'insertagentic.com').replace(/^https?:\/\//, ''),
+  domain: (clean(process.env.NEXT_PUBLIC_SITE_DOMAIN) || 'www.insertagentic.com').replace(/^https?:\/\//, ''),
   /** The InsertAgentic app (AIMONEYPRINTER-GROWTH deployment), e.g. https://app.insertagentic.com. Not deployed yet. */
   appUrl: clean(process.env.NEXT_PUBLIC_APP_URL),
   /** Where "Join the early access list" goes while the app is not live (a form or waitlist page). */
