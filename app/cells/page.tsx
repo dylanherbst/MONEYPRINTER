@@ -53,22 +53,8 @@ export default function CellsPage() {
           </div>
         </section>
 
-        {/* Not a chapter: while it is read the cells are still out of sight, gathering for step 1. */}
-        <section className="cells-pain" aria-labelledby="cells-h-pain">
-          <div className="cells-copy">
-            <p className="cells-label">Meet your new workforce</p>
-            <h2 id="cells-h-pain">Grow your business. Not your payroll.</h2>
-            <p className="cells-body">Seven AI employees working together, 24/7, to manage, automate and grow your business.</p>
-            <p className="cells-body">No recruitment. No additional staff to manage. No unnecessary overheads.</p>
-            <p className="cells-body">You focus on getting the work done. Your AI team takes care of the rest.</p>
-          </div>
-          <div className="cells-versus" role="list">
-            <div className="cells-vs cells-vs-old" role="listitem"><span>The usual way</span><b>Manage every task yourself</b></div>
-            <div className="cells-vs cells-vs-new" role="listitem"><span>With {site.name}</span><b>One Agentic AI team</b></div>
-          </div>
-        </section>
 
-        {/* Not a chapter: the animated map of the AI team (same component as /ecosystem). */}
+        {/* Not a chapter: while it is read the cells are still out of sight, gathering for step 1. Animated map of the AI team (same component as /ecosystem). */}
         <section className="cells-pain cells-eco" aria-labelledby="cells-h-eco">
           <div className="cells-copy">
             <p className="cells-label">Your AI team</p>

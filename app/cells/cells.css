@@ -398,7 +398,6 @@
 }
 
 /* Home: the ecosystem map under the "new workforce" section. */
-.cells-eco { padding-top: 0; }
 .cells-eco-map { width: 100%; max-width: 980px; box-sizing: border-box; padding: 18px 10px 20px; border-radius: 28px;
   background: color-mix(in srgb, var(--cells-bg) 72%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
   border: 1px solid color-mix(in srgb, var(--cells-accent) 14%, transparent); }
