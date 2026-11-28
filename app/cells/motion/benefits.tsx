@@ -49,7 +49,7 @@ export function Benefits() {
       <li>
         <span className="cells-art cells-art-count" aria-hidden="true">
           {['Sales', 'Job Manager', 'Business Optimisation', 'Integrations', 'Receptionist', 'Socials & Marketing', 'Growth Manager'].map((n, i) => (
-            <i key={n} className={i >= 4 && i <= 5 ? 'is-soon' : undefined} title={n} />
+            <i key={n} title={n} />
           ))}
         </span>
         <b><span className="cells-sr">7</span><span ref={counter} aria-hidden="true">7</span> AI agents</b>

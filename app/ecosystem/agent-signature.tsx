@@ -7,7 +7,7 @@ import type { MotionTargets, PresetId } from '../../lib/motion/registry';
  * One small illustrative animation per agent, shown in the ecosystem info card when that agent is selected.
  * It plays once per selection (one agent at a time) and ends in a readable still. Reduced motion: the still only.
  *   Sales B04 · Job Manager B07 · Business Optimisation B11 · Integrations C02 · Growth Manager B10 ·
- *   Receptionist B05 (coming soon) · Socials & Marketing B09 (coming soon)
+ *   Receptionist B05 · Socials & Marketing B09
  */
 const SIG: Record<string, PresetId> = { sales: 'B04', jobs: 'B07', optimise: 'B11', integrations: 'C02', growth: 'B10', receptionist: 'B05', socials: 'B09' };
 
@@ -82,12 +82,11 @@ export function AgentSignature({ id }: { id: string }) {
         </div>
       )}
       {id === 'receptionist' && (
-        <div className="sig-wave">{Array.from({ length: 16 }, (_, i) => <i key={i} data-t="bar" />)}<span className="sig-note">Coming soon</span></div>
+        <div className="sig-wave">{Array.from({ length: 16 }, (_, i) => <i key={i} data-t="bar" />)}</div>
       )}
       {id === 'socials' && (
         <div className="sig-fan">
           {['Post', 'Story', 'Offer'].map((t) => <span key={t} data-t="node">{t}</span>)}
-          <span className="sig-note">Coming soon</span>
         </div>
       )}
     </div>

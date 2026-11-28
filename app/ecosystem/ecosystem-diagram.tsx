@@ -18,8 +18,8 @@ import { AgentSignature } from './agent-signature';
 // - C02 connector routing on selection: one path draws from the agent to your business and one token arrives;
 // - one signature per agent inside the info card, on interaction only, one agent at a time:
 //   Sales B04, Job Manager B07, Business Optimisation B11, Integrations C02, Growth Manager B10,
-//   Receptionist B05 (coming soon), Socials & Marketing B09 (coming soon).
-// Receptionist and Socials & Marketing are labelled "Coming soon" on the map (dashed, muted, no live dot).
+//   Receptionist B05, Socials & Marketing B09.
+// All six mapped agents are live (owner, 28 Nov 2026); Growth Manager works behind the scenes.
 
 type Status = 'live' | 'soon';
 type Agent = { id: string; name: string; status: Status; does: string; with: string[]; icon: ReactNode };
@@ -46,8 +46,8 @@ const AGENTS: Agent[] = [
   { id: 'jobs', name: 'Job Manager', status: 'live', icon: I.jobs, does: 'Quotes from your price list, invoices when the work is done and chases payment politely, with correct GST.', with: ['sales', 'integrations', 'optimise'] },
   { id: 'integrations', name: 'Integrations', status: 'live', icon: I.integrations, does: 'Connects Stripe, Google Calendar, Xero or a spreadsheet with the least access needed, and automates repeated jobs.', with: ['sales', 'jobs', 'optimise', 'receptionist'] },
   { id: 'optimise', name: 'Business Optimisation', status: 'live', icon: I.optimise, does: 'Reads 18 measures every week, gives up to 8 fixes with the reason, and hands each fix to the right agent.', with: ['sales', 'jobs', 'integrations', 'socials'] },
-  { id: 'socials', name: 'Socials & Marketing', status: 'soon', icon: I.socials, does: 'Plans and drafts posts and campaigns in your own voice. The enquiries they bring go straight to Sales.', with: ['sales', 'optimise'] },
-  { id: 'receptionist', name: 'Receptionist', status: 'soon', icon: I.receptionist, does: 'Answers the phone as an AI assistant, takes details and books new customers into your calendar.', with: ['sales', 'integrations'] },
+  { id: 'socials', name: 'Socials & Marketing', status: 'live', icon: I.socials, does: 'Plans and drafts posts and campaigns in your own voice. The enquiries they bring go straight to Sales.', with: ['sales', 'optimise'] },
+  { id: 'receptionist', name: 'Receptionist', status: 'live', icon: I.receptionist, does: 'Answers the phone as an AI assistant, takes details and books new customers into your calendar.', with: ['sales', 'integrations'] },
 ];
 const GROWTH: Agent = { id: 'growth', name: 'Growth Manager', status: 'live', icon: null, does: 'Works behind the scenes: coordinates the team so no two agents give conflicting advice about the same customer or job.', with: ['sales', 'jobs', 'integrations', 'optimise', 'receptionist', 'socials'] };
 const BY_ID: Record<string, Agent> = Object.fromEntries([...AGENTS, GROWTH].map((a) => [a.id, a]));

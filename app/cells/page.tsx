@@ -55,7 +55,7 @@ export default function CellsPage() {
             <p className="cells-label" id="cells-points-h">A smarter way to grow your business</p>
             {/* Same three points; B08 (the published 7), A04 and B02 illustrations play once on view. */}
             <Benefits />
-            <p className="cells-source">Receptionist and Socials &amp; Marketing are coming soon. You approve everything before it goes out. Results are not guaranteed.</p>
+            <p className="cells-source">You approve everything before it goes out. Results are not guaranteed.</p>
           </div>
         </section>
 
@@ -84,7 +84,7 @@ export default function CellsPage() {
           <div className="cells-stat">
             <p className="cells-label">Step 2 of 3 · Activate</p>
             <p className="cells-big">7</p>
-            <p>AI agents, one team: Sales, Job Manager, Business Optimisation and Integrations today, with Receptionist and Socials &amp; Marketing coming soon.</p>
+            <p>AI agents, one team: Sales, Job Manager, Business Optimisation, Integrations, Receptionist and Socials &amp; Marketing, kept in sync by the Growth Manager.</p>
             <StepPanel stage="team" />
           </div>
         </section>

@@ -110,7 +110,7 @@ export function StepPanel({ stage }: { stage: Stage }) {
             </>
           )}
           <Blocks stage={stage} refs={(i) => (el) => { blocks.current[i] = el; }} />
-          {stage === 'team' && <p className="sp-foot">Receptionist and Socials &amp; Marketing coming soon · Growth Manager behind the scenes</p>}
+          {stage === 'team' && <p className="sp-foot">Plus Receptionist and Socials &amp; Marketing · Growth Manager behind the scenes</p>}
         </div>
         {stage !== 'setup' && (waiting || go) && (
           <div className="sp-l sp-ghost" data-layout={prev} data-gone={!waiting || undefined}>

@@ -1,5 +1,5 @@
 // Shared copy and links for the public pages (from the InsertAgentic website brief, 24 Nov 2026). Features that are not
-// verified yet are labelled "In development" rather than advertised as working.
+// not live would be labelled; as of 28 Nov 2026 the owner confirmed all agents are live.
 import { site } from '../../lib/aimp/site-config';
 
 /** The app is live once its address is configured; until then the site offers early access instead of sign-up. */
@@ -21,8 +21,8 @@ export const AGENTS = [
   { title: 'Job Manager', body: 'Quotes from your price list, invoices and polite payment reminders, with correct GST.', soon: false },
   { title: 'Business Optimisation', body: 'Checks 18 measures every week and gives up to 8 fixes, each with the reason.', soon: false },
   { title: 'Integrations', body: 'Connects Stripe, Google Calendar, Xero or a spreadsheet with the least access needed, and turns repeated jobs into automations.', soon: false },
-  { title: 'Receptionist', body: 'Answers the phone as an AI assistant, takes details and books new customers.', soon: true },
-  { title: 'Socials & Marketing', body: 'Plans and drafts posts and campaigns in your own voice.', soon: true },
+  { title: 'Receptionist', body: 'Answers the phone as an AI assistant, takes details and books new customers.', soon: false },
+  { title: 'Socials & Marketing', body: 'Plans and drafts posts and campaigns in your own voice.', soon: false },
   { title: 'Growth Manager', body: 'Coordinates the team so agents never give conflicting advice about the same customer or job.', soon: false, behind: true },
 ];
 
@@ -45,13 +45,13 @@ export const STEPS = [
 /** Plans and the founding offer (prices in AUD). */
 export const PLANS = [
   { title: 'Starter', price: 'A$79/month', founding: 'A$49', body: 'Sales, Job Manager and Business Optimisation.' },
-  { title: 'Growth', price: 'A$149/month', founding: 'A$99', body: 'Everything in Starter, plus Integrations. Receptionist included when it launches.' },
+  { title: 'Growth', price: 'A$149/month', founding: 'A$99', body: 'Everything in Starter, plus Integrations. Receptionist included.' },
 ];
 export const OFFER_NOTE = 'Founding price locked for 12 months for the first 25 businesses. 14-day free trial, a reminder before your first charge, cancel in two taps. Prices in AUD.';
 
 export const FAQS = [
   { q: `Who is ${site.name} for?`, a: 'Australian sole traders and small businesses in beauty, fitness, trades, retail and professional services.' },
-  { q: 'What does it do today?', a: 'Sales replies to enquiries, Job Manager quotes, invoices and chases payments, Business Optimisation finds where you’re losing money, and Integrations connects Stripe, Google Calendar, Xero or a spreadsheet. Receptionist and Socials & Marketing are coming soon.' },
+  { q: 'What does it do today?', a: 'Sales replies to enquiries, Job Manager quotes, invoices and chases payments, Business Optimisation finds where you’re losing money, and Integrations connects Stripe, Google Calendar, Xero or a spreadsheet, Receptionist answers your calls, and Socials & Marketing drafts your posts and campaigns.' },
   { q: 'Will it send anything without me?', a: 'No. Every customer message, quote and action is a draft until you approve it, and one switch pauses everything.' },
   { q: 'Will it make up prices or numbers?', a: 'No. Prices come only from your confirmed price list. Anything it can’t measure shows “Not measured yet”.' },
   { q: 'How much does it cost?', a: 'Starter is A$79/month and Growth is A$149/month. The first 25 businesses get A$49 or A$99, locked for 12 months. Every plan starts with a 14-day free trial.' },

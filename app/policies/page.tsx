@@ -56,7 +56,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
     id: 'ai', title: 'AI agents and AI-generated content',
     body: (
       <>
-        <p>{site.name} uses artificial intelligence to draft replies, quotes, invoices and reminders, suggest improvements and, as features launch, posts and phone answering. AI can be wrong, out of date or incomplete, and can misunderstand a customer.</p>
+        <p>{site.name} uses artificial intelligence to draft replies, quotes, invoices and reminders, suggest improvements, draft posts and campaigns, and answer calls. AI can be wrong, out of date or incomplete, and can misunderstand a customer.</p>
         <p>Nothing your AI team prepares is sent, booked or charged until you approve that exact version. You are responsible for checking the business information your AI team uses (such as services, prices and hours) and for reviewing content before you approve it. Your AI team must not be used to give medical, legal or financial advice to your customers.</p>
       </>
     ),
@@ -75,7 +75,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
     id: 'connections', title: 'Connected accounts',
     body: (
       <>
-        <p>You connect accounts such as Stripe, Google Calendar, Xero or a spreadsheet (and, as features launch, social media and a phone number) through each provider&apos;s own authorisation screen or upload. We ask for the least access needed. We store the access they grant securely, use it only for the tasks you allow, and stop using it as soon as you disconnect or the provider revokes it.</p>
+        <p>You connect accounts such as Stripe, Google Calendar, Xero or a spreadsheet social media accounts or a phone number through each provider&apos;s own authorisation screen or upload. We ask for the least access needed. We store the access they grant securely, use it only for the tasks you allow, and stop using it as soon as you disconnect or the provider revokes it.</p>
         <p>Each provider&apos;s terms and policies apply, and providers can limit, review or withdraw access. Some features depend on provider approval and may not be available in your region or account.</p>
       </>
     ),
@@ -89,7 +89,7 @@ const SECTIONS: { id: string; title: string; body: ReactNode }[] = [
   {
     id: 'calls', title: 'Calls and recordings',
     body: (
-      <p>The AI Receptionist is coming soon. When it is available, it will tell callers they are speaking with an AI assistant. Calls will only be recorded or transcribed where you have enabled it and where it is lawful, with callers told at the start of the call. You are responsible for meeting recording and privacy laws that apply to your business.</p>
+      <p>The AI Receptionist tells callers they are speaking with an AI assistant. Calls will only be recorded or transcribed where you have enabled it and where it is lawful, with callers told at the start of the call. You are responsible for meeting recording and privacy laws that apply to your business.</p>
     ),
   },
   {
