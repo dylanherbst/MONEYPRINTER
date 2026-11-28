@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: site.description,
   openGraph: {
     type: 'website', url: siteUrl('/'), siteName: site.name,
-    title: 'Grow your business without doing it all yourself',
+    title: 'Build your Agentic workforce or get left behind',
     description: site.description,
   },
   alternates: siteUrl() ? { canonical: siteUrl('/') } : undefined,
@@ -35,7 +35,7 @@ export default function CellsPage() {
         <section className="cells-ch cells-ch-hero" data-chapter="field" aria-labelledby="cells-h1">
           <div className="cells-copy">
             <p className="cells-kicker"><span className="cells-dot" aria-hidden="true" />{site.name}: {site.descriptor}</p>
-            <h1 id="cells-h1">Grow your business without doing it all yourself.</h1>
+            <h1 id="cells-h1">Build your Agentic workforce or get left behind.</h1>
             <p className="cells-lede">A team of AI agents that answer enquiries, quote, chase payments and find where your business is losing money. Built for sole traders and small businesses.</p>
             <div className="cells-actions">
               <a className="cells-btn" href={SIGNUP}>{CTA}<span className="cells-go" aria-hidden="true">→</span></a>
